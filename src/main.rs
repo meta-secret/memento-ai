@@ -1,52 +1,39 @@
-use std::collections::HashMap;
-use teloxide::{prelude::*, utils::command::BotCommands};
+mod ai;
+mod common;
+mod telegram;
 
-use config::Config;
+use async_openai::config::OpenAIConfig;
+use std::collections::HashMap;
+use std::sync::Arc;
+
+use config::Config as AppConfig;
+
+use crate::ai::open_ai::NervoAiClient;
+use crate::common::AppState;
+use telegram::bot;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     pretty_env_logger::init();
     log::info!("Starting command bot...");
 
-    let settings = Config::builder()
+    let app_config = AppConfig::builder()
         .add_source(config::File::with_name("config"))
         .build()?
         .try_deserialize::<HashMap<String, String>>()?;
 
-    let token = settings.get("telegram_bot_token").unwrap();
-
-    let bot = Bot::new(token);
-
-    Command::repl(bot, answer).await;
-
-    Ok(())
-}
-
-#[derive(BotCommands, Clone)]
-#[command(rename_rule = "lowercase", description = "These commands are supported:")]
-enum Command {
-    #[command(description = "display this text.")]
-    Help,
-    #[command(description = "handle a username.")]
-    Username(String),
-    #[command(description = "handle a username and an age.", parse_with = "split")]
-    UsernameAndAge { username: String, age: u8 },
-}
-
-async fn answer(bot: Bot, msg: Message, cmd: Command) -> ResponseResult<()> {
-    match cmd {
-        Command::Help => {
-            bot.send_message(msg.chat.id, Command::descriptions().to_string()).await?
-        },
-        Command::Username(username) => {
-            let username = msg.chat.username().unwrap();
-            bot.send_message(msg.chat.id, format!("Your username is @{username}.")).await?
-        }
-        Command::UsernameAndAge { username, age } => {
-            bot.send_message(msg.chat.id, format!("Your username is @{username} and age is {age}."))
-                .await?
-        }
+    let api_key = app_config.get("openai_api_key").unwrap();
+    let open_ai_config = {
+        let cfg = OpenAIConfig::new();
+        cfg.with_api_key(api_key)
     };
+
+    let nervo_ai = NervoAiClient::from(open_ai_config);
+
+    let token = app_config.get("telegram_bot_token").unwrap().clone();
+    let app_state = Arc::from(AppState { nervo_ai });
+
+    bot::start(token, app_state).await?;
 
     Ok(())
 }
