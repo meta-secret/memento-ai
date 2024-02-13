@@ -1,1 +1,1 @@
-pub mod bot;
+pub mod nervo_bot;

@@ -7,16 +7,16 @@ use async_openai::Client;
 
 pub struct NervoAiClient {
     model_name: String,
-    client: Client<OpenAIConfig>,
     max_tokens: u16,
+    client: Client<OpenAIConfig>,
 }
 
 impl From<OpenAIConfig> for NervoAiClient {
     fn from(config: OpenAIConfig) -> Self {
         NervoAiClient {
             model_name: String::from("gpt-3.5-turbo"),
-            client: Client::with_config(config),
             max_tokens: 256u16,
+            client: Client::with_config(config),
         }
     }
 }
@@ -41,7 +41,7 @@ impl NervoAiClient {
             .build()?;
 
         let chat_response = self.client.chat().create(request).await?;
-        let maybe_reply = chat_response.choices.get(0);
+        let maybe_reply = chat_response.choices.first();
         let maybe_msg = maybe_reply.and_then(|reply| reply.message.content.clone());
 
         Ok(maybe_msg)
