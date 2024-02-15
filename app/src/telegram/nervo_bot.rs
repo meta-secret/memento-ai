@@ -21,24 +21,27 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> anyhow::Result<()
             .branch(msg_handler)
     };
 
-    let port: u16 = 3000;
-    let host = "localhost";
-    let url = format!("https://{host}/webhook").parse().unwrap();
+    //let port: u16 = 3000;
+    //let host = "localhost";
+    //let url = format!("https://{host}/webhook").parse().unwrap();
 
-    let addr = ([0, 0, 0, 0], port).into();
+    //let addr = ([0, 0, 0, 0], port).into();
+
+    /*
     let listener = webhooks::axum(bot.clone(), webhooks::Options::new(addr, url))
         .await
         .expect("Couldn't setup webhook");
+    */
 
     Dispatcher::builder(bot, handler)
         // Pass the shared state to the handler as a dependency.
         .dependencies(dptree::deps![app_state])
         .enable_ctrlc_handler()
         .build()
-        .dispatch_with_listener(listener, Arc::new(|err| async move {
-            log::error!("An error occurred: {:?}", err);
-        }))
-        //.dispatch()
+        //.dispatch_with_listener(listener, Arc::new(|err| async move {
+        //    log::error!("An error occurred: {:?}", err);
+        //}))
+        .dispatch()
         .await;
 
     Ok(())

@@ -11,6 +11,8 @@ name = "nervo_bot_app"
 config = "0.14.0"
 anyhow = "1.0.79"
 
+qdrant-client = "1.7.0"
+
 tokio = { version =  "1.36.0", features = ["full"] }
 
 teloxide = { version = "0.12", features = ["macros", "webhooks-axum"] }
@@ -23,3 +25,4 @@ async-openai = "0.18.3"
 serde = "1.0.196"
 serde_json = "1.0.113"
 serde_derive = "1.0.196"
+

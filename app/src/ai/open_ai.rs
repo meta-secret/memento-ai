@@ -1,8 +1,5 @@
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{
-    ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs,
-    CreateChatCompletionRequestArgs,
-};
+use async_openai::types::{ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequest, CreateEmbeddingRequestArgs};
 use async_openai::Client;
 
 pub struct NervoAiClient {
@@ -43,6 +40,15 @@ impl NervoAiClient {
         let chat_response = self.client.chat().create(request).await?;
         let maybe_reply = chat_response.choices.first();
         let maybe_msg = maybe_reply.and_then(|reply| reply.message.content.clone());
+
+        let text = CreateEmbeddingRequestArgs::default()
+            .model("text-embedding-3-small")
+            .input([
+                "Why do programmers hate nature? It has too many bugs.",
+                "Why was the computer cold? It left its Windows open.",
+            ])
+            .build()?;
+        self.client.embeddings().create(text).await?;
 
         Ok(maybe_msg)
     }
