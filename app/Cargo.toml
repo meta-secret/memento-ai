@@ -10,6 +10,7 @@ name = "nervo_bot_app"
 [dependencies]
 config = "0.14.0"
 anyhow = "1.0.79"
+rand = "0.8.5"
 
 qdrant-client = "1.7.0"
 

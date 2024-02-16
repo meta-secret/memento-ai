@@ -1,9 +1,9 @@
+use std::collections::HashMap;
 use crate::common::AppState;
 use std::sync::Arc;
 use teloxide::Bot as TelegramBot;
 use teloxide::{prelude::*, utils::command::BotCommands};
 use teloxide::types::{MediaKind, MessageKind};
-use teloxide::update_listeners::webhooks;
 
 /// Start telegram bot
 pub async fn start(token: String, app_state: Arc<AppState>) -> anyhow::Result<()> {
@@ -57,6 +57,12 @@ enum Command {
     Help,
     #[command(description = "Send message")]
     Msg(String),
+    #[command(description = "Remember a fact")]
+    Remember(String),
+    #[command(description = "Search in the knowledge database")]
+    Search(String),
+    #[command(description = "Lean something new")]
+    Learn(String),
 }
 
 async fn message(bot: Bot, msg: Message, app_state: Arc<AppState>) -> ResponseResult<()> {
@@ -90,6 +96,75 @@ async fn endpoint(
         Command::Msg(msg_text) => {
             chat_gpt_conversation(bot, msg.chat.id, app_state, msg_text).await
         }
+        Command::Remember(text) => {
+            let MessageKind::Common(common_msg) = msg.kind else {
+                bot.send_message(msg.chat.id, "Unsupported message type.")
+                    .await?;
+                return respond(());
+            };
+
+            let Some(user) = common_msg.from else {
+                bot.send_message(msg.chat.id, "User not found. We can handle only direct messages.")
+                    .await?;
+                return respond(());
+            };
+
+            let UserId(user_id) = user.id;
+
+            // do embedding using openai
+            let embedding = app_state.nervo_llm.embedding(text.clone())
+                .await
+                .unwrap();
+
+            //save the embedding into qdrant db
+            let response = app_state.nervo_ai_db.save(user_id, embedding, text)
+                .await
+                .unwrap();
+
+            bot.send_message(msg.chat.id, format!("{:?}", response.result.unwrap().status()))
+                .await?;
+            respond(())
+        }
+        Command::Learn(text) => {
+            respond(())
+        }
+        Command::Search(search_text) => {
+            let MessageKind::Common(common_msg) = msg.kind else {
+                bot.send_message(msg.chat.id, "Unsupported message type.")
+                    .await?;
+                return respond(());
+            };
+
+            let Some(user) = common_msg.from else {
+                bot.send_message(msg.chat.id, "User not found. We can handle only direct messages.")
+                    .await?;
+                return respond(());
+            };
+
+            let UserId(user_id) = user.id;
+
+            // do embedding using openai
+            let embedding = app_state.nervo_llm.embedding(search_text.clone())
+                .await
+                .unwrap();
+
+            //save the embedding into qdrant db
+            let response = app_state.nervo_ai_db.search(user_id, embedding)
+                .await
+                .unwrap();
+
+            let mut results = vec![];
+            response.result.iter().for_each(|point| {
+                //if point.score > 0.5 {
+                    results.push((point.score, point.payload.clone()));
+                //}
+            });
+            let results = serde_json::to_string_pretty(&results).unwrap();
+
+            bot.send_message(msg.chat.id, format!("{}", results)).await?;
+
+            respond(())
+        }
     }
 }
 
@@ -100,7 +175,7 @@ async fn chat_gpt_conversation(bot: Bot, chat_id: ChatId, app_state: Arc<AppStat
         return respond(());
     }
     let reply = app_state
-        .nervo_ai
+        .nervo_llm
         .chat(msg_text)
         .await
         .unwrap()

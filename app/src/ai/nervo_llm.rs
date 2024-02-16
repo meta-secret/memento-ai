@@ -1,24 +1,38 @@
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequest, CreateEmbeddingRequestArgs};
+use async_openai::types::{ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequest, CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_openai::Client;
 
-pub struct NervoAiClient {
+pub struct NervoLlm {
     model_name: String,
+    embedding_model_name: String,
+
     max_tokens: u16,
     client: Client<OpenAIConfig>,
 }
 
-impl From<OpenAIConfig> for NervoAiClient {
+impl From<OpenAIConfig> for NervoLlm {
     fn from(config: OpenAIConfig) -> Self {
-        NervoAiClient {
+        NervoLlm {
             model_name: String::from("gpt-3.5-turbo"),
+            embedding_model_name: String::from("text-embedding-3-small"),
             max_tokens: 256u16,
             client: Client::with_config(config),
         }
     }
 }
 
-impl NervoAiClient {
+impl NervoLlm {
+    pub async fn embedding(&self, text: String) -> anyhow::Result<CreateEmbeddingResponse> {
+        let embedding = CreateEmbeddingRequestArgs::default()
+            .model(self.embedding_model_name.clone())
+            .input(text)
+            .build()?;
+        let response = self.client.embeddings().create(embedding).await?;
+        Ok(response)
+    }
+}
+
+impl NervoLlm {
     pub async fn chat(&self, message: String) -> anyhow::Result<Option<String>> {
         let request = CreateChatCompletionRequestArgs::default()
             .max_tokens(self.max_tokens)
@@ -40,15 +54,6 @@ impl NervoAiClient {
         let chat_response = self.client.chat().create(request).await?;
         let maybe_reply = chat_response.choices.first();
         let maybe_msg = maybe_reply.and_then(|reply| reply.message.content.clone());
-
-        let text = CreateEmbeddingRequestArgs::default()
-            .model("text-embedding-3-small")
-            .input([
-                "Why do programmers hate nature? It has too many bugs.",
-                "Why was the computer cold? It left its Windows open.",
-            ])
-            .build()?;
-        self.client.embeddings().create(text).await?;
 
         Ok(maybe_msg)
     }
