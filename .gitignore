@@ -2,7 +2,5 @@ target
 .idea
 Cargo.lock
 
-config.toml
-
 /serverless/node_modules/
 /serverless/build
