@@ -114,41 +114,6 @@ async fn endpoint(
 
             let UserId(user_id) = user.id;
 
-            {
-                #[derive(Deserialize, Debug)]
-                struct Data {
-                    rows: Vec<RowData>
-                }
-
-                #[derive(Deserialize, Debug)]
-                struct RowData {
-                    row: RowObject
-                }
-
-                #[derive(Deserialize, Debug)]
-                struct RowObject {
-                    text: String
-                }
-
-                use std::fs::File;
-                use std::io::BufReader;
-                use std::path::Path;
-                let file = File::open("data.json")?;
-                let reader = BufReader::new(file);
-                let data: Data = serde_json::from_reader(reader).unwrap();
-                for row in data.rows {
-                    let imdb_text = row.row.text.clone();
-                    let embedding = app_state.nervo_llm.embedding(imdb_text.clone())
-                        .await
-                        .unwrap();
-
-                    //save the embedding into qdrant db
-                    let _ = app_state.nervo_ai_db.save(user_id, embedding, imdb_text)
-                        .await
-                        .unwrap();
-                }
-            }
-
             // do embedding using openai
             let embedding = app_state.nervo_llm.embedding(text.clone())
                 .await
