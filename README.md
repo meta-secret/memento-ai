@@ -1,2 +1,2 @@
 # nervo_bot
-Nero Bot of the world
+Nervo Bot of the world

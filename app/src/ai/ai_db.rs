@@ -45,7 +45,7 @@ impl NervoAiDb {
                     .search_points(&SearchPoints {
                         collection_name: collection_name.into(),
                         vector: vec_data.embedding.clone(),
-                        //filter: Some(Filter::all([Condition::matches("text", 12)])),
+                        //filter: Some(Filter::all([Condition::matches("text", )])),
                         limit: 10,
                         with_payload: Some(true.into()),
                         ..Default::default()
@@ -77,7 +77,7 @@ impl NervoAiDb {
                         vectors_config: Some(VectorsConfig {
                             config: Some(Config::Params(VectorParams {
                                 size: vec_data.embedding.len() as u64,
-                                distance: Distance::Dot.into(),
+                                distance: Distance::Cosine.into(),
                                 ..Default::default()
                             })),
                         }),

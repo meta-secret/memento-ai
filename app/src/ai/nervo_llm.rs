@@ -15,6 +15,7 @@ impl From<OpenAIConfig> for NervoLlm {
         NervoLlm {
             model_name: String::from("gpt-3.5-turbo"),
             embedding_model_name: String::from("text-embedding-3-small"),
+            //embedding_model_name: String::from("text-embedding-3-large"),
             max_tokens: 256u16,
             client: Client::with_config(config),
         }

@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use crate::common::AppState;
 use std::sync::Arc;
+use anyhow::bail;
+use qdrant_client::qdrant::value::Kind;
+use serde_derive::Deserialize;
 use teloxide::Bot as TelegramBot;
 use teloxide::{prelude::*, utils::command::BotCommands};
 use teloxide::types::{MediaKind, MessageKind};
@@ -58,7 +61,7 @@ enum Command {
     #[command(description = "Send message")]
     Msg(String),
     #[command(description = "Remember a fact")]
-    Remember(String),
+    Save(String),
     #[command(description = "Search in the knowledge database")]
     Search(String),
     #[command(description = "Lean something new")]
@@ -96,7 +99,7 @@ async fn endpoint(
         Command::Msg(msg_text) => {
             chat_gpt_conversation(bot, msg.chat.id, app_state, msg_text).await
         }
-        Command::Remember(text) => {
+        Command::Save(text) => {
             let MessageKind::Common(common_msg) = msg.kind else {
                 bot.send_message(msg.chat.id, "Unsupported message type.")
                     .await?;
@@ -110,6 +113,41 @@ async fn endpoint(
             };
 
             let UserId(user_id) = user.id;
+
+            {
+                #[derive(Deserialize, Debug)]
+                struct Data {
+                    rows: Vec<RowData>
+                }
+
+                #[derive(Deserialize, Debug)]
+                struct RowData {
+                    row: RowObject
+                }
+
+                #[derive(Deserialize, Debug)]
+                struct RowObject {
+                    text: String
+                }
+
+                use std::fs::File;
+                use std::io::BufReader;
+                use std::path::Path;
+                let file = File::open("data.json")?;
+                let reader = BufReader::new(file);
+                let data: Data = serde_json::from_reader(reader).unwrap();
+                for row in data.rows {
+                    let imdb_text = row.row.text.clone();
+                    let embedding = app_state.nervo_llm.embedding(imdb_text.clone())
+                        .await
+                        .unwrap();
+
+                    //save the embedding into qdrant db
+                    let _ = app_state.nervo_ai_db.save(user_id, embedding, imdb_text)
+                        .await
+                        .unwrap();
+                }
+            }
 
             // do embedding using openai
             let embedding = app_state.nervo_llm.embedding(text.clone())
@@ -156,7 +194,10 @@ async fn endpoint(
             let mut results = vec![];
             response.result.iter().for_each(|point| {
                 //if point.score > 0.5 {
-                    results.push((point.score, point.payload.clone()));
+                if let Kind::StringValue(txt) = point.payload.get("text").unwrap().kind.clone().unwrap() {
+                    let trimmed_text: String = txt.chars().take(100).collect();
+                    results.push((point.score, trimmed_text));
+                };
                 //}
             });
             let results = serde_json::to_string_pretty(&results).unwrap();
