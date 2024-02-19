@@ -6,7 +6,9 @@ use qdrant_client::qdrant::value::Kind;
 use serde_derive::Deserialize;
 use teloxide::Bot as TelegramBot;
 use teloxide::{prelude::*, utils::command::BotCommands};
-use teloxide::types::{MediaKind, MessageKind};
+use teloxide::net::Download;
+use teloxide::types::{File, MediaKind, MessageKind};
+use tokio::fs;
 
 /// Start telegram bot
 pub async fn start(token: String, app_state: Arc<AppState>) -> anyhow::Result<()> {
@@ -65,7 +67,7 @@ enum Command {
     #[command(description = "Search in the knowledge database")]
     Search(String),
     #[command(description = "Lean something new")]
-    Learn(String),
+    Learn,
 }
 
 async fn message(bot: Bot, msg: Message, app_state: Arc<AppState>) -> ResponseResult<()> {
@@ -128,9 +130,6 @@ async fn endpoint(
                 .await?;
             respond(())
         }
-        Command::Learn(text) => {
-            respond(())
-        }
         Command::Search(search_text) => {
             let MessageKind::Common(common_msg) = msg.kind else {
                 bot.send_message(msg.chat.id, "Unsupported message type.")
@@ -168,6 +167,38 @@ async fn endpoint(
             let results = serde_json::to_string_pretty(&results).unwrap();
 
             bot.send_message(msg.chat.id, format!("{}", results)).await?;
+
+            respond(())
+        }
+        Command::Learn => {
+            let MessageKind::Common(msg_common) = &msg.kind else {
+                bot.send_message(msg.chat.id, "Unsupported message type.")
+                    .await?;
+                return respond(());
+            };
+
+            let MediaKind::Document(training_file) = &msg_common.media_kind else {
+                bot.send_message(msg.chat.id, "Unsupported message content type.")
+                    .await?;
+                return respond(());
+            };
+
+            let Some(user) = &msg_common.from else {
+                bot.send_message(msg.chat.id, "User not found. We can handle only direct messages.")
+                    .await?;
+                return respond(());
+            };
+            let UserId(user_id) = user.id;
+
+            let file_id = training_file.document.file.id.clone();
+            let file: File = bot.get_file(file_id).await?;
+
+            //TODO remove an old file
+            let mut dst = fs::File::create(format!("/tmp/{}", user_id)).await?;
+            bot.download_file(&file.path, &mut dst).await?;
+
+            //TODO read json file and make test and validation files from it
+            //TODO train the model, an example https://github.com/64bit/async-openai/blob/main/examples/fine-tune-cli/src/main.rs
 
             respond(())
         }
