@@ -1,14 +1,17 @@
 use anyhow::bail;
+use anyhow::Result;
 use async_openai::types::{CreateEmbeddingResponse, Embedding};
 use config::Config as AppConfig;
 use qdrant_client::prelude::*;
-use qdrant_client::qdrant::{Condition, Filter, PointsOperationResponse, SearchResponse, VectorParams, Vectors, VectorsConfig};
-use qdrant_client::qdrant::PointStruct;
 use qdrant_client::qdrant::vectors_config::Config;
-use serde_json::json;
-use rand::Rng;
+use qdrant_client::qdrant::PointStruct;
+use qdrant_client::qdrant::{
+    Condition, Filter, PointsOperationResponse, SearchResponse, VectorParams, Vectors,
+    VectorsConfig,
+};
 use rand::rngs::OsRng;
-use anyhow::Result;
+use rand::Rng;
+use serde_json::json;
 
 pub struct NervoAiDb {
     pub qdrant_client: QdrantClient,
@@ -31,7 +34,11 @@ impl TryFrom<&AppConfig> for NervoAiDb {
 }
 
 impl NervoAiDb {
-    pub async fn search(&self, user_id: u64, embedding: CreateEmbeddingResponse) -> Result<SearchResponse> {
+    pub async fn search(
+        &self,
+        user_id: u64,
+        embedding: CreateEmbeddingResponse,
+    ) -> Result<SearchResponse> {
         let collection_name = user_id.to_string();
 
         let maybe_vec_data = embedding.data.first();
@@ -41,7 +48,8 @@ impl NervoAiDb {
                 bail!("No embedding data found.");
             }
             Some(vec_data) => {
-                let search_result = self.qdrant_client
+                let search_result = self
+                    .qdrant_client
                     .search_points(&SearchPoints {
                         collection_name: collection_name.into(),
                         vector: vec_data.embedding.clone(),
@@ -57,7 +65,12 @@ impl NervoAiDb {
         }
     }
 
-    pub async fn save(&self, user_id: u64, embedding: CreateEmbeddingResponse, text: String) -> Result<PointsOperationResponse> {
+    pub async fn save(
+        &self,
+        user_id: u64,
+        embedding: CreateEmbeddingResponse,
+        text: String,
+    ) -> Result<PointsOperationResponse> {
         let mut rng = OsRng;
 
         let maybe_vec_data = embedding.data.first();
@@ -69,9 +82,11 @@ impl NervoAiDb {
                 bail!("No embedding data found.");
             }
             Some(vec_data) => {
-                let col_exists = self.qdrant_client.has_collection(user_id.to_string()).await?;
+                let col_exists = self
+                    .qdrant_client
+                    .has_collection(user_id.to_string())
+                    .await?;
                 if !col_exists {
-
                     let details = CreateCollection {
                         collection_name: collection_name.clone(),
                         vectors_config: Some(VectorsConfig {
@@ -92,7 +107,7 @@ impl NervoAiDb {
                     let point = PointStruct::new(
                         id,
                         vec_data.embedding.clone(),
-                        json!({"text": text}).try_into().unwrap()
+                        json!({"text": text}).try_into().unwrap(),
                     );
                     vec![point]
                 };

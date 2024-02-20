@@ -3,5 +3,5 @@ use crate::ai::nervo_llm::NervoLlm;
 
 pub struct AppState {
     pub nervo_llm: NervoLlm,
-    pub nervo_ai_db: NervoAiDb
+    pub nervo_ai_db: NervoAiDb,
 }

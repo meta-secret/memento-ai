@@ -1,7 +1,7 @@
 pub mod ai;
 pub mod common;
-pub mod telegram;
 pub mod nervo_app;
+pub mod telegram;
 
 ///https://jason5lee.me/2022/04/12/telegram-bot-rust-azure-function/
 //#[tokio::main]

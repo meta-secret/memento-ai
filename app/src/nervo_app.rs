@@ -1,8 +1,8 @@
 use async_openai::config::OpenAIConfig;
 use std::sync::Arc;
 
-use config::Config as AppConfig;
 use crate::ai::ai_db::NervoAiDb;
+use config::Config as AppConfig;
 
 use crate::ai::nervo_llm::NervoLlm;
 use crate::common::AppState;
@@ -25,7 +25,10 @@ pub async fn start_nervo_bot() -> anyhow::Result<()> {
     let nervo_llm = NervoLlm::from(open_ai_config);
     let nervo_ai_db = NervoAiDb::try_from(&app_config)?;
 
-    let app_state = Arc::from(AppState { nervo_llm, nervo_ai_db });
+    let app_state = Arc::from(AppState {
+        nervo_llm,
+        nervo_ai_db,
+    });
 
     let token = app_config.get_string("telegram_bot_token")?;
     nervo_bot::start(token, app_state).await?;

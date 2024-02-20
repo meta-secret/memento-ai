@@ -1,8 +1,4 @@
-
-use axum::{
-    routing::get,
-    Router,
-};
+use axum::{routing::get, Router};
 use nervo_bot_app::nervo_app;
 use qdrant_client::prelude::*;
 
@@ -16,6 +12,6 @@ async fn main() -> anyhow::Result<()> {
     //axum::serve(listener, app).await.unwrap();
 
     nervo_app::start_nervo_bot().await?;
-    
+
     Ok(())
 }

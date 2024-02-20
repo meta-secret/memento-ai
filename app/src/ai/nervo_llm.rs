@@ -1,5 +1,5 @@
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequest, CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
+use async_openai::types::{ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequest, CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
 use async_openai::Client;
 
 pub struct NervoLlm {
@@ -23,7 +23,7 @@ impl From<OpenAIConfig> for NervoLlm {
 }
 
 impl NervoLlm {
-    pub async fn embedding(&self, text: String) -> anyhow::Result<CreateEmbeddingResponse> {
+    pub async fn embedding(&self, text: &str) -> anyhow::Result<CreateEmbeddingResponse> {
         let embedding = CreateEmbeddingRequestArgs::default()
             .model(self.embedding_model_name.clone())
             .input(text)
@@ -34,22 +34,11 @@ impl NervoLlm {
 }
 
 impl NervoLlm {
-    pub async fn chat(&self, message: String) -> anyhow::Result<Option<String>> {
+    pub async fn chat_batch(&self, messages: Vec<ChatCompletionRequestMessage>) -> anyhow::Result<Option<String>> {
         let request = CreateChatCompletionRequestArgs::default()
             .max_tokens(self.max_tokens)
             .model(self.model_name.clone())
-            .messages([
-                ChatCompletionRequestSystemMessageArgs::default()
-                    .content("You are a helpful assistant.")
-                    .build()
-                    .unwrap()
-                    .into(),
-                ChatCompletionRequestUserMessageArgs::default()
-                    .content(message)
-                    .build()
-                    .unwrap()
-                    .into(),
-            ])
+            .messages(messages)
             .build()?;
 
         let chat_response = self.client.chat().create(request).await?;
@@ -58,27 +47,10 @@ impl NervoLlm {
 
         Ok(maybe_msg)
     }
+
+    pub async fn chat(&self, message: ChatCompletionRequestUserMessage) -> anyhow::Result<Option<String>> {
+        let messages = vec![ChatCompletionRequestMessage::from(message)];
+        self.chat_batch(messages).await
+    }
 }
 
-/*
-ChatCompletionRequestSystemMessageArgs::default()
-                .content("You are a helpful assistant.")
-                .build()
-                .unwrap()
-                .into(),
-            ChatCompletionRequestUserMessageArgs::default()
-                .content("Who won the world series in 2020?")
-                .build()
-                .unwrap()
-                .into(),
-            ChatCompletionRequestAssistantMessageArgs::default()
-                .content("The Los Angeles Dodgers won the World Series in 2020.")
-                .build()
-                .unwrap()
-                .into(),
-            ChatCompletionRequestUserMessageArgs::default()
-                .content("Where was it played?")
-                .build()
-                .unwrap()
-                .into(),
- */
