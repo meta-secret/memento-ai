@@ -2,15 +2,37 @@ use std::sync::Arc;
 
 use anyhow::bail;
 use anyhow::Result;
-use async_openai::types::{ChatCompletionRequestMessage, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs};
+use async_openai::types::{
+    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs,
+};
 use qdrant_client::qdrant::value::Kind;
 use teloxide::{prelude::*, utils::command::BotCommands};
 use teloxide::Bot as TelegramBot;
 use teloxide::net::Download;
-use teloxide::types::{File, MediaKind, MessageKind, User};
+use teloxide::prelude::*;
+use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup, User};
 use tokio::fs;
 
 use crate::common::AppState;
+use crate::telegram::tg_keyboard::NervoBotKeyboard;
+use teloxide::{dispatching::dialogue::InMemStorage};
+
+type MyDialogue = Dialogue<ChatState, InMemStorage<ChatState>>;
+
+#[derive(Clone, Default, Debug)]
+pub enum ChatState {
+    #[default]
+    Initial,
+    Conversation
+}
+
+#[derive(Clone, Default, Debug)]
+pub enum EmbeddingsState {
+    #[default]
+    Initial,
+    Embeddings
+}
 
 /// Start telegram bot
 pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
@@ -19,11 +41,23 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
     let handler = {
         let cmd_handler = Update::filter_message()
             .filter_command::<Command>()
+            .enter_dialogue::<Message, InMemStorage<ChatState>, ChatState>()
+            .enter_dialogue::<Message, InMemStorage<EmbeddingsState>, EmbeddingsState>()
+            //.branch(dptree::case![State::Chat].endpoint(chat_initialization))
+            //.branch(dptree::case![State::ChatContinuation].endpoint(chat_continuation))
             .endpoint(endpoint);
 
-        let msg_handler = Update::filter_message().endpoint(message);
+        let msg_handler = Update::filter_message().endpoint(chat);
+
+        let chat_handler = Update::filter_message()
+            //.filter_command::<Command>()
+            .enter_dialogue::<Message, InMemStorage<ChatState>, ChatState>()
+            //.branch(dptree::case![State::Chat].endpoint(chat_initialization))
+            .branch(dptree::case![ChatState::Conversation].endpoint(chat_continuation))
+            .branch(dptree::case![EmbeddingsState::Embeddings].endpoint(embeddings_continuation));
 
         Update::filter_message()
+            .branch(chat_handler)
             .branch(cmd_handler)
             .branch(msg_handler)
     };
@@ -42,7 +76,7 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
 
     Dispatcher::builder(bot, handler)
         // Pass the shared state to the handler as a dependency.
-        .dependencies(dptree::deps![app_state])
+        .dependencies(dptree::deps![app_state, InMemStorage::<ChatState>::new()])
         .enable_ctrlc_handler()
         .build()
         //.dispatch_with_listener(listener, Arc::new(|err| async move {
@@ -63,7 +97,7 @@ enum Command {
     #[command(description = "display help.")]
     Help,
     #[command(description = "Send message")]
-    Msg(String),
+    Chat(String),
     #[command(description = "Remember a fact")]
     Save(String),
     #[command(description = "Search in the knowledge database")]
@@ -76,11 +110,31 @@ enum Command {
     Learn,
 }
 
-async fn message(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Result<()> {
+async fn chat_initialization(bot: Bot, dialogue: MyDialogue, msg: Message, app_state: Arc<AppState>) -> Result<()> {
+    bot.send_message(msg.chat.id, "State:Chat. Welcome to conversational chat. Let's go!").await?;
+    dialogue.update(ChatState::Conversation).await?;
+    Ok(())
+}
+
+async fn chat_continuation(bot: Bot, dialogue: MyDialogue, msg: Message, app_state: Arc<AppState>) -> Result<()> {
+    bot.send_message(msg.chat.id, "State:Continuation").await?;
+    chat(bot, msg, app_state).await?;
+    Ok(())
+}
+
+async fn embeddings_continuation(bot: Bot, dialogue: MyDialogue, msg: Message, app_state: Arc<AppState>) -> Result<()> {
+    bot.send_message(msg.chat.id, "Embeddings:Continuation").await?;
+    chat(bot, msg, app_state).await?;
+    Ok(())
+}
+
+async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> Result<()> {
     let (_, text) = parse_user_and_text(&msg).await?;
     if text.is_empty() {
         bot.send_message(msg.chat.id, "Please provide a message to send.")
+            .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
             .await?;
+
         return Ok(());
     }
 
@@ -92,40 +146,24 @@ async fn message(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Re
     chat_gpt_conversation(bot, msg.chat.id, app_state, user_msg).await
 }
 
-async fn parse_user_and_text(msg: &Message) -> Result<(&User, String)> {
-    let MessageKind::Common(msg_common) = &msg.kind else {
-        bail!("Unsupported message type.");
-    };
-
-    let MediaKind::Text(media_text) = &msg_common.media_kind else {
-        bail!("Unsupported message content type.");
-    };
-
-    let Some(user) = &msg_common.from else {
-        bail!("User not found. We can handle only direct messages.");
-    };
-
-    Ok((user, media_text.text.clone()))
-}
-
-async fn endpoint(
-    bot: Bot,
-    msg: Message,
-    cmd: Command,
-    app_state: Arc<AppState>,
-) -> Result<()> {
+async fn endpoint(bot: Bot, msg: Message, cmd: Command, dialogue: MyDialogue, app_state: Arc<AppState>) -> Result<()> {
     match cmd {
         Command::Help => {
             bot.send_message(msg.chat.id, Command::descriptions().to_string())
+                .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
                 .await?;
             Ok(())
         }
-        Command::Msg(msg_text) => {
-            let user_msg = ChatCompletionRequestUserMessageArgs::default()
+        Command::Chat(msg_text) => {
+            /*let user_msg = ChatCompletionRequestUserMessageArgs::default()
                 .content(msg_text)
                 .build()?
                 .into();
-            chat_gpt_conversation(bot, msg.chat.id, app_state, user_msg).await
+
+            chat_gpt_conversation(bot, msg.chat.id, app_state, user_msg).await*/
+            bot.send_message(msg.chat.id, "Сhat gpt готов ответить на ваши ответы!").await?;
+            dialogue.update(ChatState::Conversation).await?;
+            Ok(())
         }
         Command::Save(text) => {
             let (user, _) = parse_user_and_text(&msg).await?;
@@ -141,19 +179,20 @@ async fn endpoint(
                 .await
                 .unwrap();
 
-            bot.send_message(
-                msg.chat.id,
-                format!("{:?}", response.result.unwrap().status()),
-            )
+            bot.send_message(msg.chat.id, format!("{:?}", response.result.unwrap().status()))
+                .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
                 .await?;
             Ok(())
         }
         Command::Search(search_text) => {
             let results = vector_search(&msg, app_state, search_text.as_str()).await?;
-            let results = serde_json::to_string_pretty(&results).unwrap();
+            for res in results {
+                let res_json = serde_json::to_string_pretty(&res).unwrap();
+                bot.send_message(msg.chat.id, format!("{:?}", res_json))
+                    .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
+                    .await?;
+            }
 
-            bot.send_message(msg.chat.id, format!("{}", results))
-                .await?;
             Ok(())
         }
         Command::Analyse(question) => {
@@ -164,17 +203,24 @@ async fn endpoint(
                 .collect::<Vec<String>>();
 
             let mut messages = vec![];
-            for text in result_strings {
+            for text in &result_strings {
                 let user_msg = ChatCompletionRequestUserMessageArgs::default()
-                    .content(text)
+                    .content(text.chars().take(1000).collect::<String>())
                     .build()?;
                 messages.push(ChatCompletionRequestMessage::from(user_msg));
             }
 
-            let user_msg = ChatCompletionRequestUserMessageArgs::default()
-                .content(question)
-                .build()?;
-            messages.push(ChatCompletionRequestMessage::from(user_msg));
+            let enriched_question = format!(
+                "You will be provided messages and you need to answer to the following question \
+                by analysing those messages: {}",
+                question
+            );
+
+            let system_msg = ChatCompletionRequestSystemMessageArgs::default()
+                .content(enriched_question)
+                .build()?
+                .into();
+            messages.insert(0, system_msg);
 
             let reply = app_state
                 .nervo_llm
@@ -182,19 +228,27 @@ async fn endpoint(
                 .await?
                 .unwrap_or(String::from("I'm sorry, internal error."));
 
-            bot.send_message(msg.chat.id, reply).await?;
+            //for embeddings in &result_strings {
+            //    bot.send_message(msg.chat.id, embeddings).await?;
+            //}
+
+            bot.send_message(msg.chat.id, format!("{}", reply))
+                .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
+                .await?;
 
             Ok(())
         }
         Command::Learn => {
             let MessageKind::Common(msg_common) = &msg.kind else {
                 bot.send_message(msg.chat.id, "Unsupported message type.")
+                    .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
                     .await?;
                 return Ok(());
             };
 
             let MediaKind::Document(training_file) = &msg_common.media_kind else {
                 bot.send_message(msg.chat.id, "Unsupported message content type.")
+                    .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
                     .await?;
                 return Ok(());
             };
@@ -217,26 +271,41 @@ async fn endpoint(
     }
 }
 
-async fn vector_search(msg: &Message, app_state: Arc<AppState>, search_text: &str) -> Result<Vec<(f32, String)>> {
+async fn parse_user_and_text(msg: &Message) -> Result<(&User, String)> {
+    let MessageKind::Common(msg_common) = &msg.kind else {
+        bail!("Unsupported message type.");
+    };
+
+    let MediaKind::Text(media_text) = &msg_common.media_kind else {
+        bail!("Unsupported message content type.");
+    };
+
+    let Some(user) = &msg_common.from else {
+        bail!("User not found. We can handle only direct messages.");
+    };
+
+    Ok((user, media_text.text.clone()))
+}
+
+async fn vector_search(
+    msg: &Message,
+    app_state: Arc<AppState>,
+    search_text: &str,
+) -> Result<Vec<(f32, String)>> {
     let (user, _) = parse_user_and_text(&msg).await?;
     let UserId(user_id) = user.id;
 
     // do embedding using openai
-    let embedding = app_state
-        .nervo_llm
-        .embedding(search_text)
-        .await?;
+    let embedding = app_state.nervo_llm.embedding(search_text).await?;
 
     //save the embedding into qdrant db
-    let response = app_state
-        .nervo_ai_db
-        .search(user_id, embedding)
-        .await?;
+    let response = app_state.nervo_ai_db.search(user_id, embedding).await?;
 
     let mut results = vec![];
     for point in response.result {
         //if point.score > 0.5 {
-        let maybe_kind = point.payload
+        let maybe_kind = point
+            .payload
             .get("text")
             .and_then(|payload_text| payload_text.kind.clone());
 
@@ -261,7 +330,10 @@ async fn chat_gpt_conversation(
         .await?
         .unwrap_or(String::from("I'm sorry, internal error."));
 
-    bot.send_message(chat_id, reply).await?;
+    bot.send_message(chat_id, reply)
+        .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
+        .await?;
 
     Ok(())
 }
+

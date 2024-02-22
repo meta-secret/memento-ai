@@ -1,5 +1,10 @@
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequest, CreateEmbeddingRequestArgs, CreateEmbeddingResponse};
+use async_openai::types::{
+    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs,
+    CreateChatCompletionRequestArgs, CreateEmbeddingRequest, CreateEmbeddingRequestArgs,
+    CreateEmbeddingResponse,
+};
 use async_openai::Client;
 
 pub struct NervoLlm {
@@ -34,7 +39,10 @@ impl NervoLlm {
 }
 
 impl NervoLlm {
-    pub async fn chat_batch(&self, messages: Vec<ChatCompletionRequestMessage>) -> anyhow::Result<Option<String>> {
+    pub async fn chat_batch(
+        &self,
+        messages: Vec<ChatCompletionRequestMessage>,
+    ) -> anyhow::Result<Option<String>> {
         let request = CreateChatCompletionRequestArgs::default()
             .max_tokens(self.max_tokens)
             .model(self.model_name.clone())
@@ -48,9 +56,11 @@ impl NervoLlm {
         Ok(maybe_msg)
     }
 
-    pub async fn chat(&self, message: ChatCompletionRequestUserMessage) -> anyhow::Result<Option<String>> {
+    pub async fn chat(
+        &self,
+        message: ChatCompletionRequestUserMessage,
+    ) -> anyhow::Result<Option<String>> {
         let messages = vec![ChatCompletionRequestMessage::from(message)];
         self.chat_batch(messages).await
     }
 }
-

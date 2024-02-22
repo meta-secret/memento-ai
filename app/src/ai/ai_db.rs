@@ -54,7 +54,7 @@ impl NervoAiDb {
                         collection_name: collection_name.into(),
                         vector: vec_data.embedding.clone(),
                         //filter: Some(Filter::all([Condition::matches("text", )])),
-                        limit: 10,
+                        limit: 5,
                         with_payload: Some(true.into()),
                         ..Default::default()
                     })
