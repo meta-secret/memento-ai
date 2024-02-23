@@ -6,6 +6,7 @@ use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
     ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs,
 };
+use chrono::Utc;
 use qdrant_client::qdrant::value::Kind;
 use teloxide::{prelude::*, utils::command::BotCommands};
 use teloxide::Bot as TelegramBot;
@@ -13,8 +14,9 @@ use teloxide::net::Download;
 use teloxide::prelude::*;
 use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup, User};
 use tokio::fs;
-
 use crate::common::AppState;
+use crate::db::ai_local_db::save_message;
+use crate::db::nervo_message_model::TelegramMessage;
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
 use teloxide::{dispatching::dialogue::InMemStorage};
 

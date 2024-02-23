@@ -1,6 +1,4 @@
-use axum::{routing::get, Router};
 use nervo_bot_app::nervo_app;
-use qdrant_client::prelude::*;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
