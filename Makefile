@@ -16,4 +16,4 @@ run_docker_daemon: docker_build
 	docker run -d --name nervo_bot nervo_bot:latest
 
 docker_clean:
-	docker container prune
+	docker container rm nervo_bot || true
