@@ -2,5 +2,4 @@ target
 .idea
 Cargo.lock
 
-/serverless/node_modules/
-/serverless/build
+nervo_bot_app/target
