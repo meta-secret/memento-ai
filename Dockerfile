@@ -1,28 +1,35 @@
-FROM rust:1.76.0-bullseye AS builder
+FROM rust:1.76.0-bullseye as builder
 
 #https://github.com/mozilla/sccache/issues/1160
 # Enable sccache
 RUN cargo install sccache
 ENV RUSTC_WRAPPER=sccache
-ENV SCCACHE_DIR=/home/root/.cache/sccache
+ENV SCCACHE_DIR=/app/sccache
+
+RUN mkdir -p /app/sccache
 
 # Cache project dependencies
-COPY nervo_deps /nervo_deps
-COPY nervo_bot_app /nervo_bot
+COPY nervo_bot_app/Cargo.toml /app/nervo_deps/
+COPY nervo_bot_app/core/Cargo.toml /app/nervo_deps/core/
+COPY nervo_bot_app/web-service/Cargo.toml /app/nervo_deps/web-service/
 
-ENV CARGO_TARGET_DIR=/nervo_bot/target
+WORKDIR /app/nervo_deps
 
-WORKDIR /nervo_deps
-RUN cargo build --release
+RUN cd core && mkdir src && echo "fn main() {}" > src/lib.rs
+RUN cd web-service && mkdir src && echo "fn main() {}" > src/main.rs
 
-WORKDIR /nervo_bot
-RUN cargo build --release
+RUN --mount=type=cache,mode=0777,target=/app/sccache cargo build --release
 
-#FROM rust:1.76.0-bullseye
+# Build nervo app
+COPY nervo_bot_app /app/nervo_bot
+WORKDIR /app/nervo_bot
+RUN --mount=type=cache,mode=0777,target=/app/sccache cargo build --release
 
-#COPY --from=builder /nervo_bot/config.toml /app/config.toml
-#COPY --from=builder /nervo_bot/target/release/nervo-web-service /app/
+FROM rust:1.76.0-bullseye
 
-#WORKDIR /app
+COPY nervo_bot_app/config.toml /app/config.toml
+COPY --from=builder /app/nervo_bot/target/release/nervo-web-service /app/
 
-#CMD ./nervo-web-service
+WORKDIR /app
+
+CMD ./nervo-web-service

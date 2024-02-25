@@ -7,6 +7,7 @@ app_build:
 	cd nervo_bot_app && cargo build --release
 
 docker_build: app_clean
+	#docker build -t nervo_bot:latest --progress=plain .  2>&1 | tee docker-build.log
 	docker build -t nervo_bot:latest .
 
 run: docker_build
