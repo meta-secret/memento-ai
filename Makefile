@@ -11,13 +11,13 @@ docker_build: app_clean
 	docker build -t nervo_bot:latest .
 
 run: docker_build
-	docker run -ti --name nervo_bot nervo_bot:latest
+	docker run -ti --name nervo_bot_dk nervo_bot:latest
 
 run_docker_daemon: docker_build
-	docker run -d --name nervo_bot nervo_bot:latest
+	docker run -d --name nervo_bot_dk nervo_bot:latest
 
 docker_stop:
-	docker kill nervo_bot || true
+	docker kill nervo_bot_dk || true
 
 docker_clean:
-	docker container rm nervo_bot || true
+	docker container rm nervo_bot_dk || true
