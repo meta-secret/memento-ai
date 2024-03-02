@@ -2,4 +2,7 @@ target
 .idea
 
 nervo_bot_app/target
-nervo_deps/target
+nervo_bot_app/Cargo.lock
+
+nervo_core/Cargo.lock
+probiot/probiot_t800/Cargo.lock
