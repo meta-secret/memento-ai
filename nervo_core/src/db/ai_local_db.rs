@@ -1,10 +1,10 @@
-use std::str::FromStr;
+use crate::db::nervo_message_model::TelegramMessage;
 use anyhow::Error;
-use sqlx::{ConnectOptions, Row};
 use config::Config as AppConfig;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
-use crate::db::nervo_message_model::TelegramMessage;
+use sqlx::{ConnectOptions, Row};
+use std::str::FromStr;
 
 pub async fn save_message(message: &TelegramMessage, username: &str) -> anyhow::Result<()> {
     let mut connection = create_table(username).await?;
@@ -30,9 +30,7 @@ pub async fn read_messages(username: &str) -> anyhow::Result<Vec<TelegramMessage
     let mut connection = create_table(username).await?;
     let query = format!("SELECT message FROM user_{}", username);
 
-    let rows = sqlx::query(&query)
-        .fetch_all(&mut connection)
-        .await?;
+    let rows = sqlx::query(&query).fetch_all(&mut connection).await?;
 
     let mut messages = Vec::new();
 
@@ -48,13 +46,12 @@ pub async fn read_messages(username: &str) -> anyhow::Result<Vec<TelegramMessage
 
 async fn create_table(username: &str) -> anyhow::Result<SqliteConnection> {
     let mut connection = connect_db().await?;
-    let table_exists: bool = sqlx::query_scalar(
-        &format!(
-            "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'user_{}')",
-            username
-        ))
-        .fetch_one(&mut connection)
-        .await?;
+    let table_exists: bool = sqlx::query_scalar(&format!(
+        "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'user_{}')",
+        username
+    ))
+    .fetch_one(&mut connection)
+    .await?;
 
     if !table_exists {
         sqlx::query(&format!(
@@ -65,8 +62,8 @@ async fn create_table(username: &str) -> anyhow::Result<SqliteConnection> {
            )",
             username
         ))
-            .execute(&mut connection)
-            .await?;
+        .execute(&mut connection)
+        .await?;
     }
 
     Ok(connection)
@@ -93,7 +90,6 @@ async fn connect_db() -> anyhow::Result<SqliteConnection> {
                     Err(Error::from(err))
                 }
             }
-
         }
         Err(err) => {
             println!("No AppConfig! Error occurred: {}", err);

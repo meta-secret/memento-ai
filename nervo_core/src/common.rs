@@ -12,5 +12,5 @@ pub struct NervoConfig {
     pub openai_api_key: String,
     pub qdrant_server_url: String,
     pub qdrant_api_key: String,
-    pub telegram_bot_token: String
+    pub telegram_bot_token: String,
 }

@@ -1,5 +1,9 @@
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{ChatCompletionRequestMessage, ChatCompletionRequestUserMessage, CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest, ModerationInput};
+use async_openai::types::{
+    ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
+    CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse,
+    CreateModerationRequest, ModerationInput,
+};
 use async_openai::Client;
 
 pub struct NervoLlm {

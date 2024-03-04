@@ -1,6 +1,6 @@
 use teloxide::types::{KeyboardButton, KeyboardMarkup};
 
-pub struct NervoBotKeyboard{}
+pub struct NervoBotKeyboard {}
 
 impl NervoBotKeyboard {
     pub fn build_keyboard() -> KeyboardMarkup {

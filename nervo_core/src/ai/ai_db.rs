@@ -1,3 +1,4 @@
+use crate::common::NervoConfig;
 use anyhow::bail;
 use anyhow::Result;
 use async_openai::types::{CreateEmbeddingResponse, Embedding};
@@ -12,7 +13,6 @@ use qdrant_client::qdrant::{
 use rand::rngs::OsRng;
 use rand::Rng;
 use serde_json::json;
-use crate::common::NervoConfig;
 
 pub struct NervoAiDb {
     pub qdrant_client: QdrantClient,

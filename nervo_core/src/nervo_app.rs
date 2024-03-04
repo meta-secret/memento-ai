@@ -6,7 +6,7 @@ use config::Config as AppConfig;
 
 use crate::ai::nervo_llm::NervoLlm;
 use crate::common::{AppState, NervoConfig};
-use crate::telegram::nervo_bot;
+use crate::telegram::nervo_bot_r2_d2;
 
 pub async fn start_nervo_bot() -> anyhow::Result<()> {
     pretty_env_logger::init();
@@ -32,7 +32,7 @@ pub async fn start_nervo_bot() -> anyhow::Result<()> {
         nervo_ai_db,
     });
 
-    nervo_bot::start(nervo_config.telegram_bot_token, app_state).await?;
+    nervo_bot_r2_d2::start(nervo_config.telegram_bot_token, app_state).await?;
 
     Ok(())
 }

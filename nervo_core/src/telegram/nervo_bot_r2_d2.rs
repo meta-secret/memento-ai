@@ -7,24 +7,51 @@ use async_openai::types::{
     ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs,
 };
 use qdrant_client::qdrant::value::Kind;
-use teloxide::{prelude::*, utils::command::BotCommands};
-use teloxide::Bot as TelegramBot;
+use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::net::Download;
 use teloxide::prelude::*;
 use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup, User};
+use teloxide::Bot as TelegramBot;
+use teloxide::{prelude::*, utils::command::BotCommands};
 use tokio::fs;
+
 use crate::common::AppState;
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
-use teloxide::{dispatching::dialogue::InMemStorage};
 
 type MyDialogue = Dialogue<ChatState, InMemStorage<ChatState>>;
+
+trait NervoBot {}
+
+pub struct NervoBotR2D2 {}
 
 #[derive(Clone, Default, Debug)]
 pub enum ChatState {
     #[default]
     Initial,
     Conversation,
-    Embeddings
+    Embeddings,
+}
+
+#[derive(BotCommands, Clone)]
+#[command(
+    rename_rule = "lowercase",
+    description = "These commands are supported:"
+)]
+enum Command {
+    #[command(description = "display help.")]
+    Help,
+    #[command(description = "Send message")]
+    Chat(String),
+    #[command(description = "Remember a fact")]
+    Save(String),
+    #[command(description = "Search in the knowledge database")]
+    Search(String),
+    #[command(
+        description = "Search in the knowledge database and then analyse the result with an llm model."
+    )]
+    Analyse(String),
+    #[command(description = "Lean something new")]
+    Learn,
 }
 
 /// Start telegram bot
@@ -79,42 +106,40 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
     Ok(())
 }
 
-#[derive(BotCommands, Clone)]
-#[command(
-rename_rule = "lowercase",
-description = "These commands are supported:"
-)]
-enum Command {
-    #[command(description = "display help.")]
-    Help,
-    #[command(description = "Send message")]
-    Chat(String),
-    #[command(description = "Remember a fact")]
-    Save(String),
-    #[command(description = "Search in the knowledge database")]
-    Search(String),
-    #[command(
-    description = "Search in the knowledge database and then analyse the result with an llm model."
-    )]
-    Analyse(String),
-    #[command(description = "Lean something new")]
-    Learn,
-}
-
-async fn chat_initialization(bot: Bot, dialogue: MyDialogue, msg: Message, app_state: Arc<AppState>) -> Result<()> {
-    bot.send_message(msg.chat.id, "State:Chat. Welcome to conversational chat. Let's go!").await?;
+async fn chat_initialization(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg: Message,
+    app_state: Arc<AppState>,
+) -> Result<()> {
+    bot.send_message(
+        msg.chat.id,
+        "State:Chat. Welcome to conversational chat. Let's go!",
+    )
+    .await?;
     dialogue.update(ChatState::Conversation).await?;
     Ok(())
 }
 
-async fn chat_continuation(bot: Bot, dialogue: MyDialogue, msg: Message, app_state: Arc<AppState>) -> Result<()> {
+async fn chat_continuation(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg: Message,
+    app_state: Arc<AppState>,
+) -> Result<()> {
     bot.send_message(msg.chat.id, "State:Continuation").await?;
     chat(bot, msg, app_state).await?;
     Ok(())
 }
 
-async fn embeddings_continuation(bot: Bot, dialogue: MyDialogue, msg: Message, app_state: Arc<AppState>) -> Result<()> {
-    bot.send_message(msg.chat.id, "Embeddings:Continuation").await?;
+async fn embeddings_continuation(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg: Message,
+    app_state: Arc<AppState>,
+) -> Result<()> {
+    bot.send_message(msg.chat.id, "Embeddings:Continuation")
+        .await?;
     chat(bot, msg, app_state).await?;
     Ok(())
 }
@@ -138,16 +163,23 @@ async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> Result<()> {
 
         chat_gpt_conversation(bot, msg.chat.id, app_state, user_msg).await
     } else {
-        bot.send_message(msg.chat.id, "Your message is not allowed. Please rephrase it.")
-            .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
-            .await?;
+        bot.send_message(
+            msg.chat.id,
+            "Your message is not allowed. Please rephrase it.",
+        )
+        .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
+        .await?;
         Ok(())
     }
-
-
 }
 
-async fn endpoint(bot: Bot, msg: Message, cmd: Command, dialogue: MyDialogue, app_state: Arc<AppState>) -> Result<()> {
+async fn endpoint(
+    bot: Bot,
+    msg: Message,
+    cmd: Command,
+    dialogue: MyDialogue,
+    app_state: Arc<AppState>,
+) -> Result<()> {
     match cmd {
         Command::Help => {
             bot.send_message(msg.chat.id, Command::descriptions().to_string())
@@ -162,7 +194,8 @@ async fn endpoint(bot: Bot, msg: Message, cmd: Command, dialogue: MyDialogue, ap
                 .into();
 
             chat_gpt_conversation(bot, msg.chat.id, app_state, user_msg).await*/
-            bot.send_message(msg.chat.id, "Сhat gpt готов ответить на ваши ответы!").await?;
+            bot.send_message(msg.chat.id, "Сhat gpt готов ответить на ваши ответы!")
+                .await?;
             dialogue.update(ChatState::Conversation).await?;
             Ok(())
         }
@@ -180,9 +213,12 @@ async fn endpoint(bot: Bot, msg: Message, cmd: Command, dialogue: MyDialogue, ap
                 .await
                 .unwrap();
 
-            bot.send_message(msg.chat.id, format!("{:?}", response.result.unwrap().status()))
-                .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
-                .await?;
+            bot.send_message(
+                msg.chat.id,
+                format!("{:?}", response.result.unwrap().status()),
+            )
+            .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
+            .await?;
             Ok(())
         }
         Command::Search(search_text) => {
@@ -337,4 +373,3 @@ async fn chat_gpt_conversation(
 
     Ok(())
 }
-
