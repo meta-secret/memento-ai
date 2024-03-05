@@ -9,11 +9,20 @@ use std::str::FromStr;
 pub async fn save_message(message: &TelegramMessage, username: &str) -> anyhow::Result<()> {
     let mut connection = create_table(username).await?;
 
-    let message_count = count_messages(username, &mut connection).await?;
-    if message_count >= 10 {
-        overwrite_messages(message, username, &mut connection).await?;
-    } else {
-        insert_message(message, username, &mut connection).await?;
+    let message_json_result = serde_json::to_string(message);
+    match message_json_result {
+        Ok(message_json) => {
+            let query = format!("INSERT INTO user_{} (message) VALUES (?)", username);
+            sqlx::query(&query)
+                .bind(&message_json)
+                .execute(&mut connection)
+                .await?;
+            Ok(())
+        }
+        Err(err) => {
+            println!("Cant serde JSON! Error occurred: {}", err);
+            Err(Error::from(err))
+        }
     }
 }
 
@@ -41,8 +50,8 @@ async fn create_table(username: &str) -> anyhow::Result<SqliteConnection> {
         "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'user_{}')",
         username
     ))
-    .fetch_one(&mut connection)
-    .await?;
+        .fetch_one(&mut connection)
+        .await?;
 
     if !table_exists {
         sqlx::query(&format!(
@@ -53,8 +62,8 @@ async fn create_table(username: &str) -> anyhow::Result<SqliteConnection> {
            )",
             username
         ))
-        .execute(&mut connection)
-        .await?;
+            .execute(&mut connection)
+            .await?;
     }
 
     Ok(connection)
@@ -84,41 +93,6 @@ async fn connect_db() -> anyhow::Result<SqliteConnection> {
         }
         Err(err) => {
             println!("No AppConfig! Error occurred: {}", err);
-            Err(Error::from(err))
-        }
-    }
-}
-
-async fn count_messages(username: &str, connection: &mut SqliteConnection) -> anyhow::Result<i64> {
-    let query = format!("SELECT COUNT(*) FROM user_{}", username);
-    let count: i64 = sqlx::query_scalar(&query).fetch_one(connection).await?;
-    Ok(count)
-}
-
-async fn overwrite_messages(message: &TelegramMessage, username: &str, connection: &mut SqliteConnection) -> anyhow::Result<()> {
-    let delete_query = format!("DELETE FROM user_{}", username);
-    sqlx::query(&delete_query).execute(connection).await?;
-
-    insert_message(message, username, connection).await?;
-
-    Ok(())
-}
-
-async fn insert_message(message: &TelegramMessage, username: &str, connection: &mut SqliteConnection) -> anyhow::Result<()> {
-    let message_json_result = serde_json::to_string(message);
-    match message_json_result {
-        Ok(message_json) => {
-            let query = format!("INSERT INTO user_{} (message, timestamp) VALUES (?, ?)", username);
-            let timestamp = Utc::now();
-            sqlx::query(&query)
-                .bind(&message_json)
-                .bind(timestamp)
-                .execute(connection)
-                .await?;
-            Ok(())
-        }
-        Err(err) => {
-            println!("Can't serde JSON! Error occurred: {}", err);
             Err(Error::from(err))
         }
     }
