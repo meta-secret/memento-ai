@@ -11,6 +11,7 @@ pub struct NervoLlmConfig {
     model_name: String,
     embedding_model_name: String,
     max_tokens: u16,
+    temperature: f32,
     open_ai_config: OpenAIConfig
 }
 
@@ -21,6 +22,7 @@ impl From<OpenAIConfig> for NervoLlmConfig {
             embedding_model_name: String::from("text-embedding-3-small"),
             //embedding_model_name: String::from("text-embedding-3-large"),
             max_tokens: 512u16,
+            temperature: 0.1f32,
             open_ai_config,
         }       
     }
@@ -77,6 +79,7 @@ impl NervoLlm {
             .max_tokens(self.llm_config.max_tokens)
             .model(self.llm_config.model_name.clone())
             .messages(messages)
+            .temperature(self.llm_config.temperature)
             .build()?;
 
         let chat_response = self.client.chat().create(request).await?;

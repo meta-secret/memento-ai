@@ -12,7 +12,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
     let (_, text) = parse_user_and_text(&msg).await?;
     if text.is_empty() {
         bot.send_message(msg.chat.id, "Please provide a message to send.")
-            .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
+            //.reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
             .await?;
 
         return Ok(());
@@ -30,7 +30,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
             msg.chat.id,
             "Your message is not allowed. Please rephrase it.",
         )
-            .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
+            //.reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
             .await?;
         Ok(())
     }
@@ -48,9 +48,7 @@ pub async fn chat_gpt_conversation(
         .await?
         .unwrap_or(String::from("I'm sorry, internal error."));
 
-    bot.send_message(chat_id, reply)
-        .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
-        .await?;
+    bot.send_message(chat_id, reply).await?;
 
     Ok(())
 }
