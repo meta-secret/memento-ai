@@ -31,6 +31,10 @@ impl NervoLlmConfig {
         self.model_name = model_name;
         self
     }
+    
+    pub fn model_name(&self) -> &str {
+        &self.model_name
+    }
 }
 
 pub struct NervoLlm {
@@ -44,6 +48,12 @@ impl From<NervoLlmConfig> for NervoLlm {
             llm_config: llm_config.clone(), 
             client: Client::with_config(llm_config.open_ai_config)  
         }
+    }
+}
+
+impl NervoLlm {
+    pub fn model_name(&self) -> &str {
+        self.llm_config.model_name()
     }
 }
 
