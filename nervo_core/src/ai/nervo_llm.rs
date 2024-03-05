@@ -1,27 +1,48 @@
+use async_openai::Client;
 use async_openai::config::OpenAIConfig;
 use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
     CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse,
     CreateModerationRequest, ModerationInput,
 };
-use async_openai::Client;
 
-pub struct NervoLlm {
+#[derive(Clone, Debug)]
+pub struct NervoLlmConfig {
     model_name: String,
     embedding_model_name: String,
-
     max_tokens: u16,
-    client: Client<OpenAIConfig>,
+    open_ai_config: OpenAIConfig
 }
 
-impl From<OpenAIConfig> for NervoLlm {
-    fn from(config: OpenAIConfig) -> Self {
-        NervoLlm {
+impl From<OpenAIConfig> for NervoLlmConfig {
+    fn from(open_ai_config: OpenAIConfig) -> Self {
+        NervoLlmConfig {
             model_name: String::from("gpt-3.5-turbo"),
             embedding_model_name: String::from("text-embedding-3-small"),
             //embedding_model_name: String::from("text-embedding-3-large"),
-            max_tokens: 256u16,
-            client: Client::with_config(config),
+            max_tokens: 512u16,
+            open_ai_config,
+        }       
+    }
+}
+
+impl NervoLlmConfig {
+    pub fn with_model_name(mut self, model_name: String) -> Self {
+        self.model_name = model_name;
+        self
+    }
+}
+
+pub struct NervoLlm {
+    llm_config: NervoLlmConfig,
+    client: Client<OpenAIConfig>,
+}
+
+impl From<NervoLlmConfig> for NervoLlm {
+    fn from(llm_config: NervoLlmConfig) -> Self {
+        NervoLlm { 
+            llm_config: llm_config.clone(), 
+            client: Client::with_config(llm_config.open_ai_config)  
         }
     }
 }
@@ -29,7 +50,7 @@ impl From<OpenAIConfig> for NervoLlm {
 impl NervoLlm {
     pub async fn embedding(&self, text: &str) -> anyhow::Result<CreateEmbeddingResponse> {
         let embedding = CreateEmbeddingRequestArgs::default()
-            .model(self.embedding_model_name.clone())
+            .model(self.llm_config.embedding_model_name.clone())
             .input(text)
             .build()?;
         let response = self.client.embeddings().create(embedding).await?;
@@ -43,8 +64,8 @@ impl NervoLlm {
         messages: Vec<ChatCompletionRequestMessage>,
     ) -> anyhow::Result<Option<String>> {
         let request = CreateChatCompletionRequestArgs::default()
-            .max_tokens(self.max_tokens)
-            .model(self.model_name.clone())
+            .max_tokens(self.llm_config.max_tokens)
+            .model(self.llm_config.model_name.clone())
             .messages(messages)
             .build()?;
 

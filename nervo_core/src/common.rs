@@ -10,7 +10,10 @@ pub struct AppState {
 #[derive(Debug, Deserialize)]
 pub struct NervoConfig {
     pub openai_api_key: String,
+    pub model_name: String,
+    
     pub qdrant_server_url: String,
     pub qdrant_api_key: String,
+    
     pub telegram_bot_token: String,
 }

@@ -1,28 +1,24 @@
 use std::sync::Arc;
 
-use anyhow::bail;
 use anyhow::Result;
 use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
-    ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs,
+    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs, 
+    ChatCompletionRequestUserMessageArgs
 };
 use qdrant_client::qdrant::value::Kind;
+use teloxide::{prelude::*, utils::command::BotCommands};
+use teloxide::Bot as TelegramBot;
 use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::net::Download;
-use teloxide::prelude::*;
-use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup, User};
-use teloxide::Bot as TelegramBot;
-use teloxide::{prelude::*, utils::command::BotCommands};
+use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
 use tokio::fs;
 
 use crate::common::AppState;
+use crate::telegram::bot_utils::{chat, parse_user_and_text};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
 
 type MyDialogue = Dialogue<ChatState, InMemStorage<ChatState>>;
 
-trait NervoBot {}
-
-pub struct NervoBotR2D2 {}
 
 #[derive(Clone, Default, Debug)]
 pub enum ChatState {
@@ -106,12 +102,7 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
     Ok(())
 }
 
-async fn chat_initialization(
-    bot: Bot,
-    dialogue: MyDialogue,
-    msg: Message,
-    app_state: Arc<AppState>,
-) -> Result<()> {
+async fn chat_initialization(bot: Bot, dialogue: MyDialogue, msg: Message, app_state: Arc<AppState>) -> Result<()> {
     bot.send_message(
         msg.chat.id,
         "State:Chat. Welcome to conversational chat. Let's go!",
@@ -142,35 +133,6 @@ async fn embeddings_continuation(
         .await?;
     chat(bot, msg, app_state).await?;
     Ok(())
-}
-
-async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> Result<()> {
-    let (_, text) = parse_user_and_text(&msg).await?;
-    if text.is_empty() {
-        bot.send_message(msg.chat.id, "Please provide a message to send.")
-            .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
-            .await?;
-
-        return Ok(());
-    }
-
-    let is_moderation_passed = app_state.nervo_llm.moderate(&text).await?;
-    if is_moderation_passed {
-        let user_msg = ChatCompletionRequestUserMessageArgs::default()
-            .content(text)
-            .build()?
-            .into();
-
-        chat_gpt_conversation(bot, msg.chat.id, app_state, user_msg).await
-    } else {
-        bot.send_message(
-            msg.chat.id,
-            "Your message is not allowed. Please rephrase it.",
-        )
-        .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
-        .await?;
-        Ok(())
-    }
 }
 
 async fn endpoint(
@@ -308,28 +270,12 @@ async fn endpoint(
     }
 }
 
-async fn parse_user_and_text(msg: &Message) -> Result<(&User, String)> {
-    let MessageKind::Common(msg_common) = &msg.kind else {
-        bail!("Unsupported message type.");
-    };
-
-    let MediaKind::Text(media_text) = &msg_common.media_kind else {
-        bail!("Unsupported message content type.");
-    };
-
-    let Some(user) = &msg_common.from else {
-        bail!("User not found. We can handle only direct messages.");
-    };
-
-    Ok((user, media_text.text.clone()))
-}
-
 async fn vector_search(
     msg: &Message,
     app_state: Arc<AppState>,
     search_text: &str,
 ) -> Result<Vec<(f32, String)>> {
-    let (user, _) = parse_user_and_text(&msg).await?;
+    let (user, _) = parse_user_and_text(msg).await?;
     let UserId(user_id) = user.id;
 
     // do embedding using openai
@@ -355,21 +301,3 @@ async fn vector_search(
     Ok(results)
 }
 
-async fn chat_gpt_conversation(
-    bot: Bot,
-    chat_id: ChatId,
-    app_state: Arc<AppState>,
-    msg: ChatCompletionRequestUserMessage,
-) -> Result<()> {
-    let reply = app_state
-        .nervo_llm
-        .chat(msg)
-        .await?
-        .unwrap_or(String::from("I'm sorry, internal error."));
-
-    bot.send_message(chat_id, reply)
-        .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
-        .await?;
-
-    Ok(())
-}
