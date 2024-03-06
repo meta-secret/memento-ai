@@ -1,6 +1,7 @@
 APP_NAME := nervo_bot_r2d2
 CORE_DIR := nervo_core
 APP_DIR := nervo_bot_app
+DOCKER_FILE := r2d2.dockerfile
 
 app_clean:
 	cd ${CORE_DIR} && rm -rf target
@@ -14,7 +15,7 @@ app_build:
 
 docker_build: app_clean
 	#docker build -t ${APP_NAME}:latest --progress=plain .  2>&1 | tee docker-build.log
-	docker build -f Probiot.dockerfile -t ${APP_NAME}:latest .
+	docker build -f ${DOCKER_FILE} -t ${APP_NAME}:latest .
 
 docker_run: docker_build
 	docker run -ti --name ${APP_NAME} ${APP_NAME}:latest
