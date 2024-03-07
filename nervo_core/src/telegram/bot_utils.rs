@@ -7,9 +7,12 @@ use teloxide::types::{MediaKind, MessageKind, ReplyMarkup, User};
 use crate::common::AppState;
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
 use teloxide::prelude::*;
+use crate::db::ai_local_db::save_message;
+use crate::db::nervo_message_model::TelegramMessage;
+use chrono::Utc;
 
 pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Result<()> {
-    let (_, text) = parse_user_and_text(&msg).await?;
+    let (user, text) = parse_user_and_text(&msg).await?;
     if text.is_empty() {
         bot.send_message(msg.chat.id, "Please provide a message to send.")
             //.reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
@@ -18,19 +21,33 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
         return Ok(());
     }
 
-    let is_moderation_passed = app_state.nervo_llm.moderate(&text).await?;
+    let mut message_text = text;
+
+    let is_moderation_passed = app_state.nervo_llm.moderate(&message_text).await?;
     if is_moderation_passed {
         let user_msg = ChatCompletionRequestUserMessageArgs::default()
-            .content(text)
+            .content(message_text.clone())
             .build()?;
 
-        chat_gpt_conversation(bot, msg.chat.id, app_state, user_msg).await
+        let tg_message = TelegramMessage {
+            id: msg.chat.id.0 as u64,
+            message: message_text.clone(),
+            timestamp: Utc::now().naive_utc(),
+        };
+
+        let mut username: &str = "";
+
+        if let Some(name) = &user.username {
+            username = name;
+            save_message(&tg_message, username).await;
+        }
+
+        chat_gpt_conversation(bot, username, msg.chat.id, app_state, user_msg).await
     } else {
         bot.send_message(
             msg.chat.id,
             "Your message is not allowed. Please rephrase it.",
         )
-            //.reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
             .await?;
         Ok(())
     }
@@ -38,13 +55,14 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
 
 pub async fn chat_gpt_conversation(
     bot: Bot,
+    username: &str,
     chat_id: ChatId,
     app_state: Arc<AppState>,
     msg: ChatCompletionRequestUserMessage,
 ) -> anyhow::Result<()> {
     let reply = app_state
         .nervo_llm
-        .chat(msg)
+        .chat(username, msg)
         .await?
         .unwrap_or(String::from("I'm sorry, internal error."));
 

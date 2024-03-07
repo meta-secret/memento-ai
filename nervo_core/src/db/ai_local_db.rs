@@ -9,21 +9,14 @@ use std::str::FromStr;
 pub async fn save_message(message: &TelegramMessage, username: &str) -> anyhow::Result<()> {
     let mut connection = create_table(username).await?;
 
-    let message_json_result = serde_json::to_string(message);
-    match message_json_result {
-        Ok(message_json) => {
-            let query = format!("INSERT INTO user_{} (message) VALUES (?)", username);
-            sqlx::query(&query)
-                .bind(&message_json)
-                .execute(&mut connection)
-                .await?;
-            Ok(())
-        }
-        Err(err) => {
-            println!("Cant serde JSON! Error occurred: {}", err);
-            Err(Error::from(err))
-        }
+    let message_count = count_messages(username).await?;
+    if message_count >= 10 {
+        overwrite_messages(message, username).await?;
+    } else {
+        insert_message(message, username).await?;
     }
+
+    Ok(())
 }
 
 pub async fn read_messages(username: &str) -> anyhow::Result<Vec<TelegramMessage>> {
@@ -82,7 +75,6 @@ async fn connect_db() -> anyhow::Result<SqliteConnection> {
                         .create_if_missing(true)
                         .connect()
                         .await?;
-
                     Ok(conn)
                 }
                 Err(err) => {
@@ -93,6 +85,51 @@ async fn connect_db() -> anyhow::Result<SqliteConnection> {
         }
         Err(err) => {
             println!("No AppConfig! Error occurred: {}", err);
+            Err(Error::from(err))
+        }
+    }
+}
+
+async fn count_messages(username: &str) -> anyhow::Result<i64> {
+    let mut connection = connect_db().await?;
+    let query = format!("SELECT COUNT(*) FROM user_{}", username);
+    let count: i64 = sqlx::query_scalar(&query).fetch_one(&mut connection).await?;
+    Ok(count)
+}
+
+async fn overwrite_messages(message: &TelegramMessage, username: &str) -> anyhow::Result<()> {
+    let mut connection = connect_db().await?;
+
+    let oldest_message_id: Option<i64> = sqlx::query_scalar(&format!("SELECT id FROM user_{} ORDER BY id ASC LIMIT 1", username))
+        .fetch_optional(&mut connection)
+        .await?;
+
+    if let Some(id) = oldest_message_id {
+        sqlx::query(&format!("DELETE FROM user_{} WHERE id = ?", username))
+            .bind(id)
+            .execute(&mut connection)
+            .await?;
+    }
+
+    insert_message(message, username).await?;
+
+    Ok(())
+}
+
+async fn insert_message(message: &TelegramMessage, username: &str) -> anyhow::Result<()> {
+    let mut connection = connect_db().await?;
+    let message_json_result = serde_json::to_string(message);
+    match message_json_result {
+        Ok(message_json) => {
+            let query = format!("INSERT INTO user_{} (message) VALUES (?)", username);
+            sqlx::query(&query)
+                .bind(&message_json)
+                .execute(&mut connection)
+                .await?;
+            Ok(())
+        }
+        Err(err) => {
+            println!("Can't serde JSON! Error occurred: {}", err);
             Err(Error::from(err))
         }
     }

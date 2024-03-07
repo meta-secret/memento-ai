@@ -1,10 +1,8 @@
 use async_openai::Client;
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
-    CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse,
-    CreateModerationRequest, ModerationInput,
-};
+use crate::db::ai_local_db::read_messages;
+use async_openai::types::{ChatCompletionRequestMessage, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest, ModerationInput};
+use crate::db::nervo_message_model::TelegramMessage;
 
 #[derive(Clone, Debug)]
 pub struct NervoLlmConfig {
@@ -24,7 +22,7 @@ impl From<OpenAIConfig> for NervoLlmConfig {
             max_tokens: 512u16,
             temperature: 0.1f32,
             open_ai_config,
-        }       
+        }
     }
 }
 
@@ -33,7 +31,7 @@ impl NervoLlmConfig {
         self.model_name = model_name;
         self
     }
-    
+
     pub fn model_name(&self) -> &str {
         &self.model_name
     }
@@ -46,9 +44,9 @@ pub struct NervoLlm {
 
 impl From<NervoLlmConfig> for NervoLlm {
     fn from(llm_config: NervoLlmConfig) -> Self {
-        NervoLlm { 
-            llm_config: llm_config.clone(), 
-            client: Client::with_config(llm_config.open_ai_config)  
+        NervoLlm {
+            llm_config: llm_config.clone(),
+            client: Client::with_config(llm_config.open_ai_config)
         }
     }
 }
@@ -91,9 +89,21 @@ impl NervoLlm {
 
     pub async fn chat(
         &self,
+        username: &str,
         message: ChatCompletionRequestUserMessage,
     ) -> anyhow::Result<Option<String>> {
-        let messages = vec![ChatCompletionRequestMessage::from(message)];
+        let mut messages: Vec<ChatCompletionRequestMessage> = Vec::new();
+
+        let cached_messages = read_messages(&username).await?;
+
+        for msg in cached_messages {
+            let cached_msg = ChatCompletionRequestUserMessageArgs::default()
+                .content(msg.message)
+                .build()?;
+            messages.push(ChatCompletionRequestMessage::from(cached_msg))
+        }
+
+        messages.push(ChatCompletionRequestMessage::from(message));
         self.chat_batch(messages).await
     }
 
