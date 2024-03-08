@@ -1,5 +1,6 @@
 target
 .idea
+Cargo.lock
 
 nervo_bot_app/target
 nervo_bot_app/Cargo.lock
