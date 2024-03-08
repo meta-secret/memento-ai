@@ -10,27 +10,27 @@ RUN mkdir -p /app/sccache
 
 # Cache project dependencies
 COPY nervo_core/Cargo.toml /app/nervo_deps/nervo_core/
-COPY nervo_bot_app/Cargo.toml /app/nervo_deps/nervo_bot/
-COPY nervo_bot_app/web-service/Cargo.toml /app/nervo_deps/nervo_bot/web-service/
+COPY r2d2/Cargo.toml /app/nervo_deps/r2d2/
+COPY r2d2/web-service/Cargo.toml /app/nervo_deps/r2d2/web-service/
 
 WORKDIR /app/nervo_deps
 
 RUN cd nervo_core && mkdir src && echo "fn main() {}" > src/lib.rs
-RUN cd nervo_bot/web-service && mkdir src && echo "fn main() {}" > src/main.rs
+RUN cd r2d2/web-service && mkdir src && echo "fn main() {}" > src/main.rs
 
-WORKDIR /app/nervo_deps/nervo_bot
+WORKDIR /app/nervo_deps/r2d2
 RUN --mount=type=cache,mode=0777,target=/app/sccache cargo build --release
 
 # Build nervo app
 COPY nervo_core /app/nervo_bot/nervo_core
-COPY nervo_bot_app /app/nervo_bot/nervo_bot_app
-WORKDIR /app/nervo_bot/nervo_bot_app
+COPY r2d2 /app/nervo_bot/r2d2
+WORKDIR /app/nervo_bot/r2d2
 RUN --mount=type=cache,mode=0777,target=/app/sccache cargo build --release
 
 FROM rust:1.76.0-bullseye
 
-COPY nervo_bot_app/config.toml /app/config.toml
-COPY --from=builder /app/nervo_bot/nervo_bot_app/target/release/nervo-web-service /app/
+COPY r2d2/config.toml /app/config.toml
+COPY --from=builder /app/nervo_bot/r2d2/target/release/nervo-web-service /app/
 
 WORKDIR /app
 

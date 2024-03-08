@@ -1,6 +1,6 @@
 APP_NAME := nervo_bot_r2d2
 CORE_DIR := nervo_core
-APP_DIR := nervo_bot_app
+APP_DIR := r2d2
 DOCKER_FILE := r2d2.dockerfile
 
 app_clean:
