@@ -2,15 +2,15 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs, 
-    ChatCompletionRequestUserMessageArgs
+    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestUserMessageArgs,
 };
 use qdrant_client::qdrant::value::Kind;
-use teloxide::{prelude::*, utils::command::BotCommands};
-use teloxide::Bot as TelegramBot;
 use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::net::Download;
 use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
+use teloxide::Bot as TelegramBot;
+use teloxide::{prelude::*, utils::command::BotCommands};
 use tokio::fs;
 
 use crate::common::AppState;
@@ -18,7 +18,6 @@ use crate::telegram::bot_utils::{chat, parse_user_and_text};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
 
 type MyDialogue = Dialogue<ChatState, InMemStorage<ChatState>>;
-
 
 #[derive(Clone, Default, Debug)]
 pub enum ChatState {
@@ -102,19 +101,24 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
     Ok(())
 }
 
-async fn chat_initialization(bot: Bot, dialogue: MyDialogue, msg: Message, app_state: Arc<AppState>) -> Result<()> {
+async fn chat_initialization(
+    bot: Bot,
+    dialogue: ChatState,
+    msg: Message,
+    app_state: Arc<AppState>,
+) -> Result<()> {
     bot.send_message(
         msg.chat.id,
         "State:Chat. Welcome to conversational chat. Let's go!",
     )
     .await?;
-    dialogue.update(ChatState::Conversation).await?;
+    //dialogue.update(ChatState::Conversation).await?;
     Ok(())
 }
 
 async fn chat_continuation(
     bot: Bot,
-    dialogue: MyDialogue,
+    dialogue: ChatState,
     msg: Message,
     app_state: Arc<AppState>,
 ) -> Result<()> {
@@ -286,7 +290,6 @@ async fn vector_search(
 
     let mut results = vec![];
     for point in response.result {
-        //if point.score > 0.5 {
         let maybe_kind = point
             .payload
             .get("text")
@@ -295,9 +298,7 @@ async fn vector_search(
         if let Some(Kind::StringValue(txt)) = maybe_kind {
             results.push((point.score, txt.clone()));
         };
-        //}
     }
 
     Ok(results)
 }
-

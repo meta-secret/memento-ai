@@ -5,9 +5,10 @@ use crate::ai::ai_db::NervoAiDb;
 use config::Config as AppConfig;
 
 use crate::ai::nervo_llm::NervoLlm;
-use crate::common::{AppState, NervoConfig};
-use crate::telegram::r2_d2;
 use crate::ai::nervo_llm::NervoLlmConfig;
+use crate::common::{AppState, NervoConfig};
+use crate::db::local_db::LocalDb;
+use crate::telegram::r2_d2;
 
 pub async fn start_nervo_bot() -> anyhow::Result<()> {
     pretty_env_logger::init();
@@ -24,15 +25,18 @@ pub async fn start_nervo_bot() -> anyhow::Result<()> {
         let cfg = OpenAIConfig::new();
         cfg.with_api_key(nervo_config.openai_api_key.clone())
     };
-    
+
     let nervo_llm_config = NervoLlmConfig::from(open_ai_config);
 
     let nervo_llm = NervoLlm::from(nervo_llm_config);
     let nervo_ai_db = NervoAiDb::try_from(&nervo_config)?;
 
+    let local_db = LocalDb::try_init(nervo_config.clone()).await?;
+
     let app_state = Arc::from(AppState {
         nervo_llm,
         nervo_ai_db,
+        local_db,
     });
 
     r2_d2::start(nervo_config.telegram_bot_token, app_state).await?;

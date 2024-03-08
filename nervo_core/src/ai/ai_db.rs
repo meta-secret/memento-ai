@@ -1,18 +1,17 @@
-use crate::common::NervoConfig;
 use anyhow::bail;
 use anyhow::Result;
-use async_openai::types::{CreateEmbeddingResponse, Embedding};
-use config::Config as AppConfig;
+use async_openai::types::CreateEmbeddingResponse;
 use qdrant_client::prelude::*;
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::PointStruct;
 use qdrant_client::qdrant::{
-    Condition, Filter, PointsOperationResponse, SearchResponse, VectorParams, Vectors,
-    VectorsConfig,
+    PointsOperationResponse, SearchResponse, VectorParams, Vectors, VectorsConfig,
 };
 use rand::rngs::OsRng;
 use rand::Rng;
 use serde_json::json;
+
+use crate::common::NervoConfig;
 
 pub struct NervoAiDb {
     pub qdrant_client: QdrantClient,

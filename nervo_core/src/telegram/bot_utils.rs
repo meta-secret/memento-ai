@@ -1,15 +1,15 @@
 use std::sync::Arc;
+
 use anyhow::bail;
 use async_openai::types::{ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs};
-use teloxide::Bot;
-use teloxide::prelude::ChatId;
-use teloxide::types::{MediaKind, MessageKind, ReplyMarkup, User};
-use crate::common::AppState;
-use crate::telegram::tg_keyboard::NervoBotKeyboard;
-use teloxide::prelude::*;
-use crate::db::ai_local_db::save_message;
-use crate::db::nervo_message_model::TelegramMessage;
 use chrono::Utc;
+use teloxide::prelude::ChatId;
+use teloxide::prelude::*;
+use teloxide::types::{MediaKind, MessageKind, User};
+use teloxide::Bot;
+
+use crate::common::AppState;
+use crate::db::nervo_message_model::TelegramMessage;
 
 pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Result<()> {
     let (user, text) = parse_user_and_text(&msg).await?;
@@ -21,7 +21,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
         return Ok(());
     }
 
-    let mut message_text = text;
+    let message_text = text;
 
     let is_moderation_passed = app_state.nervo_llm.moderate(&message_text).await?;
     if is_moderation_passed {
@@ -39,7 +39,10 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
 
         if let Some(name) = &user.username {
             username = name;
-            save_message(&tg_message, username).await;
+            app_state
+                .local_db
+                .save_message(tg_message, username)
+                .await?;
         }
 
         chat_gpt_conversation(bot, username, msg.chat.id, app_state, user_msg).await
@@ -48,7 +51,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
             msg.chat.id,
             "Your message is not allowed. Please rephrase it.",
         )
-            .await?;
+        .await?;
         Ok(())
     }
 }
@@ -62,7 +65,7 @@ pub async fn chat_gpt_conversation(
 ) -> anyhow::Result<()> {
     let reply = app_state
         .nervo_llm
-        .chat(username, msg)
+        .chat(username, msg, &app_state.local_db)
         .await?
         .unwrap_or(String::from("I'm sorry, internal error."));
 

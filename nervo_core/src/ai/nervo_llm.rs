@@ -1,8 +1,11 @@
-use async_openai::Client;
 use async_openai::config::OpenAIConfig;
-use crate::db::ai_local_db::read_messages;
-use async_openai::types::{ChatCompletionRequestMessage, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest, ModerationInput};
-use crate::db::nervo_message_model::TelegramMessage;
+use async_openai::types::{
+    ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
+    ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
+    CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest, ModerationInput,
+};
+use async_openai::Client;
+use crate::db::local_db::LocalDb;
 
 #[derive(Clone, Debug)]
 pub struct NervoLlmConfig {
@@ -10,7 +13,7 @@ pub struct NervoLlmConfig {
     embedding_model_name: String,
     max_tokens: u16,
     temperature: f32,
-    open_ai_config: OpenAIConfig
+    open_ai_config: OpenAIConfig,
 }
 
 impl From<OpenAIConfig> for NervoLlmConfig {
@@ -46,7 +49,7 @@ impl From<NervoLlmConfig> for NervoLlm {
     fn from(llm_config: NervoLlmConfig) -> Self {
         NervoLlm {
             llm_config: llm_config.clone(),
-            client: Client::with_config(llm_config.open_ai_config)
+            client: Client::with_config(llm_config.open_ai_config),
         }
     }
 }
@@ -91,10 +94,11 @@ impl NervoLlm {
         &self,
         username: &str,
         message: ChatCompletionRequestUserMessage,
+        local_db: &LocalDb
     ) -> anyhow::Result<Option<String>> {
         let mut messages: Vec<ChatCompletionRequestMessage> = Vec::new();
 
-        let cached_messages = read_messages(&username).await?;
+        let cached_messages = local_db.read_messages(&username).await?;
 
         for msg in cached_messages {
             let cached_msg = ChatCompletionRequestUserMessageArgs::default()
