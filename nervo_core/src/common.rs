@@ -13,6 +13,8 @@ pub struct AppState {
 pub struct NervoConfig {
     pub openai_api_key: String,
     pub model_name: String,
+    pub max_tokens: u16,
+    pub temperature: f32,
 
     pub qdrant_server_url: String,
     pub qdrant_api_key: String,

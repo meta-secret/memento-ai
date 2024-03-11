@@ -35,6 +35,16 @@ impl NervoLlmConfig {
         self
     }
 
+    pub fn with_max_tokens(mut self, max_tokens: u16) -> Self {
+        self.max_tokens = max_tokens;
+        self
+    }
+
+    pub fn with_temperature(mut self, temperature: f32) -> Self {
+        self.temperature = temperature;
+        self
+    }
+
     pub fn model_name(&self) -> &str {
         &self.model_name
     }
