@@ -16,7 +16,7 @@ jobs:
 
     - name: Set up cargo cache
       uses: actions/cache@v3
-      continue-on-error: false
+      continue-on-error: true
       with:
         path: |
           ~/.cargo/
@@ -27,5 +27,11 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: ${{ runner.os }}-cargo-
     
-    - name: Run tests
+    - name: Run r2d2 tests
+      working-directory: ./r2d2
       run: cargo test
+ 
+    - name: Run probiot tests
+      working-directory: ./probiot
+      run: cargo test
+      
