@@ -1,5 +1,4 @@
 use std::sync::Arc;
-
 use anyhow::bail;
 use async_openai::types::{ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs};
 use chrono::Utc;
@@ -21,21 +20,19 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
         return Ok(());
     }
 
+    let mut username: &str = "";
     let message_text = text;
-
+    let user_msg = ChatCompletionRequestUserMessageArgs::default()
+        .content(message_text.clone())
+        .build()?;
+    
     let is_moderation_passed = app_state.nervo_llm.moderate(&message_text).await?;
     if is_moderation_passed {
-        let user_msg = ChatCompletionRequestUserMessageArgs::default()
-            .content(message_text.clone())
-            .build()?;
-
         let tg_message = TelegramMessage {
             id: msg.chat.id.0 as u64,
             message: message_text.clone(),
             timestamp: Utc::now().naive_utc(),
         };
-
-        let mut username: &str = "";
 
         if let Some(name) = &user.username {
             username = name;
@@ -47,12 +44,16 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
 
         chat_gpt_conversation(bot, username, msg.chat.id, app_state, user_msg).await
     } else {
-        bot.send_message(
-            msg.chat.id,
-            "Your message is not allowed. Please rephrase it.",
-        )
-        .await?;
-        Ok(())
+        if let Some(name) = &user.username {
+            username = name;
+            let question = format!("I have a message from the user, I know the message is unacceptable, can you please read the message and reply that the message is not acceptable. Reply using the same language the massage uses. Here is the message: {:?}", &message_text);
+            let question_msg = ChatCompletionRequestUserMessageArgs::default()
+                .content(question)
+                .build()?;
+            chat_gpt_conversation(bot, &username, msg.chat.id, app_state, question_msg).await
+        } else {
+            Ok(())
+        }
     }
 }
 
