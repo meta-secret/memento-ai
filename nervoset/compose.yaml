@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+
+  probiot_t1000:
+    build:
+      dockerfile: build.dockerfile
+      args:
+        APP_NAME: probiot_t1000
+    image: nervoset/probiot_t1000:latest
+    container_name: probiot_t1000
+
+  r2d2:
+    build:
+      dockerfile: build.dockerfile
+      args:
+        APP_NAME: r2d2
+    image: nervoset/r2d2:latest
+    container_name: r2d2
+
+  test:
+    build:
+      dockerfile: test.dockerfile
+    image: nervoset/test:latest
+    container_name: nervoset_test
