@@ -1,6 +1,8 @@
 .idea
 
 nervoset/target
+nervoset/Cargo.lock
+nervoset/nervo_core/Cargo.lock
 
 nervoset/config/docker_compose/nervoset.env
 nervoset/config/probiot_t1000/config.toml
