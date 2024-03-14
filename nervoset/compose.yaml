@@ -1,22 +1,25 @@
 version: '3'
 
 services:
-
   probiot_t1000:
     build:
       dockerfile: build.dockerfile
       args:
         APP_NAME: probiot_t1000
-    image: nervoset/probiot_t1000:latest
-    container_name: probiot_t1000
+    image: ${PROBIOT_T1000_IMAGE}
+    container_name: ${PROBIOT_T1000_CONTAINER_NAME}
+    volumes:
+      - ./config/probiot_t1000/config.toml:/app/config.toml
 
   r2d2:
     build:
       dockerfile: build.dockerfile
       args:
         APP_NAME: r2d2
-    image: nervoset/r2d2:latest
-    container_name: r2d2
+    image: ${R2D2_IMAGE}
+    container_name: ${R2D2_CONTAINER_NAME}
+    volumes:
+      - ./config/r2d2/config.toml:/app/config.toml
 
   test:
     build:
