@@ -1,9 +1,7 @@
-target
 .idea
-Cargo.lock
 
-nervo_bot_app/target
-nervo_bot_app/Cargo.lock
+nervoset/target
 
-nervo_core/Cargo.lock
-probiot/probiot_t800/Cargo.lock
+nervoset/config/docker_compose/nervoset.env
+nervoset/config/probiot_t1000/config.toml
+nervoset/config/r2d2/config.toml

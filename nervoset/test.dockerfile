@@ -12,12 +12,11 @@ COPY target/nervoset_dependencies /app/nervoset_dependencies
 WORKDIR /app/nervoset_dependencies
 
 # Download dependencied
-RUN cargo build --release && cargo clean
+RUN cargo build
 
 # Build nervoset
 COPY . /app/nervoset/
 WORKDIR /app/nervoset
-RUN cargo build
 
 # Run tests
 CMD cargo test
