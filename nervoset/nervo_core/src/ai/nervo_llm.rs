@@ -1,11 +1,12 @@
-use async_openai::config::OpenAIConfig;
-use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
-    ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
-    CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest, ModerationInput,
-};
+use async_openai::config::{Config, OpenAIConfig};
+use async_openai::types::{AudioResponseFormat, ChatCompletionRequestMessage, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest, CreateTranscriptionRequest, CreateTranscriptionResponse, ModerationInput, Role};
 use async_openai::Client;
+use async_openai::error::OpenAIError;
+use async_openai::types::RunStatus::Failed;
+use config::File;
+use teloxide::types::MediaVoice;
 use crate::db::local_db::LocalDb;
+use secrecy::{ExposeSecret};
 
 #[derive(Clone, Debug)]
 pub struct NervoLlmConfig {
@@ -68,6 +69,7 @@ impl NervoLlm {
     pub fn model_name(&self) -> &str {
         self.llm_config.model_name()
     }
+    pub fn api_key(&self) -> &String { self.llm_config.open_ai_config.api_key().expose_secret() }
 }
 
 impl NervoLlm {
@@ -117,6 +119,12 @@ impl NervoLlm {
             messages.push(ChatCompletionRequestMessage::from(cached_msg))
         }
 
+        let system_msg = ChatCompletionRequestUserMessageArgs::default()
+            .content("Ты эксперт в области живой гигиены, тебя зовут Пробиоша, но ты мужского пола. Ты отвечаешь на вопросы развёрнуто и подробно с точки зрения концепции микробиома, микробной гигиены и микробной очистки.")
+            .role(Role::System)
+            .build()?;
+        messages.push(ChatCompletionRequestMessage::from(system_msg));
+
         messages.push(ChatCompletionRequestMessage::from(message));
         self.chat_batch(messages).await
     }
@@ -129,5 +137,19 @@ impl NervoLlm {
 
         let response = self.client.moderations().create(request).await?;
         Ok(!response.results.iter().any(|property| property.flagged))
+    }
+
+    pub async fn voice_transcription(&self, request: CreateTranscriptionRequest) -> anyhow::Result<String> {
+        let response = self.client.audio().transcribe(request).await;
+        match response {
+            Ok(text) => {
+                println!("RESPONSE: OK");
+                Ok(text.text)
+            },
+            Err(err) => {
+                println!("RESPONSE: ERR {:?}", err);
+                return Err(err.into());
+            },
+        }
     }
 }

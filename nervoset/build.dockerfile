@@ -25,7 +25,7 @@ RUN cp target/release/${APP_NAME} target/release/nervobot
 FROM rust:1.76.0-bookworm
 
 COPY --from=builder /app/nervoset/target/release/nervobot /app/
-
+# COPY ./voice.mp3 /app/voice.mp3
 WORKDIR /app
 
 CMD ./nervobot

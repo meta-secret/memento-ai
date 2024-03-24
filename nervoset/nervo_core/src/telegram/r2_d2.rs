@@ -14,7 +14,7 @@ use teloxide::{prelude::*, utils::command::BotCommands};
 use tokio::fs;
 
 use crate::common::AppState;
-use crate::telegram::bot_utils::{chat, parse_user_and_text};
+use crate::telegram::bot_utils::{chat, MessageParser};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
 
 type MyDialogue = Dialogue<ChatState, InMemStorage<ChatState>>;
@@ -146,6 +146,13 @@ async fn endpoint(
     dialogue: MyDialogue,
     app_state: Arc<AppState>,
 ) -> Result<()> {
+    let mut  parser = MessageParser { 
+        bot: &bot,
+        msg: &msg,
+        app_state: &app_state,
+        is_voice: false,
+    };
+    
     match cmd {
         Command::Help => {
             bot.send_message(msg.chat.id, Command::descriptions().to_string())
@@ -166,7 +173,7 @@ async fn endpoint(
             Ok(())
         }
         Command::Save(text) => {
-            let (user, _) = parse_user_and_text(&msg).await?;
+            let (user, _) = parser.user_and_text().await?;
             let UserId(user_id) = user.id;
 
             // do embedding using openai
@@ -188,7 +195,7 @@ async fn endpoint(
             Ok(())
         }
         Command::Search(search_text) => {
-            let results = vector_search(&msg, app_state, search_text.as_str()).await?;
+            let results = vector_search(&mut parser, search_text.as_str()).await?;
             for res in results {
                 let res_json = serde_json::to_string_pretty(&res).unwrap();
                 bot.send_message(msg.chat.id, format!("{:?}", res_json))
@@ -199,7 +206,7 @@ async fn endpoint(
             Ok(())
         }
         Command::Analyse(question) => {
-            let result_strings = vector_search(&msg, app_state.clone(), question.as_str())
+            let result_strings = vector_search(&mut parser, question.as_str())
                 .await?
                 .iter()
                 .map(|(_, text)| text.clone())
@@ -256,15 +263,15 @@ async fn endpoint(
                 return Ok(());
             };
 
-            let (user, _) = parse_user_and_text(&msg).await?;
+            let (user, _) = parser.user_and_text().await?;
             let UserId(user_id) = user.id;
 
             let file_id = training_file.document.file.id.clone();
             let file: File = bot.get_file(file_id).await?;
 
             //TODO remove an old file
-            let mut dst = fs::File::create(format!("/tmp/{}", user_id)).await?;
-            bot.download_file(&file.path, &mut dst).await?;
+            // let mut dst = fs::File::create(format!("/tmp/{}", user_id)).await?;
+            // bot.download_file(&file.path, &mut dst).await?;
 
             //TODO read json file and make test and validation files from it
             //TODO train the model, an example https://github.com/64bit/async-openai/blob/main/examples/fine-tune-cli/src/main.rs
@@ -274,19 +281,18 @@ async fn endpoint(
     }
 }
 
-async fn vector_search(
-    msg: &Message,
-    app_state: Arc<AppState>,
+async fn vector_search <'a>(
+    parser: &mut MessageParser<'a>,
     search_text: &str,
 ) -> Result<Vec<(f32, String)>> {
-    let (user, _) = parse_user_and_text(msg).await?;
+    let (user, _) = parser.user_and_text().await?;
     let UserId(user_id) = user.id;
 
     // do embedding using openai
-    let embedding = app_state.nervo_llm.embedding(search_text).await?;
+    let embedding = parser.app_state.nervo_llm.embedding(search_text).await?;
 
     //save the embedding into qdrant db
-    let response = app_state.nervo_ai_db.search(user_id, embedding).await?;
+    let response = parser.app_state.nervo_ai_db.search(user_id, embedding).await?;
 
     let mut results = vec![];
     for point in response.result {
