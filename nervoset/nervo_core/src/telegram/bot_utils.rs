@@ -7,7 +7,7 @@ use async_openai::types::{ChatCompletionRequestUserMessage, ChatCompletionReques
 use chrono::Utc;
 use teloxide::prelude::ChatId;
 use teloxide::{prelude::*, repl};
-use teloxide::types::{ChatKind, File, FileMeta, InputFile, MediaKind, MessageKind, User};
+use teloxide::types::{ChatKind, File, FileMeta, InputFile, MediaKind, MessageKind, ParseMode, User};
 use teloxide::Bot;
 use teloxide::net::Download;
 use tokio::fs;
@@ -44,7 +44,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
 
         if text.is_empty() {
             bot.send_message(msg.chat.id, "Please provide a message to send.")
-                //.reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
+                .reply_to_message_id(msg.id.clone())
                 .await?;
 
             return Ok(());
@@ -72,7 +72,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                     .await?;
             }
 
-            chat_gpt_conversation(&bot, username, msg.chat.id, &app_state, user_msg, parser.is_voice).await
+            chat_gpt_conversation(&bot, &msg, username, msg.chat.id, &app_state, user_msg, parser.is_voice).await
         } else {
             if let Some(name) = &user.username {
                 username = name;
@@ -80,7 +80,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                 let question_msg = ChatCompletionRequestUserMessageArgs::default()
                     .content(question)
                     .build()?;
-                chat_gpt_conversation(&bot, &username, msg.chat.id, &app_state, question_msg, parser.is_voice).await
+                chat_gpt_conversation(&bot, &msg, &username, msg.chat.id, &app_state, question_msg, parser.is_voice).await
             } else {
                 Ok(())
             }
@@ -92,6 +92,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
 
 pub async fn chat_gpt_conversation(
     bot: &Bot,
+    message: &Message,
     username: &str,
     chat_id: ChatId,
     app_state: &Arc<AppState>,
@@ -107,7 +108,9 @@ pub async fn chat_gpt_conversation(
     if is_voice {
         create_speech(&bot, reply.clone(), chat_id, &app_state).await;
     } else {
-        bot.send_message(chat_id, reply).await?;
+        bot.send_message(chat_id, reply)
+            .reply_to_message_id(message.id.clone())
+            .await?;
     }
 
     Ok(())
@@ -133,7 +136,7 @@ async fn create_speech(bot: &Bot, text: String, chat_id: ChatId, app_state: &App
         },
         Err(err) => {
             println!("ERROR: {:?}", err);
-            let _ = &bot.send_message(chat_id.clone(), err.to_string()).await;
+            &bot.send_message(chat_id.clone(), err.to_string()).await;
         },
     }
 }
@@ -185,7 +188,9 @@ impl <'a> MessageParser<'a> {
     }
 
     pub async fn user_and_voice(&mut self, media_voice: &FileMeta, user: &User) -> anyhow::Result<(User, String)> {
-        self.bot.send_message(self.msg.chat.id.clone(), "Один момент, сейчас отвечу!".to_string()).await?;
+        self.bot.send_message(self.msg.chat.id.clone(), "Один момент, сейчас отвечу!".to_string())
+            .reply_to_message_id(self.msg.id.clone())
+            .await?;
 
         let file: File = self.bot.get_file(&media_voice.id).await?;
 
