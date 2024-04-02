@@ -21,14 +21,11 @@ sleep:
 
 # Master password file must exists
 genesis:
+    mkdir -p {{LOLAL_TMP_DIR}}
+
     @echo "Genesis verification"
     @if [ ! -f {{SK_ENC_FILE}} ]; then \
         echo "Master password file does not exists"; \
-        exit 1; \
-    fi
-    #sentinel key file must exists
-    @if [ ! -f {{SENTINEL_KEY_FILE}} ]; then \
-        echo "Sentinel key file does not exists"; \
         exit 1; \
     fi
     @if [ ! -f {{VAULT_INIT_ENCRYPTED_FILE}} ]; then \
@@ -92,7 +89,7 @@ vault_login:
 vault_test:
     @just vault_kv_get test test
 
-vault_full_run: vault_start vault_unseal vault_test
+vault_full_run: vault_start sleep vault_unseal sleep vault_test
 
 vault_secret_prod_host:
     @just vault_kv_get prod host
@@ -129,7 +126,12 @@ local_tmp_clean_up:
 
 gpg_decrypt_sentinel_key: genesis
     #echo "your_passphrase" | gpg --decrypt --batch --yes --passphrase-fd 0 --output decrypted_file.txt encrypted_file.gpg
+    gpg --batch --yes --decrypt --passphrase ${NERVOSET_VOID_SENTINEL} --output {{SK_PLAINTEXT_FILE}} {{SK_ENC_FILE}}
+
+gpg_decrypt_sentinel_key_with_sentinel_file: genesis
+    #echo "your_passphrase" | gpg --decrypt --batch --yes --passphrase-fd 0 --output decrypted_file.txt encrypted_file.gpg
     gpg --batch --yes --decrypt --passphrase-file {{SENTINEL_KEY_FILE}} --output {{SK_PLAINTEXT_FILE}} {{SK_ENC_FILE}}
+
 
 age_encrypt:
     age --encrypt --armor -R={{PK_FILE}} --output=secret.enc.txt secret.txt
