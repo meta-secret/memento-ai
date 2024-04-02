@@ -25,25 +25,30 @@ jobs:
       - name: enable docker
         uses: docker/setup-buildx-action@v3
 
+      - name: Install nix os
+        run: |
+          ./nixw.sh
+          . "${HOME}"/.nix-profile/etc/profile.d/nix.sh
+
       - name: Decrypt sentinel key file with the secret passphrase
         working-directory: infra/hazmat
         run: |
-          ./nixw.sh
           mkdir -p tmp
           echo "${{ secrets.NERVOSET_VOID_SENTINEL }}" > tmp/sentinel.txt
-          just vault_full_run
+
+      - name: Run Vault
+        working-directory: infra/hazmat
+        run: |
+          nix-shell --run 'just vault_full_run'
 
       - name: Infrastructure bootstrap
         working-directory: infra/gh_bootstrap
         run: |
-          ./nixw.sh
-          just bootstrap
+          nix-shell --run 'just bootstrap'
 
       - name: Deployment
         working-directory: infra/deployment
         run: |
-          ./nixw.sh
-          . /home/runner/.nix-profile/etc/profile.d/nix.sh
           nix-shell --run 'just tf_deployment'
           
       
