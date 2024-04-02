@@ -25,11 +25,9 @@ jobs:
       - name: enable docker
         uses: docker/setup-buildx-action@v3
 
-      - name: Install nix os
-        working-directory: infra/hazmat
-        run: |
-          ./nixw.sh
-          . "${HOME}"/.nix-profile/etc/profile.d/nix.sh
+      - name: install nix
+        uses: cachix/install-nix-action@v22
+
 
       - name: Decrypt sentinel key file with the secret passphrase
         working-directory: infra/hazmat
