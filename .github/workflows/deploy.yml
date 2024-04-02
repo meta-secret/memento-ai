@@ -43,7 +43,7 @@ jobs:
         working-directory: infra/deployment
         run: |
           ./nixw.sh
-          nix-shell
-          just tf_deployment
+          . /home/runner/.nix-profile/etc/profile.d/nix.sh
+          nix-shell --run 'just tf_deployment'
           
       
