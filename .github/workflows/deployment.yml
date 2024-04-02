@@ -26,6 +26,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Install nix os
+        working-directory: infra/hazmat
         run: |
           ./nixw.sh
           . "${HOME}"/.nix-profile/etc/profile.d/nix.sh
