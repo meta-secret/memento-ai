@@ -1,0 +1,27 @@
+import '../hazmat/justfile'
+
+cluster_name := "nervoset"
+
+DEPLOYMENT_TMP_DIR := "tmp"
+DEPLOYMENT_TF_VARS := DEPLOYMENT_TMP_DIR + "/security.tfvars.json"
+
+tf_deployment:
+    mkdir -p {{DEPLOYMENT_TMP_DIR}}
+    @just save_tf_security_vars {{DEPLOYMENT_TF_VARS}}
+
+    terraform init -var-file={{DEPLOYMENT_TF_VARS}}
+    terraform apply -auto-approve -var-file={{DEPLOYMENT_TF_VARS}}
+
+k3d_cluster_deploy:
+    k3d cluster create --config k3d/k3d.yaml || true
+
+k3d_delete:
+    k3d cluster delete {{cluster_name}} || true
+
+k3d_qdrant_install:
+    helm repo add qdrant https://qdrant.to/helm || true
+    helm repo update
+    helm install qdrant qdrant/qdrant --set ingress.enabled=true || true
+
+k3d_qdrant_uninstall:
+    helm uninstall qdrant
