@@ -16,5 +16,6 @@ pkgs.mkShellNoCC {
     age
     jq
     k3d
+    k9s
   ];
 }

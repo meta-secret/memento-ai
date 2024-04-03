@@ -1,0 +1,14 @@
+
+#namespace: probiot_t1000
+
+commonLabels:
+  app: probiot-t1000
+
+configMapGenerator:
+  - name: example-configmap-1
+    files:
+      - application.properties
+
+resources:
+  - deployment.yaml
+  - pvc.yaml

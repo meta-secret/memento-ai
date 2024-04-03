@@ -103,6 +103,15 @@ vault_secret_prod_pass:
 vault_secret_github_token:
     @just vault_kv_get github token
 
+vault_secret_docker_user:
+    @just vault_kv_get docker user
+
+vault_secret_docker_email:
+    @just vault_kv_get docker email
+
+vault_secret_docker_pass:
+    @just vault_kv_get docker pass
+
 vault_kv_get path key:
    @docker exec hashi-vault vault kv get -mount="kv" -format=yaml -field={{key}} {{path}} | xargs
 
