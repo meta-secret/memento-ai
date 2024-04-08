@@ -1,12 +1,9 @@
 use async_openai::config::{Config, OpenAIConfig};
-use async_openai::types::{AudioResponseFormat, ChatCompletionRequestMessage, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest, CreateTranscriptionRequest, CreateTranscriptionResponse, ModerationInput, Role};
+use async_openai::types::{ChatCompletionRequestMessage, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest, CreateTranscriptionRequest, CreateTranscriptionResponse, ModerationInput, Role};
 use async_openai::Client;
-use async_openai::error::OpenAIError;
-use async_openai::types::RunStatus::Failed;
-use config::File;
-use teloxide::types::MediaVoice;
 use crate::db::local_db::LocalDb;
 use secrecy::{ExposeSecret};
+use crate::models::nervo_message_model::TelegramMessage;
 
 #[derive(Clone, Debug)]
 pub struct NervoLlmConfig {
@@ -110,7 +107,7 @@ impl NervoLlm {
     ) -> anyhow::Result<Option<String>> {
         let mut messages: Vec<ChatCompletionRequestMessage> = Vec::new();
 
-        let cached_messages = local_db.read_messages(&username).await?;
+        let cached_messages: Vec<TelegramMessage> = local_db.read_messages(&username).await?;
 
         for msg in cached_messages {
             let cached_msg = ChatCompletionRequestUserMessageArgs::default()
@@ -136,14 +133,13 @@ impl NervoLlm {
         };
 
         let response = self.client.moderations().create(request).await?;
-        Ok(!response.results.iter().any(|property| property.flagged))
+        Ok(!response.results.iter().any(|property| property.flagged) && (text.len() < 10000))
     }
 
     pub async fn voice_transcription(&self, request: CreateTranscriptionRequest) -> anyhow::Result<String> {
         let response = self.client.audio().transcribe(request).await;
         match response {
             Ok(text) => {
-                println!("RESPONSE: OK");
                 Ok(text.text)
             },
             Err(err) => {

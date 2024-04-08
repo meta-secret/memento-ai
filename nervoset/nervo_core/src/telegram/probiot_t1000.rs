@@ -4,9 +4,10 @@ use anyhow::Result;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
 use teloxide::Bot as TelegramBot;
+use teloxide::types::ParseMode;
 
 use crate::common::AppState;
-use crate::telegram::bot_utils::chat;
+use crate::telegram::bot_utils::{chat, system_message, SystemMessage};
 
 #[derive(BotCommands, Clone)]
 #[command(
@@ -16,6 +17,8 @@ use crate::telegram::bot_utils::chat;
 enum ProbiotCommands {
     #[command(description = "Ai model name.")]
     Model,
+    Start,
+    Manual,
 }
 
 /// Start telegram bot
@@ -59,6 +62,14 @@ async fn command_handler(
             )
             .await?;
             Ok(())
-        }
+        },
+        ProbiotCommands::Start => {
+            system_message(&bot, &msg, SystemMessage::Start).await?;
+            Ok(())
+        },
+        ProbiotCommands::Manual => {
+            system_message(&bot, &msg, SystemMessage::Manual).await?;
+            Ok(())
+        },
     }
 }

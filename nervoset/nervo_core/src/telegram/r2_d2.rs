@@ -173,7 +173,7 @@ async fn endpoint(
             Ok(())
         }
         Command::Save(text) => {
-            let (user, _) = parser.user_and_text().await?;
+            let user = parser.parse_user().await?;
             let UserId(user_id) = user.id;
 
             // do embedding using openai
@@ -263,7 +263,7 @@ async fn endpoint(
                 return Ok(());
             };
 
-            let (user, _) = parser.user_and_text().await?;
+            let user = parser.parse_user().await?;
             let UserId(user_id) = user.id;
 
             let file_id = training_file.document.file.id.clone();
@@ -285,7 +285,7 @@ async fn vector_search <'a>(
     parser: &mut MessageParser<'a>,
     search_text: &str,
 ) -> Result<Vec<(f32, String)>> {
-    let (user, _) = parser.user_and_text().await?;
+    let user = parser.parse_user().await?;
     let UserId(user_id) = user.id;
 
     // do embedding using openai

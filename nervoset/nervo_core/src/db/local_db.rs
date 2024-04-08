@@ -1,9 +1,11 @@
 use crate::common::NervoConfig;
-use crate::db::nervo_message_model::TelegramMessage;
+use crate::models::nervo_message_model::TelegramMessage;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 pub struct LocalDb {
     app_config: NervoConfig,
@@ -24,26 +26,33 @@ impl LocalDb {
         Ok(conn)
     }
 
-    pub async fn save_message(
+    pub async fn save_message<T>(
         &self,
-        message: TelegramMessage,
-        username: &str,
-    ) -> anyhow::Result<()> {
-        self.create_table(username).await?;
+        message: T,
+        table_name: &str,
+        need_restriction: bool,
+    ) -> anyhow::Result<()>
+        where
+            T: Serialize + Send + 'static,
+    {
+        self.create_table(table_name).await?;
 
-        let message_count = self.count_messages(username).await?;
-        if message_count >= 10 {
-            self.overwrite_messages(message, username).await?;
+        let message_count = self.count_messages(table_name).await?;
+        if message_count >= 10 && need_restriction {
+            self.overwrite_messages(message, table_name).await?;
         } else {
-            self.insert_message(message, username).await?;
+            self.insert_message(message, table_name).await?;
         }
 
         Ok(())
     }
 
-    pub async fn read_messages(&self, username: &str) -> anyhow::Result<Vec<TelegramMessage>> {
-        self.create_table(username).await?;
-        let query = format!("SELECT message FROM user_{}", username);
+    pub async fn read_messages<T>(&self, table_name: &str) -> anyhow::Result<Vec<T>>
+        where
+            T: DeserializeOwned,
+    {
+        self.create_table(table_name).await?;
+        let query = format!("SELECT message FROM table_{}", table_name);
 
         let mut conn = self.connect_db().await?;
         let rows = sqlx::query(&query).fetch_all(&mut conn).await?;
@@ -52,7 +61,7 @@ impl LocalDb {
 
         for row in rows {
             let message_json: String = row.try_get("message")?;
-            let message: TelegramMessage = serde_json::from_str(&message_json)?;
+            let message = serde_json::from_str(&message_json)?;
 
             messages.push(message);
         }
@@ -60,10 +69,10 @@ impl LocalDb {
         Ok(messages)
     }
 
-    async fn create_table(&self, username: &str) -> anyhow::Result<()> {
+    async fn create_table(&self, table_name: &str) -> anyhow::Result<()> {
         let query = format!(
-            "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'user_{}')",
-            username
+            "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'table_{}')",
+            table_name
         );
 
         let mut conn = self.connect_db().await?;
@@ -72,12 +81,12 @@ impl LocalDb {
 
         if !table_exists {
             let query = format!(
-                "CREATE TABLE IF NOT EXISTS user_{} (
+                "CREATE TABLE IF NOT EXISTS table_{} (
                id INTEGER PRIMARY KEY AUTOINCREMENT,
                message TEXT,
                timestamp TEXT
            )",
-                username
+                table_name
             );
 
             sqlx::query(&query).execute(&mut conn).await?;
@@ -86,42 +95,46 @@ impl LocalDb {
         Ok(())
     }
 
-    async fn count_messages(&self, username: &str) -> anyhow::Result<i64> {
-        let query = format!("SELECT COUNT(*) FROM user_{}", username);
+    async fn count_messages(&self, table_name: &str) -> anyhow::Result<i64> {
+        let query = format!("SELECT COUNT(*) FROM table_{}", table_name);
         let mut conn = self.connect_db().await?;
         let count: i64 = sqlx::query_scalar(&query).fetch_one(&mut conn).await?;
         Ok(count)
     }
 
-    async fn overwrite_messages(
+    async fn overwrite_messages<T>(
         &self,
-        message: TelegramMessage,
-        username: &str,
-    ) -> anyhow::Result<()> {
+        message: T,
+        table_name: &str,
+    ) -> anyhow::Result<()>
+        where
+            T: Serialize,
+    {
         let mut conn = self.connect_db().await?;
-
-        let sql = format!("SELECT id FROM user_{} ORDER BY id ASC LIMIT 1", username);
+        let sql = format!("SELECT id FROM table_{} ORDER BY id ASC LIMIT 1", table_name);
         let oldest_message_id: Option<i64> =
             sqlx::query_scalar(&sql).fetch_optional(&mut conn).await?;
 
         if let Some(id) = oldest_message_id {
-            sqlx::query(&format!("DELETE FROM user_{} WHERE id = ?", username))
+            sqlx::query(&format!("DELETE FROM table_{} WHERE id = ?", table_name))
                 .bind(id)
                 .execute(&mut conn)
                 .await?;
         }
 
-        self.insert_message(message, username).await?;
+        self.insert_message(message, table_name).await?;
 
         Ok(())
     }
 
-    async fn insert_message(&self, message: TelegramMessage, username: &str) -> anyhow::Result<()> {
+    async fn insert_message<T>(&self, message: T, table_name: &str) -> anyhow::Result<()>
+        where
+            T: Serialize,
+    {
         let message_json = serde_json::to_string(&message)?;
-
         let mut conn = self.connect_db().await?;
 
-        let query = format!("INSERT INTO user_{} (message) VALUES (?)", username);
+        let query = format!("INSERT INTO table_{} (message) VALUES (?)", table_name);
         sqlx::query(&query)
             .bind(&message_json)
             .execute(&mut conn)
