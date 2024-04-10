@@ -3,8 +3,8 @@ name = "nervo-core"
 version = "0.1.0"
 edition = "2021"
 
-[build]
-rustc-wrapper = "sccache"
+#[build]
+#rustc-wrapper = "sccache"
 
 [lib]
 crate-type = ["cdylib", "lib", "staticlib"]

@@ -1,17 +1,5 @@
-PROD_DIR := "~/prod"
-
-docker_install:
-    sudo apt-get update
-    sudo apt-get --yes install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 provision:
     terraform init
     terraform apply -auto-approve
 
-k8s_utils_install:
-    sudo snap install helm --classic
-    sudo snap install kubectl --classic
-
-k3d_install:
-    sudo snap install helm --classic
-    curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash

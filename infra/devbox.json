@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetpack-io/devbox/0.10.3/.schema/devbox.schema.json",
+  "packages": [
+    "k3d@5.6.0",
+    "just@1.25.2",
+    "k9s@0.32.4",
+    "kubernetes-helm@3.14.3",
+    "kubectl@1.29.3",
+    "go-task@3.35.1",
+    "docker_25@25.0.3",
+    "age@1.1.1",
+    "gnupg@2.4.5",
+    "jq@1.7.1",
+    "terraform@1.7.5",
+    "bash-completion@2.11"
+  ],
+  "shell": {
+    "init_hook": [
+      "alias k=kubectl"
+    ],
+    "scripts": {
+      "docker_login": "task docker_login"
+    }
+  }
+}

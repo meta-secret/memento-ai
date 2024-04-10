@@ -1,12 +1,9 @@
-name: Deployment
+name: Docker
 
 on:
-  workflow_dispatch:
-    inputs:
-      k3d_deployment:
-        description: ''
-        required: false
-        default: 'prod'
+  push:
+    branches:
+      - main
 
 env:
   CARGO_TERM_COLOR: always
@@ -30,6 +27,9 @@ jobs:
 
       - uses: DeterminateSystems/magic-nix-cache-action@main
 
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.8.0
+
       - name: Run Vault
         working-directory: infra/hazmat
         env:
@@ -38,18 +38,13 @@ jobs:
           sudo chown -R 1000:1000 vault
           devbox run vault_full_run
 
-      - name: Infrastructure bootstrap
-        working-directory: infra/provisioning/gh_bootstrap
+      - name: Docker Login
+        working-directory: infra
         run: |
-          nix-shell --run 'just bootstrap'
+          devbox run docker_login
 
-      - name: Prepare credentials for deployment
-        working-directory: infra/hazmat
+      - name: Build and push docker image
+        working-directory: nervoset
         run: |
-          mkdir -p ../deployment/tmp
-          devbox run task save_tf_security_vars PATH=../deployment/tmp
-
-      - name: Deployment
-        working-directory: infra/deployment
-        run: |
-          devbox run task tf_deployment
+          devbox run task docker_probiot_t1000_push
+          devbox run task docker_r2d2_push

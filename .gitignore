@@ -31,3 +31,7 @@ nervoset/config/r2d2/config.toml
 /infra/deployment/.terraform.tfstate.lock.info
 /infra/deployment/terraform.tfstate.backup
 /infra/deployment/.terraform
+
+/infra/.devbox
+/infra/devbox.lock
+/nervoset/devbox.lock

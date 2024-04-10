@@ -1,0 +1,86 @@
+version: '3'
+
+vars:
+  TARGET_DIR: 'target'
+  DEPS_DIR: '{{.TARGET_DIR}}/nervoset_dependencies'
+  NERVO_CORE_DIR: '{{.DEPS_DIR}}/nervo_core'
+
+  PROBIOT_T100_DIR: '{{.DEPS_DIR}}/probiot_t1000'
+  PROBIOT_T1000_VERSION: '0.1'
+  PROBIOT_T1000_IMAGE : "cypherkitty/nervoset:probiot_t1000_v{{.PROBIOT_T1000_VERSION}}"
+
+  R2D2_DIR: '{{.DEPS_DIR}}/r2d2'
+  R2D2_VERSION: '0.1'
+  R2D2_IMAGE: "cypherkitty/nervoset:r2d2_v{{.R2D2_VERSION}}"
+
+  BASE_IMAGE: "nervoset/base:latest"
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+
+  docker_test:
+    cmds:
+      - task: docker_base_build
+      - docker run --rm {{.BASE_IMAGE}}
+
+  docker_base_build:
+    cmds:
+      - task: prepare_dependencies
+      - docker build -f base.dockerfile -t {{.BASE_IMAGE}} .
+
+  docker_probiot_t1000_build:
+    cmds:
+      - task: docker_base_build
+      - docker build -f build.dockerfile --build-arg="APP_NAME=probiot_t1000" -t {{.PROBIOT_T1000_IMAGE}} .
+
+  docker_probiot_t1000_run:
+    cmds:
+      - task: docker_probiot_t1000_build
+      - docker run --rm -v ./config/probiot_t1000/config.toml:/app/nervoset/config.toml {{.PROBIOT_T1000_IMAGE}}
+
+  docker_probiot_t1000_push:
+    cmds:
+      - task: docker_base_build
+      - docker push {{.PROBIOT_T1000_IMAGE}}
+
+  # R2D2 tasks
+  docker_r2d2_build:
+    cmds:
+      - task: docker_base_build
+      - docker build -f build.dockerfile --build-arg="APP_NAME=r2d2" -t {{.R2D2_IMAGE}} .
+
+  docker_r2d2_run:
+    cmds:
+      - task: docker_r2d2_build
+      - docker run --rm -v ./config/r2d2/config.toml:/app/nervoset/config.toml {{.R2D2_IMAGE}}
+
+  docker_r2d2_push:
+    cmds:
+      - task: docker_base_build
+      - docker push {{.R2D2_IMAGE}}
+
+  prepare_dependencies:
+    cmds:
+      - mkdir -p {{.DEPS_DIR}}
+      - mkdir -p {{.NERVO_CORE_DIR}}
+
+      - mkdir -p {{.PROBIOT_T100_DIR}}
+      - mkdir -p {{.R2D2_DIR}}
+
+      # copy cargo.toml files
+      - cp Cargo.toml {{.DEPS_DIR}}/Cargo.toml
+      - cp nervo_core/Cargo.toml {{.NERVO_CORE_DIR}}/Cargo.toml
+
+      - cp probiot_t1000/Cargo.toml {{.PROBIOT_T100_DIR}}/Cargo.toml
+      - cp r2d2/Cargo.toml {{.R2D2_DIR}}/Cargo.toml
+
+      # create src files
+      - mkdir -p {{.NERVO_CORE_DIR}}/src
+      - mkdir -p {{.PROBIOT_T100_DIR}}/src
+      - mkdir -p {{.R2D2_DIR}}/src
+
+      - echo "fn main() {}" > {{.NERVO_CORE_DIR}}/src/lib.rs
+      - echo "fn main() {}" > {{.PROBIOT_T100_DIR}}/src/main.rs
+      - echo "fn main() {}" > {{.R2D2_DIR}}/src/main.rs

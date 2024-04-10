@@ -1,0 +1,21 @@
+version: '3'
+
+includes:
+  common: common.yml
+
+tasks:
+  # https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  setup_docker_registry:
+    cmds:
+      - |-
+        kubectl create secret docker-registry docker-registry-secret \
+        --docker-server=${DOCKER_REGISTRY_URL} \
+        --docker-username=${DOCKER_REGISTRY_USER} \
+        --docker-password=${DOCKER_REGISTRY_PASS} \
+        --docker-email=${DOCKER_REGISTRY_EMAIL} \
+        || true
+    silent: true
+
+  print_docker_registry_auth:
+    cmds:
+      - kubectl get secret docker-registry-secret --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode

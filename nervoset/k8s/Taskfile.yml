@@ -1,0 +1,14 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+
+  apply_probiot_t1000:
+    cmds:
+      - kubectl apply -k probiot_t1000
+
+  delete_probiot_t1000:
+    cmds:
+      - kubectl kustomize probiot_t1000 | kubectl delete -f - || true

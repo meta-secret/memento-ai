@@ -1,0 +1,14 @@
+version: '3'
+
+includes:
+  common: ./common.yml
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+
+  docker_login:
+    cmds:
+      - echo ${DOCKER_REGISTRY_PASS} | docker login --username ${DOCKER_REGISTRY_USER} --password-stdin
+    silent: true

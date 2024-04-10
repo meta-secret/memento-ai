@@ -40,9 +40,7 @@ resource "null_resource" "bootstrap" {
       "cd ${var.prod_dir}/${var.repo_name}",
       "git pull",
       "cd ${var.prod_dir}/${var.repo_name}/infra/deployment",
-      "./nixw.sh",
-      ". /home/ubuntu/.nix-profile/etc/profile.d/nix.sh",
-      "nix-shell --run 'just k3d_cluster_deploy k3d_qdrant_install'"
+      "devbox run task k3d_cluster_deploy"
     ]
   }
 }

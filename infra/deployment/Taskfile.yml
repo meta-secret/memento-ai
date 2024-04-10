@@ -1,0 +1,20 @@
+version: '3'
+
+vars:
+  CLUSTER_NAME : "nervoset"
+  DEPLOYMENT_TMP_DIR : "tmp"
+  DEPLOYMENT_TF_VARS : "{{.DEPLOYMENT_TMP_DIR}}/security.tfvars.json"
+
+tasks:
+  k3d_cluster_deploy:
+    cmds:
+      - k3d cluster create --config k3d/k3d.yaml || true
+
+  k3d_delete:
+    cmds:
+      - k3d cluster delete {{cluster_name}} || true
+
+  tf_deployment:
+    cmds:
+      - terraform init -var-file={{.DEPLOYMENT_TF_VARS}}
+      - terraform apply -auto-approve -var-file={{.DEPLOYMENT_TF_VARS}}
