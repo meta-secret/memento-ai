@@ -12,7 +12,9 @@
     "gnupg@2.4.5",
     "bash-completion@2.11",
     "git@2.44.0",
-    "devpod@0.5.4"
+    "devpod@0.5.4",
+    "htop@3.3.0",
+    "rustup@1.26.0"
   ],
   "shell": {
     "init_hook": [
