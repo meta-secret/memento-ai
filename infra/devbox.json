@@ -16,7 +16,8 @@
   ],
   "shell": {
     "init_hook": [
-      "alias k=kubectl"
+      "alias k=kubectl",
+      "complete -o default -F __start_kubectl k"
     ],
     "scripts": {
       "docker_login": "task docker_login"

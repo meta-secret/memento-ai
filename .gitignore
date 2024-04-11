@@ -35,3 +35,4 @@ nervoset/config/r2d2/config.toml
 /infra/.devbox
 /infra/devbox.lock
 /nervoset/devbox.lock
+/nervoset/.devbox/

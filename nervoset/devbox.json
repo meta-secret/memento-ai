@@ -19,7 +19,9 @@
   "shell": {
     "init_hook": [
       "alias k=kubectl",
-      "complete -o default -F __start_kubectl k"
+      "complete -o default -F __start_kubectl k",
+
+      "rustup default stable"
     ],
     "scripts": {
       "docker_push": "task docker_probiot_t1000_push"
