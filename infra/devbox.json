@@ -12,10 +12,14 @@
     "gnupg@2.4.5",
     "jq@1.7.1",
     "terraform@1.7.5",
-    "bash-completion@2.11"
+    "bash-completion@2.11",
+    "htop@3.3.0",
+    "iotop@0.6",
+    "atop@2.8.1"
   ],
   "shell": {
     "init_hook": [
+      "source <(kubectl completion bash)",
       "alias k=kubectl",
       "complete -o default -F __start_kubectl k"
     ],
