@@ -1,9 +1,23 @@
 version: '3'
 
-includes:
-  common: common.yml
+env:
+  DOCKER_REGISTRY_URL: "https://index.docker.io/v1/"
+  DOCKER_REGISTRY_USER:
+    dir: hazmat
+    task: vault_secret_docker_user
+  DOCKER_REGISTRY_PASS:
+    dir: hazmat
+    task: vault_secret_docker_pass
+  DOCKER_REGISTRY_EMAIL:
+    dir: hazmat
+    task: vault_secret_docker_email
 
 tasks:
+  docker_login:
+    cmds:
+      - docker login --username=${DOCKER_REGISTRY_USER} --password=${DOCKER_REGISTRY_PASS}
+    silent: true
+
   # https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   setup_docker_registry:
     cmds:

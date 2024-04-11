@@ -16,14 +16,11 @@
     "htop@3.3.0",
     "rustup@1.26.0",
     "iotop@0.6",
-    "atop@2.8.1"
+    "atop@2.8.1",
+    "coreutils@9.4"
   ],
   "shell": {
     "init_hook": [
-      "source <(kubectl completion bash)",
-      "alias k=kubectl",
-      "complete -o default -F __start_kubectl k",
-
       "rustup default stable"
     ],
     "scripts": {

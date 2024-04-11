@@ -1,14 +1,35 @@
 version: '3'
 
 includes:
-  common: ./common.yml
+  kube: kube.yml
 
 tasks:
   default:
     cmds:
       - task --list-all
 
-  docker_login:
+  auth:
+    dir: hazmat
     cmds:
-      - echo ${DOCKER_REGISTRY_PASS} | docker login --username ${DOCKER_REGISTRY_USER} --password-stdin
+      - task auth
+      - task login
+    silent: true
+
+  completions:
+    cmds:
+      - kubectl completion bash > ~/.kube/completion.bash
+      - source ~/.kube/completion.bash
+
+      - alias k=kubectl,
+
+      - complete -o default -F __start_kubectl k,
+
+      - k3d completion bash > ~/.k3d/completion.bash,
+      - source ~/.k3d/completion.bash,
+
+      - helm completion bash > ~/.helm/completion.bash,
+      - source ~/.helm/completion.bash,
+
+      - curl --silent https://raw.githubusercontent.com/go-task/task/main/completion/bash/task.bash > ~/.task/completion.bash,
+      - source ~/.task/completion.bash
     silent: true

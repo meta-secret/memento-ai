@@ -1,5 +1,7 @@
 version: '3'
 
+dotenv: ['tmp/.env']
+
 vars:
   LOCAL_TMP_DIR: "tmp"
 
@@ -17,6 +19,8 @@ vars:
   PK_FILE: "void_sentinel/nervoset-pk.txt"
 
   TF_VAR_FILE: "{{.LOCAL_TMP_DIR}}/security.tfvars"
+
+  VAULT_CONTAINER_NAME: "hashi-vault"
 
 tasks:
   default:
@@ -50,10 +54,17 @@ tasks:
       - task: vault_unseal
       - task: vault_test
 
+  vault_full_restart:
+    cmds:
+      - task: vault_stop
+      - task: vault_start
+      - task: vault_unseal
+      - task: vault_test
+
   # Danger zone
   vault_full_rebuild:
     cmds:
-      - docker kill hashi-vault || true
+      - task: vault_stop
       - rm -rf vault/nervoset-vault-storage || true
       - task: vault_start_and_init
 
@@ -61,7 +72,7 @@ tasks:
     cmds:
       - task: genesis
       - |-
-        docker exec hashi-vault \
+        docker exec {{.VAULT_CONTAINER_NAME}} \
           vault operator init -key-shares=1 -key-threshold=1 -format=json > {{.VAULT_INIT_FILE}}
       # Extract root token and unseal key
       #jq -r '.root_token' {{VAULT_INIT_FILE}} > {{VAULT_ROOT_TOKEN_FILE}}
@@ -69,12 +80,16 @@ tasks:
 
   vault_login:
     cmds:
-      - docker exec hashi-vault vault login -no-store $(jq -r '.root_token' {{.VAULT_INIT_FILE}})
+      - docker exec {{.VAULT_CONTAINER_NAME}} vault login -no-store $(jq -r '.root_token' {{.VAULT_INIT_FILE}})
 
   vault_unseal:
     cmds:
-      - docker exec hashi-vault vault operator unseal $(jq -r '.unseal_keys_b64[0]' {{.VAULT_INIT_FILE}})
+      - docker exec {{.VAULT_CONTAINER_NAME}} vault operator unseal $(jq -r '.unseal_keys_b64[0]' {{.VAULT_INIT_FILE}})
       - task: sleep
+
+  vault_stop:
+    cmds:
+      - docker kill {{.VAULT_CONTAINER_NAME}} || true
 
   vault_start:
     cmds:
@@ -82,7 +97,7 @@ tasks:
       - mkdir -p vault/nervoset-vault-storage
       - |-
         docker run --rm -d \
-          --name=hashi-vault \
+          --name={{.VAULT_CONTAINER_NAME}} \
           -v $(pwd)/vault/config.hcl:/vault/config/config.hcl \
           -v $(pwd)/vault/nervoset-vault-storage:/vault/file \
           -e SKIP_CHOWN=true \
@@ -101,7 +116,7 @@ tasks:
       - mkdir -p vault/nervoset-vault-storage
       - |-
         docker run --rm -d \
-          --name=hashi-vault \
+          --name={{.VAULT_CONTAINER_NAME}} \
           -v $(pwd)/vault/config.hcl:/vault/config/config.hcl \
           -v $(pwd)/vault/nervoset-vault-storage:/vault/file \
           -e SKIP_CHOWN=true \
@@ -183,6 +198,7 @@ tasks:
 
   vault_test:
     cmds:
+      - echo "Check if vault is working properly"
       - task: vault_kv_get
         vars:
           PATH: test
@@ -256,7 +272,7 @@ tasks:
 
   vault_kv_get:
     cmds:
-      - docker exec hashi-vault vault kv get -mount="kv" -format=yaml -field={{.KEY}} {{.PATH}} | xargs
+      - docker exec {{.VAULT_CONTAINER_NAME}} vault kv get -mount="kv" -format=yaml -field={{.KEY}} {{.PATH}} | xargs
 
   local_tmp_clean_up:
     cmds:
@@ -265,3 +281,11 @@ tasks:
   hash_pass:
     cmds:
       - ./hash_pass.sh
+
+  auth:
+    cmds:
+      - ./hash_auth.sh
+
+  login:
+    cmds:
+      - task: vault_full_restart
