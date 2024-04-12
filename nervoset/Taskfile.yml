@@ -42,9 +42,9 @@ tasks:
     cmds:
       - task: docker_probiot_t1000_build
       - |- 
-        docker run --rm -v \
+        docker run --rm \
           --name {{.CONTAINER_NAME}} \
-          ./config/probiot_t1000/config.toml:/app/nervoset/config.toml \
+          -v ./config/probiot_t1000/config.toml:/app/nervoset/config.toml \
           {{.PROBIOT_T1000_IMAGE}}
 
   docker_probiot_t1000_push:
@@ -59,9 +59,16 @@ tasks:
       - docker build -f build.dockerfile --build-arg="APP_NAME=r2d2" -t {{.R2D2_IMAGE}} .
 
   docker_r2d2_run:
+    requires:
+      vars:
+        - CONTAINER_NAME
     cmds:
       - task: docker_r2d2_build
-      - docker run --rm -v ./config/r2d2/config.toml:/app/nervoset/config.toml {{.R2D2_IMAGE}}
+      - |-
+        docker run --rm \
+          --name {{.CONTAINER_NAME}} \
+          -v ./config/r2d2/config.toml:/app/nervoset/config.toml \
+          {{.R2D2_IMAGE}}
 
   docker_r2d2_push:
     cmds:
