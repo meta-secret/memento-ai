@@ -1,6 +1,8 @@
 version: '3'
 
 vars:
+  APP_DIR: 'app'
+
   TARGET_DIR: 'target'
   DEPS_DIR: '{{.TARGET_DIR}}/nervoset_dependencies'
   NERVO_CORE_DIR: '{{.DEPS_DIR}}/nervo_core'
@@ -13,7 +15,7 @@ vars:
   R2D2_VERSION: '0.1'
   R2D2_IMAGE: "cypherkitty/nervoset:r2d2_v{{.R2D2_VERSION}}"
 
-  BASE_IMAGE: "nervoset/base:latest"
+  BASE_IMAGE: "ghcr.io/nervoset/base:latest"
 
 tasks:
   default:
@@ -23,7 +25,7 @@ tasks:
   docker_test:
     cmds:
       - task: docker_base_build
-      - docker run --rm {{.BASE_IMAGE}}
+      - docker run --rm {{.BASE_IMAGE}} cargo test --release
 
   docker_base_build:
     cmds:
@@ -76,25 +78,15 @@ tasks:
       - docker push {{.R2D2_IMAGE}}
 
   prepare_dependencies:
+    vars:
+      CHEF_IMAGE_NAME: "lukemathwalker/cargo-chef:latest-rust-1.77-bookworm"
     cmds:
-      - mkdir -p {{.DEPS_DIR}}
-      - mkdir -p {{.NERVO_CORE_DIR}}
-
-      - mkdir -p {{.PROBIOT_T100_DIR}}
-      - mkdir -p {{.R2D2_DIR}}
-
-      # copy cargo.toml files
-      - cp Cargo.toml {{.DEPS_DIR}}/Cargo.toml
-      - cp nervo_core/Cargo.toml {{.NERVO_CORE_DIR}}/Cargo.toml
-
-      - cp probiot_t1000/Cargo.toml {{.PROBIOT_T100_DIR}}/Cargo.toml
-      - cp r2d2/Cargo.toml {{.R2D2_DIR}}/Cargo.toml
-
-      # create src files
-      - mkdir -p {{.NERVO_CORE_DIR}}/src
-      - mkdir -p {{.PROBIOT_T100_DIR}}/src
-      - mkdir -p {{.R2D2_DIR}}/src
-
-      - echo "fn main() {}" > {{.NERVO_CORE_DIR}}/src/lib.rs
-      - echo "fn main() {}" > {{.PROBIOT_T100_DIR}}/src/main.rs
-      - echo "fn main() {}" > {{.R2D2_DIR}}/src/main.rs
+      - mkdir -p target/chef
+      - |-
+        docker run --rm \
+          --user=$(id -u) \
+          --workdir=/app \
+          -v $(pwd)/app:/app \
+          -v $(pwd)/target/chef:/chef \
+          {{.CHEF_IMAGE_NAME}} \
+          cargo chef prepare --recipe-path /chef/recipe.json

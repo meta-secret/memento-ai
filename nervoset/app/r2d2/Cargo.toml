@@ -1,0 +1,17 @@
+[package]
+name = "r2d2"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nervo-core = { path = "../nervo_core" }
+
+anyhow = "1.0.79"
+
+tokio = { version = "1.36.0", features = ["full"] }
+axum = "0.7.4"
+
+qdrant-client = "1.7.0"
+
+teloxide = { version = "0.12", features = ["macros", "webhooks-axum"] }
+serde = { version = "1.0.196", features = ["derive"] }

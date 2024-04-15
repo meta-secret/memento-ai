@@ -3,6 +3,7 @@ use crate::ai::nervo_llm::NervoLlm;
 use crate::db::local_db::LocalDb;
 use serde::Deserialize;
 
+/// Application state
 pub struct AppState {
     pub nervo_llm: NervoLlm,
     pub nervo_ai_db: NervoAiDb,

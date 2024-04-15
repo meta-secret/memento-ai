@@ -1,8 +1,6 @@
-FROM rust:1.76.0-bookworm
+FROM ubuntu:24.04
 ARG APP_NAME
-
-COPY --from=nervoset/base:latest /app/nervoset/target/release/${APP_NAME} /app/nervoset/nervobot
-
 WORKDIR /app/nervoset
 
+COPY --from=ghcr.io/nervoset/base:latest /app/nervoset/target/release/${APP_NAME} /app/nervoset/nervobot
 CMD ./nervobot

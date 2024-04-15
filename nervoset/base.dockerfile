@@ -1,27 +1,21 @@
-FROM rust:1.76.0-bookworm
+# https://hackmd.io/@kobzol/S17NS71bh
+# https://www.lpalmieri.com/posts/fast-rust-docker-builds/
+# https://github.com/LukeMathWalker/cargo-chef
 
-#https://github.com/mozilla/sccache/issues/1160
+FROM lukemathwalker/cargo-chef:latest-rust-1.77-bookworm
+
 # Install sccache
-#RUN cargo install sccache
-#ENV RUSTC_WRAPPER=sccache
-#ENV SCCACHE_DIR=/app/sccache
-#RUN mkdir -p /app/sccache
+RUN cargo install sccache
+ENV RUSTC_WRAPPER=sccache
 
-# Cache project dependencies (we build the dependencies project structure using justfile 'prepare_cache' target)
-COPY target/nervoset_dependencies /app/nervoset_dependencies
-WORKDIR /app/nervoset_dependencies
-# Download dependencied
-RUN cargo build --release && cargo clean
-
-# copy app
-COPY nervo_core /app/nervoset/nervo_core
-COPY probiot_t1000 /app/nervoset/probiot_t1000
-
-COPY r2d2 /app/nervoset/r2d2
-COPY Cargo.toml /app/nervoset/Cargo.toml
-
-# build app
 WORKDIR /app/nervoset/
+
+# Build dependencies - this is the caching Docker layer!
+COPY target/chef/recipe.json /app/nervoset/recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+
+# Build application
+COPY app/ /app/nervoset
 RUN cargo build --release
 
-CMD cargo test --release
+#CMD cargo test --release

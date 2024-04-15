@@ -1,0 +1,20 @@
+[package]
+name = "probiot_t1000"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nervo-core = { path = "../nervo_core" }
+
+config = "0.14.0"
+
+anyhow = "1.0.79"
+
+tokio = { version = "1.36.0", features = ["full"] }
+
+qdrant-client = "1.7.0"
+
+teloxide = { version = "0.12", features = ["macros"] }
+serde = { version = "1.0.196", features = ["derive"] }
+
+async-openai = "0.19.0"
