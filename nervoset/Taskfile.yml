@@ -15,6 +15,10 @@ vars:
   R2D2_VERSION: '0.1'
   R2D2_IMAGE: "cypherkitty/nervoset:r2d2_v{{.R2D2_VERSION}}"
 
+  GROOT_DIR: '{{.DEPS_DIR}}/groot'
+  GROOT_VERSION: '0.1'
+  GROOT_IMAGE: "cypherkitty/nervoset:groot_v{{.GROOT_VERSION}}"
+
   BASE_IMAGE: "ghcr.io/nervoset/base:latest"
 
 tasks:
@@ -32,6 +36,8 @@ tasks:
       - task: prepare_dependencies
       - docker build -f base.dockerfile -t {{.BASE_IMAGE}} .
 
+  # Probiot tasks
+
   docker_probiot_t1000_build:
     cmds:
       - task: docker_base_build
@@ -43,6 +49,7 @@ tasks:
         - CONTAINER_NAME
     cmds:
       - task: docker_probiot_t1000_build
+      - mkdir -p config/probiot_t1000
       - |- 
         docker run --rm \
           --name {{.CONTAINER_NAME}} \
@@ -66,6 +73,7 @@ tasks:
         - CONTAINER_NAME
     cmds:
       - task: docker_r2d2_build
+      - mkdir -p config/r2d2
       - |-
         docker run --rm \
           --name {{.CONTAINER_NAME}} \
@@ -76,6 +84,31 @@ tasks:
     cmds:
       - task: docker_base_build
       - docker push {{.R2D2_IMAGE}}
+
+  # Groot tasks
+
+  docker_groot_build:
+    cmds:
+      - task: docker_base_build
+      - docker build -f build.dockerfile --build-arg="APP_NAME=groot" -t {{.GROOT_IMAGE}} .
+
+  docker_groot_run:
+    requires:
+      vars:
+        - CONTAINER_NAME
+    cmds:
+      - task: docker_groot_build
+      - mkdir -p config/groot
+      - |-
+        docker run --rm \
+          --name {{.CONTAINER_NAME}} \
+          -v ./config/groot/config.toml:/app/nervoset/config.toml \
+          {{.GROOT_IMAGE}}
+
+  docker_groot_push:
+    cmds:
+      - task: docker_base_build
+      - docker push {{.GROOT_IMAGE}}
 
   prepare_dependencies:
     vars:

@@ -3,6 +3,7 @@
 resolver = "2"
 
 members = [
+    "groot",
     "nervo_core",
     "probiot_t1000",
     "r2d2"
