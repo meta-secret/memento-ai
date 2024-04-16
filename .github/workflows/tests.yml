@@ -43,9 +43,9 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-    - uses: satackey/action-docker-layer-caching@v0.0.11
+    #- uses: satackey/action-docker-layer-caching@v0.0.11
       # Ignore the failure of a step and avoid terminating the job.
-      continue-on-error: true
+    #  continue-on-error: true
 
     #- name: Prepare dependencies
     #  working-directory: nervoset
@@ -58,12 +58,24 @@ jobs:
     #  with:
     #    context: ./nervoset
     #    file: ./nervoset/base.dockerfile
-    #    push: false
+    #    push: true
     #    tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
     #    #tags: ${{ steps.meta.outputs.tags }}
-    #    cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-    #    cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},mode=max
+    #    #cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+    #    #cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},mode=max
+    #    cache-from: type=gha
+    #    cache-to: type=gha,mode=max
+
+    - name: Sccache Action
+      uses: Mozilla-Actions/sccache-action@v0.0.4
+      with:
+        version: "v0.7.7"
+
+    - name: Set Rust caching env vars
+      run: |
+        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
 
     - name: Run tests
-      working-directory: nervoset
-      run: task docker_test
+      working-directory: nervoset/app
+      run: cargo test
