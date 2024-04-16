@@ -50,6 +50,7 @@ tasks:
 
   vault_full_run:
     cmds:
+      - sudo chown -R 1000:1000 vault
       - task: vault_start
       - task: vault_unseal
       - task: vault_test

@@ -29,12 +29,11 @@ jobs:
           enable-cache: 'true'
 
       - name: Run Vault
-        working-directory: infra/hazmat
+        working-directory: infra
         env:
           NERVOSET_VOID_SENTINEL: ${{ secrets.NERVOSET_VOID_SENTINEL }}
         run: |
-          sudo chown -R 1000:1000 vault
-          devbox run task vault_full_run
+          devbox run 'cd hazmat && task vault_full_run'
 
       - name: Docker Login
         working-directory: infra
