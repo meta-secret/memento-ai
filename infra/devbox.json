@@ -24,7 +24,6 @@
 
     ],
     "scripts": {
-      "docker_login": "task kube:docker_login",
       "auth": "task auth"
     }
   }
