@@ -1,11 +1,11 @@
 use crate::common::NervoConfig;
 
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 
 pub struct LocalDb {
     app_config: NervoConfig,
@@ -32,8 +32,8 @@ impl LocalDb {
         table_name: &str,
         need_restriction: bool,
     ) -> anyhow::Result<()>
-        where
-            T: Serialize + Send + 'static,
+    where
+        T: Serialize + Send + 'static,
     {
         self.create_table(table_name).await?;
 
@@ -48,8 +48,8 @@ impl LocalDb {
     }
 
     pub async fn read_messages<T>(&self, table_name: &str) -> anyhow::Result<Vec<T>>
-        where
-            T: DeserializeOwned,
+    where
+        T: DeserializeOwned,
     {
         self.create_table(table_name).await?;
         let query = format!("SELECT message FROM table_{}", table_name);
@@ -102,16 +102,15 @@ impl LocalDb {
         Ok(count)
     }
 
-    async fn overwrite_messages<T>(
-        &self,
-        message: T,
-        table_name: &str,
-    ) -> anyhow::Result<()>
-        where
-            T: Serialize,
+    async fn overwrite_messages<T>(&self, message: T, table_name: &str) -> anyhow::Result<()>
+    where
+        T: Serialize,
     {
         let mut conn = self.connect_db().await?;
-        let sql = format!("SELECT id FROM table_{} ORDER BY id ASC LIMIT 1", table_name);
+        let sql = format!(
+            "SELECT id FROM table_{} ORDER BY id ASC LIMIT 1",
+            table_name
+        );
         let oldest_message_id: Option<i64> =
             sqlx::query_scalar(&sql).fetch_optional(&mut conn).await?;
 
@@ -128,8 +127,8 @@ impl LocalDb {
     }
 
     async fn insert_message<T>(&self, message: T, table_name: &str) -> anyhow::Result<()>
-        where
-            T: Serialize,
+    where
+        T: Serialize,
     {
         let message_json = serde_json::to_string(&message)?;
         let mut conn = self.connect_db().await?;

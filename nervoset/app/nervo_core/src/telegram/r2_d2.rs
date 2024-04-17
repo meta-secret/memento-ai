@@ -12,7 +12,6 @@ use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
 use teloxide::Bot as TelegramBot;
 use teloxide::{prelude::*, utils::command::BotCommands};
 
-
 use crate::common::AppState;
 use crate::telegram::bot_utils::{chat, MessageParser};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
@@ -148,13 +147,13 @@ async fn endpoint(
     dialogue: MyDialogue,
     app_state: Arc<AppState>,
 ) -> Result<()> {
-    let mut  parser = MessageParser { 
+    let mut parser = MessageParser {
         bot: &bot,
         msg: &msg,
         app_state: &app_state,
         is_voice: false,
     };
-    
+
     match cmd {
         Command::Help => {
             bot.send_message(msg.chat.id, Command::descriptions().to_string())
@@ -283,7 +282,7 @@ async fn endpoint(
     }
 }
 
-async fn vector_search <'a>(
+async fn vector_search<'a>(
     parser: &mut MessageParser<'a>,
     search_text: &str,
 ) -> Result<Vec<(f32, String)>> {
@@ -294,7 +293,11 @@ async fn vector_search <'a>(
     let embedding = parser.app_state.nervo_llm.embedding(search_text).await?;
 
     //save the embedding into qdrant db
-    let response = parser.app_state.nervo_ai_db.search(user_id, embedding).await?;
+    let response = parser
+        .app_state
+        .nervo_ai_db
+        .search(user_id, embedding)
+        .await?;
 
     let mut results = vec![];
     for point in response.result {

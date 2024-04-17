@@ -5,7 +5,6 @@ use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
 use teloxide::Bot as TelegramBot;
 
-
 use crate::common::AppState;
 use crate::telegram::bot_utils::{chat, system_message, SystemMessage};
 
@@ -62,14 +61,14 @@ async fn command_handler(
             )
             .await?;
             Ok(())
-        },
+        }
         ProbiotCommands::Start => {
             system_message(&bot, &msg, SystemMessage::Start).await?;
             Ok(())
-        },
+        }
         ProbiotCommands::Manual => {
             system_message(&bot, &msg, SystemMessage::Manual).await?;
             Ok(())
-        },
+        }
     }
 }

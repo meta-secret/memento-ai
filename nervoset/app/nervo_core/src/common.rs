@@ -8,7 +8,7 @@ pub struct AppState {
     pub nervo_llm: NervoLlm,
     pub nervo_ai_db: NervoAiDb,
     pub local_db: LocalDb,
-    pub nervo_config: NervoConfig
+    pub nervo_config: NervoConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -20,9 +20,9 @@ pub struct NervoConfig {
 
     pub qdrant_server_url: String,
     pub qdrant_api_key: String,
-    
+
     pub telegram_bot_token: String,
     pub telegram_bot_id: u64,
-    
+
     pub database_url: String,
 }

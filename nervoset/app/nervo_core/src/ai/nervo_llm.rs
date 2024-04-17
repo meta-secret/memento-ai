@@ -1,20 +1,14 @@
+use crate::db::local_db::LocalDb;
+use crate::models::nervo_message_model::TelegramMessage;
 use async_openai::config::{Config, OpenAIConfig};
 use async_openai::types::{
-    ChatCompletionRequestMessage, 
-    ChatCompletionRequestUserMessage, 
-    ChatCompletionRequestUserMessageArgs, 
-    CreateChatCompletionRequestArgs, 
-    CreateEmbeddingRequestArgs, 
-    CreateEmbeddingResponse, 
-    CreateModerationRequest, 
-    CreateTranscriptionRequest,
-    ModerationInput, 
-    Role
+    ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
+    ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
+    CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest,
+    CreateTranscriptionRequest, ModerationInput, Role,
 };
 use async_openai::Client;
-use crate::db::local_db::LocalDb;
-use secrecy::{ExposeSecret};
-use crate::models::nervo_message_model::TelegramMessage;
+use secrecy::ExposeSecret;
 
 #[derive(Clone, Debug)]
 pub struct NervoLlmConfig {
@@ -77,7 +71,9 @@ impl NervoLlm {
     pub fn model_name(&self) -> &str {
         self.llm_config.model_name()
     }
-    pub fn api_key(&self) -> &String { self.llm_config.open_ai_config.api_key().expose_secret() }
+    pub fn api_key(&self) -> &String {
+        self.llm_config.open_ai_config.api_key().expose_secret()
+    }
 }
 
 impl NervoLlm {
@@ -114,7 +110,7 @@ impl NervoLlm {
         &self,
         username: &str,
         message: ChatCompletionRequestUserMessage,
-        local_db: &LocalDb
+        local_db: &LocalDb,
     ) -> anyhow::Result<Option<String>> {
         let mut messages: Vec<ChatCompletionRequestMessage> = Vec::new();
 
@@ -147,16 +143,17 @@ impl NervoLlm {
         Ok(!response.results.iter().any(|property| property.flagged) && (text.len() < 10000))
     }
 
-    pub async fn voice_transcription(&self, request: CreateTranscriptionRequest) -> anyhow::Result<String> {
+    pub async fn voice_transcription(
+        &self,
+        request: CreateTranscriptionRequest,
+    ) -> anyhow::Result<String> {
         let response = self.client.audio().transcribe(request).await;
         match response {
-            Ok(text) => {
-                Ok(text.text)
-            },
+            Ok(text) => Ok(text.text),
             Err(err) => {
                 println!("RESPONSE: ERR {:?}", err);
                 return Err(err.into());
-            },
+            }
         }
     }
 }

@@ -4,9 +4,7 @@ use async_openai::types::CreateEmbeddingResponse;
 use qdrant_client::prelude::*;
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::PointStruct;
-use qdrant_client::qdrant::{
-    PointsOperationResponse, SearchResponse, VectorParams, VectorsConfig,
-};
+use qdrant_client::qdrant::{PointsOperationResponse, SearchResponse, VectorParams, VectorsConfig};
 use rand::rngs::OsRng;
 use rand::Rng;
 use serde_json::json;
