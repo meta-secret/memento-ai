@@ -38,3 +38,5 @@ nervoset/config/groot/config.toml
 /infra/devbox.lock
 /nervoset/devbox.lock
 /nervoset/.devbox/
+/nervoset/app/target
+
