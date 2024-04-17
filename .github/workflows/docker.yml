@@ -43,6 +43,6 @@ jobs:
       - name: Build and push docker image
         working-directory: nervoset
         run: |
-          devbox run task docker_probiot_t1000_push
-          devbox run task docker_r2d2_push
-          devbox run task docker_groot_push
+          devbox run 'task docker_probiot_t1000_push'
+          devbox run 'task docker_r2d2_push'
+          devbox run 'task docker_groot_push'

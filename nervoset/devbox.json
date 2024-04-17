@@ -24,7 +24,7 @@
       "rustup default stable"
     ],
     "scripts": {
-      "docker_push": "task docker_probiot_t1000_push"
+
     }
   }
 }
