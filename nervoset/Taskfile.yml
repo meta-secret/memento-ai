@@ -19,29 +19,35 @@ vars:
   GROOT_VERSION: '0.1'
   GROOT_IMAGE: "cypherkitty/nervoset:groot_v{{.GROOT_VERSION}}"
 
-  BASE_IMAGE: "ghcr.io/nervoset/base:latest"
+  BASE_IMAGE: "nervoset/base:latest"
 
 tasks:
   default:
     cmds:
       - task --list-all
 
+  docker_base_build:
+    cmds:
+      - task: prepare_dependencies
+      - docker buildx build --tag {{.BASE_IMAGE}} --output type=docker --file base.dockerfile .
+
   docker_test:
     cmds:
       - task: docker_base_build
       - docker run --rm {{.BASE_IMAGE}} cargo test --release
-
-  docker_base_build:
-    cmds:
-      - task: prepare_dependencies
-      - docker build -f base.dockerfile -t {{.BASE_IMAGE}} .
 
   # Probiot tasks
 
   docker_probiot_t1000_build:
     cmds:
       - task: docker_base_build
-      - docker build -f build.dockerfile --build-arg="APP_NAME=probiot_t1000" -t {{.PROBIOT_T1000_IMAGE}} .
+      - |-
+        docker buildx build \
+          --tag {{.PROBIOT_T1000_IMAGE}} \
+          --output type=docker \
+          --file build.dockerfile \
+          --build-arg="APP_NAME=probiot_t1000" \
+          .
 
   docker_probiot_t1000_run:
     requires:
@@ -65,7 +71,13 @@ tasks:
   docker_r2d2_build:
     cmds:
       - task: docker_base_build
-      - docker build -f build.dockerfile --build-arg="APP_NAME=r2d2" -t {{.R2D2_IMAGE}} .
+      - |-
+        docker buildx build \
+          --tag {{.R2D2_IMAGE}} \
+          --output type=docker \
+          --file build.dockerfile \
+          --build-arg="APP_NAME=r2d2" \
+          .
 
   docker_r2d2_run:
     requires:
@@ -90,7 +102,13 @@ tasks:
   docker_groot_build:
     cmds:
       - task: docker_base_build
-      - docker build -f build.dockerfile --build-arg="APP_NAME=groot" -t {{.GROOT_IMAGE}} .
+      - |-
+        docker buildx build \
+          --tag {{.GROOT_IMAGE}} \
+          --output type=docker \
+          --file build.dockerfile \
+          --build-arg="APP_NAME=groot" \
+          .
 
   docker_groot_run:
     requires:

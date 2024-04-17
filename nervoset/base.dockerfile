@@ -21,3 +21,4 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY app/ /app/nervoset
 RUN cargo build --release
+

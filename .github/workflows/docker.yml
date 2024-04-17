@@ -38,7 +38,7 @@ jobs:
       - name: Docker Login
         working-directory: infra
         run: |
-          devbox run task kube:docker_login
+          devbox run 'task kube:docker_login'
 
       - name: Build and push docker image
         working-directory: nervoset
