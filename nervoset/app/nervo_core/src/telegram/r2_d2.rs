@@ -7,11 +7,11 @@ use async_openai::types::{
 };
 use qdrant_client::qdrant::value::Kind;
 use teloxide::dispatching::dialogue::InMemStorage;
-use teloxide::net::Download;
+
 use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
 use teloxide::Bot as TelegramBot;
 use teloxide::{prelude::*, utils::command::BotCommands};
-use tokio::fs;
+
 
 use crate::common::AppState;
 use crate::telegram::bot_utils::{chat, MessageParser};
@@ -101,11 +101,12 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 async fn chat_initialization(
     bot: Bot,
-    dialogue: ChatState,
+    _dialogue: ChatState,
     msg: Message,
-    app_state: Arc<AppState>,
+    _app_state: Arc<AppState>,
 ) -> Result<()> {
     bot.send_message(
         msg.chat.id,
@@ -118,7 +119,7 @@ async fn chat_initialization(
 
 async fn chat_continuation(
     bot: Bot,
-    dialogue: ChatState,
+    _dialogue: ChatState,
     msg: Message,
     app_state: Arc<AppState>,
 ) -> Result<()> {
@@ -127,9 +128,10 @@ async fn chat_continuation(
     Ok(())
 }
 
+#[allow(dead_code)]
 async fn embeddings_continuation(
     bot: Bot,
-    dialogue: MyDialogue,
+    _dialogue: MyDialogue,
     msg: Message,
     app_state: Arc<AppState>,
 ) -> Result<()> {
@@ -160,7 +162,7 @@ async fn endpoint(
                 .await?;
             Ok(())
         }
-        Command::Chat(msg_text) => {
+        Command::Chat(_msg_text) => {
             /*let user_msg = ChatCompletionRequestUserMessageArgs::default()
                 .content(msg_text)
                 .build()?
@@ -264,10 +266,10 @@ async fn endpoint(
             };
 
             let user = parser.parse_user().await?;
-            let UserId(user_id) = user.id;
+            let UserId(_user_id) = user.id;
 
             let file_id = training_file.document.file.id.clone();
-            let file: File = bot.get_file(file_id).await?;
+            let _file: File = bot.get_file(file_id).await?;
 
             //TODO remove an old file
             // let mut dst = fs::File::create(format!("/tmp/{}", user_id)).await?;

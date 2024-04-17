@@ -42,7 +42,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
         bail!("Unsupported message content type.");
     };
     let is_text = match &msg_common.media_kind {
-        MediaKind::Text(media_text) => {
+        MediaKind::Text(_media_text) => {
             true
         },
         _ => {
@@ -122,7 +122,7 @@ pub async fn chat_gpt_conversation(
         create_speech(&bot, reply.clone(), chat_id, &app_state).await;
     } else {
         bot.send_message(chat_id, reply)
-            .parse_mode(ParseMode::Markdown)
+            .parse_mode(ParseMode::MarkdownV2)
             .reply_to_message_id(message.id.clone())
             .await?;
     }
@@ -146,11 +146,11 @@ async fn create_speech(bot: &Bot, text: String, chat_id: ChatId, app_state: &App
         Ok(audio) => {
             // stop_loop();
             let input_file = InputFile::memory(audio.bytes);
-            let _ = &bot.send_voice(chat_id.clone(), input_file).await;
+            let _ = bot.send_voice(chat_id.clone(), input_file).await;
         },
         Err(err) => {
             println!("ERROR: {:?}", err);
-            &bot.send_message(chat_id.clone(), err.to_string()).await;
+            let _ = bot.send_message(chat_id.clone(), err.to_string()).await;
         },
     }
 }
@@ -169,7 +169,7 @@ impl<'a> MessageParser<'a> {
 }
 
 impl <'a> MessageParser<'a> {
-    pub async fn parse_user(&mut self) -> anyhow::Result<(User)> {
+    pub async fn parse_user(&mut self) -> anyhow::Result<User> {
         let MessageKind::Common(msg_common) = &self.msg.kind else {
             bail!("Unsupported message content type.");
         };
@@ -190,27 +190,26 @@ impl <'a> MessageParser<'a> {
             bail!("User not found. We can handle only direct messages.");
         };
 
-        let mut result_text = String::new();
         let media_kind = &msg_common.media_kind;
-        
-        match media_kind {
+
+        let result_text = match media_kind {
             MediaKind::Text(media_text) => {
-                result_text = media_text.text.clone()
+                media_text.text.clone()
             }
             MediaKind::Voice(media_voice) => {
                 let (_, text) = self.user_and_voice(&media_voice.voice.file, &user).await?;
-                result_text = text.clone();
+                text.clone()
             }
             MediaKind::Audio(media_voice) => {
                 let (_, text) = self.user_and_voice(&media_voice.audio.file, &user).await?;
-                result_text = text.clone();
+                text.clone()
             }
             _ => {
                 bail!("Unsupported case. We can handle only direct messages.");
             }
-        }
+        };
 
-        Ok(result_text.clone())
+        Ok(result_text)
     }
 
     pub async fn user_and_voice(&mut self, media_voice: &FileMeta, user: &User) -> anyhow::Result<(User, String)> {

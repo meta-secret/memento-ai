@@ -5,7 +5,7 @@ use qdrant_client::prelude::*;
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::PointStruct;
 use qdrant_client::qdrant::{
-    PointsOperationResponse, SearchResponse, VectorParams, Vectors, VectorsConfig,
+    PointsOperationResponse, SearchResponse, VectorParams, VectorsConfig,
 };
 use rand::rngs::OsRng;
 use rand::Rng;
@@ -81,7 +81,7 @@ impl NervoAiDb {
             Some(vec_data) => {
                 let col_exists = self
                     .qdrant_client
-                    .has_collection(user_id.to_string())
+                    .collection_exists(user_id.to_string())
                     .await?;
                 if !col_exists {
                     let details = CreateCollection {

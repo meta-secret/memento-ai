@@ -1,5 +1,5 @@
 use crate::common::NervoConfig;
-use crate::models::nervo_message_model::TelegramMessage;
+
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
