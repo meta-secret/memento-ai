@@ -32,14 +32,17 @@ pub async fn start_nervo_bot() -> anyhow::Result<()> {
     let nervo_ai_db = NervoAiDb::try_from(&nervo_config)?;
 
     let local_db = LocalDb::try_init(nervo_config.clone()).await?;
-
+    
+    let bot_token = nervo_config.telegram_bot_token.clone();
+    
     let app_state = Arc::from(AppState {
         nervo_llm,
         nervo_ai_db,
         local_db,
+        nervo_config,
     });
 
-    r2_d2::start(nervo_config.telegram_bot_token, app_state).await?;
+    r2_d2::start(bot_token, app_state).await?;
 
     Ok(())
 }

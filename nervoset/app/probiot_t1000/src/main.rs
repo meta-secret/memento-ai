@@ -43,13 +43,16 @@ pub async fn start_probiot() -> anyhow::Result<()> {
     
     let local_db = LocalDb::try_init(nervo_config.clone()).await?;
 
+    let bot_token = nervo_config.telegram_bot_token.clone();
+    
     let app_state = Arc::from(AppState {
         nervo_llm,
         nervo_ai_db,
         local_db,
+        nervo_config,
     });
 
-    probiot_t1000::start(nervo_config.telegram_bot_token, app_state).await?;
+    probiot_t1000::start(bot_token, app_state).await?;
 
     Ok(())
 }

@@ -1,5 +1,16 @@
 use async_openai::config::{Config, OpenAIConfig};
-use async_openai::types::{ChatCompletionRequestMessage, ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateEmbeddingRequestArgs, CreateEmbeddingResponse, CreateModerationRequest, CreateTranscriptionRequest, CreateTranscriptionResponse, ModerationInput, Role};
+use async_openai::types::{
+    ChatCompletionRequestMessage, 
+    ChatCompletionRequestUserMessage, 
+    ChatCompletionRequestUserMessageArgs, 
+    CreateChatCompletionRequestArgs, 
+    CreateEmbeddingRequestArgs, 
+    CreateEmbeddingResponse, 
+    CreateModerationRequest, 
+    CreateTranscriptionRequest,
+    ModerationInput, 
+    Role
+};
 use async_openai::Client;
 use crate::db::local_db::LocalDb;
 use secrecy::{ExposeSecret};

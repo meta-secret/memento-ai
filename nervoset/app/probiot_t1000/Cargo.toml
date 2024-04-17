@@ -17,4 +17,4 @@ qdrant-client = "1.7.0"
 teloxide = { version = "0.12", features = ["macros"] }
 serde = { version = "1.0.196", features = ["derive"] }
 
-async-openai = "0.19.0"
+async-openai = "0.20.0"
