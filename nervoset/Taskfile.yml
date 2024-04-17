@@ -64,7 +64,7 @@ tasks:
 
   docker_probiot_t1000_push:
     cmds:
-      - task: docker_base_build
+      - task: docker_probiot_t1000_build
       - docker push {{.PROBIOT_T1000_IMAGE}}
 
   # R2D2 tasks
@@ -94,7 +94,7 @@ tasks:
 
   docker_r2d2_push:
     cmds:
-      - task: docker_base_build
+      - task: docker_r2d2_build
       - docker push {{.R2D2_IMAGE}}
 
   # Groot tasks
@@ -125,7 +125,7 @@ tasks:
 
   docker_groot_push:
     cmds:
-      - task: docker_base_build
+      - task: docker_groot_build
       - docker push {{.GROOT_IMAGE}}
 
   prepare_dependencies:
