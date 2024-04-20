@@ -28,12 +28,16 @@ jobs:
           project-path: 'infra'
           enable-cache: 'true'
 
+      - name: Run devbox shell
+        working-directory: infra
+        run: devbox shell
+
       - name: Run Vault
         working-directory: infra/hazmat
         env:
           NERVOSET_VOID_SENTINEL: ${{ secrets.NERVOSET_VOID_SENTINEL }}
         run: |
-          devbox run 'task vault_full_run'
+          task vault_full_run
 
       - name: Set Docker credentials
         working-directory: infra/hazmat
