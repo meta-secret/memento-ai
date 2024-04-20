@@ -21,6 +21,7 @@ use teloxide::Bot;
 use tokio::fs;
 
 pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Result<()> {
+    println!("Start chat");
     let mut parser = MessageParser {
         bot: &bot,
         msg: &msg,
@@ -32,6 +33,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
     let bot_name = bot_info.clone().user.username.unwrap();
     let user = parser.parse_user().await?;
 
+    println!("Ready to save user");
     save_user_id(app_state.clone(), user.id.to_string()).await?;
 
     let mut is_reply: bool = false;
@@ -76,6 +78,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                 .build()?;
 
             let is_moderation_passed = app_state.nervo_llm.moderate(&message_text).await?;
+            println!("Is moderation passed {:?}", is_moderation_passed);
             if is_moderation_passed {
                 let tg_message = TelegramMessage {
                     id: msg.chat.id.0 as u64,
@@ -137,6 +140,7 @@ pub async fn chat_gpt_conversation(
     msg: ChatCompletionRequestUserMessage,
     is_voice: bool,
 ) -> anyhow::Result<()> {
+    println!("Start GPt conversation: username {:?} chat_id {:?}", &username, chat_id );
     let reply = app_state
         .nervo_llm
         .chat(username, msg, &app_state.local_db)
@@ -144,10 +148,12 @@ pub async fn chat_gpt_conversation(
         .unwrap_or(String::from("I'm sorry, internal error."));
 
     if is_voice {
+        println!("Send voice answer");
         create_speech(&bot, reply.clone(), chat_id, &app_state).await;
     } else {
+        println!("Send to chat_id {:?} text answer {:?}", chat_id, &reply);
         bot.send_message(chat_id, reply)
-            .parse_mode(ParseMode::MarkdownV2)
+            .parse_mode(ParseMode::Markdown)
             .reply_to_message_id(message.id.clone())
             .await?;
     }
@@ -341,8 +347,11 @@ impl SystemMessage {
 
 async fn save_user_id(app_state: Arc<AppState>, user_id: String) -> anyhow::Result<()> {
     let user_ids = load_user_ids(&app_state).await?;
-    if !user_ids.contains(&user_id) {
-        let user = TelegramUser {
+
+    let contains_id = user_ids.iter().any(|user| user.id == user_id);
+    println!("user {:?} existed = {:?}", user_id, contains_id);
+    if !contains_id {
+        let user = TelegramUser{
             id: user_id.parse().unwrap(),
         };
         app_state
@@ -353,12 +362,13 @@ async fn save_user_id(app_state: Arc<AppState>, user_id: String) -> anyhow::Resu
     Ok(())
 }
 
-async fn load_user_ids<T>(app_state: &AppState) -> anyhow::Result<Vec<T>>
-where
-    T: DeserializeOwned,
-{
+async fn load_user_ids(app_state: &AppState) -> anyhow::Result<Vec<TelegramUser>> {
     match app_state.local_db.read_messages("all_users_list").await {
-        Ok(ids) => Ok(ids),
-        Err(_) => Ok(Vec::new()),
+        Ok(ids) => {
+            Ok(ids)
+        },
+        Err(err) => {
+            Ok(Vec::new())
+        },
     }
 }

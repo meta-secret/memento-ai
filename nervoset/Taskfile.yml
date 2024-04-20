@@ -121,6 +121,7 @@ tasks:
         docker run --rm \
           --name {{.CONTAINER_NAME}} \
           -v ./config/groot/config.toml:/app/nervoset/config.toml \
+          -v ./app/groot/resources/:/app/nervoset/resources \
           {{.GROOT_IMAGE}}
 
   docker_groot_push:

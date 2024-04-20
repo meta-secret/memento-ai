@@ -37,8 +37,8 @@ impl LocalDb {
     {
         self.create_table(table_name).await?;
 
-        let message_count = self.count_messages(table_name).await?;
-        if message_count >= 10 && need_restriction {
+        let items_count = self.count_items(table_name).await?;
+        if items_count >= 10 && need_restriction {
             self.overwrite_messages(message, table_name).await?;
         } else {
             self.insert_message(message, table_name).await?;
@@ -53,10 +53,8 @@ impl LocalDb {
     {
         self.create_table(table_name).await?;
         let query = format!("SELECT message FROM table_{}", table_name);
-
         let mut conn = self.connect_db().await?;
         let rows = sqlx::query(&query).fetch_all(&mut conn).await?;
-
         let mut messages = Vec::new();
 
         for row in rows {
@@ -95,7 +93,7 @@ impl LocalDb {
         Ok(())
     }
 
-    async fn count_messages(&self, table_name: &str) -> anyhow::Result<i64> {
+    async fn count_items(&self, table_name: &str) -> anyhow::Result<i64> {
         let query = format!("SELECT COUNT(*) FROM table_{}", table_name);
         let mut conn = self.connect_db().await?;
         let count: i64 = sqlx::query_scalar(&query).fetch_one(&mut conn).await?;
@@ -133,7 +131,7 @@ impl LocalDb {
         let message_json = serde_json::to_string(&message)?;
         let mut conn = self.connect_db().await?;
 
-        let query = format!("INSERT INTO table_{} (message) VALUES (?)", table_name);
+        let query = format!("INSERT INTO table_{} (message) VALUES (?)", &table_name);
         sqlx::query(&query)
             .bind(&message_json)
             .execute(&mut conn)
