@@ -38,6 +38,9 @@ jobs:
       - name: Set Docker credentials
         working-directory: infra
         run: |
+          echo "::add-mask::$DOCKER_USER_NAME"
+          echo "::add-mask::$DOCKER_TOKEN"
+          
           echo "DOCKER_USER_NAME=$(devbox run 'cd hazmat && task vault_secret_docker_user')" >> $GITHUB_ENV
           echo "DOCKER_TOKEN=$(devbox run 'cd hazmat && task vault_secret_docker_pass')" >> $GITHUB_ENV
 
