@@ -29,17 +29,17 @@ jobs:
           enable-cache: 'true'
 
       - name: Run Vault
-        working-directory: infra
+        working-directory: infra/hazmat
         env:
           NERVOSET_VOID_SENTINEL: ${{ secrets.NERVOSET_VOID_SENTINEL }}
         run: |
-          devbox run 'cd hazmat && task vault_full_run'
+          devbox run 'task vault_full_run'
 
       - name: Set Docker credentials
         working-directory: infra/hazmat
         run: |
           echo "DOCKER_USER_NAME=$(task vault_secret_docker_user)" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=$(task vault_secret_docker_pass)" >> $GITHUB_ENV
+          echo "DOCKER_TOKEN=$(task vault_secret_docker_pass)" >> $GITHUB_ENV
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
