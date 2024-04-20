@@ -35,17 +35,9 @@ jobs:
         run: |
           devbox run 'cd hazmat && task vault_full_run'
 
-      - name: Set Docker credentials
-        working-directory: infra
-        run: |
-          echo "DOCKER_USER_NAME=::add-mask::$(devbox run 'cd hazmat && task vault_secret_docker_user')" >> $GITHUB_ENV
-          echo "DOCKER_TOKEN=::add-mask::$(devbox run 'cd hazmat && task vault_secret_docker_pass')" >> $GITHUB_ENV
-
       - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ env.DOCKER_USER_NAME }}
-          password: ${{ env.DOCKER_TOKEN }}
+        working-directory: infra
+        run: devbox run 'task kube:docker_login'
 
       - name: Build and push docker image
         working-directory: nervoset
