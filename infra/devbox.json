@@ -20,9 +20,7 @@
     "gawk@5.2.2"
   ],
   "shell": {
-    "init_hook": [
-
-    ],
+    "init_hook": [],
     "scripts": {
       "auth": "task auth"
     }
