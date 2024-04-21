@@ -19,9 +19,10 @@ use teloxide::types::{
 };
 use teloxide::Bot;
 use tokio::fs;
+use tracing::info;
 
 pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Result<()> {
-    println!("Start chat");
+    info!("Start chat...");
     let mut parser = MessageParser {
         bot: &bot,
         msg: &msg,
@@ -33,7 +34,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
     let bot_name = bot_info.clone().user.username.unwrap();
     let user = parser.parse_user().await?;
 
-    println!("Ready to save user");
+    info!("Ready to save user");
     save_user_id(app_state.clone(), user.id.to_string()).await?;
 
     let mut is_reply: bool = false;
@@ -349,7 +350,7 @@ async fn save_user_id(app_state: Arc<AppState>, user_id: String) -> anyhow::Resu
     let user_ids = load_user_ids(&app_state).await?;
 
     let contains_id = user_ids.iter().any(|user| user.id == user_id);
-    println!("user {:?} existed = {:?}", user_id, contains_id);
+    info!("user {:?} exists = {:?}", user_id, contains_id);
     if !contains_id {
         let user = TelegramUser{
             id: user_id.parse().unwrap(),
@@ -367,7 +368,7 @@ async fn load_user_ids(app_state: &AppState) -> anyhow::Result<Vec<TelegramUser>
         Ok(ids) => {
             Ok(ids)
         },
-        Err(err) => {
+        Err(_err) => {
             Ok(Vec::new())
         },
     }

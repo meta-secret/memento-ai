@@ -6,6 +6,7 @@ use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
+use tracing::{debug};
 
 pub struct LocalDb {
     app_config: NervoConfig,
@@ -35,6 +36,7 @@ impl LocalDb {
     where
         T: Serialize + Send + 'static,
     {
+        debug!("save message");
         self.create_table(table_name).await?;
 
         let items_count = self.count_items(table_name).await?;

@@ -8,8 +8,18 @@ crate-type = ["cdylib", "lib", "staticlib"]
 name = "nervo_bot_core"
 
 [dependencies]
+thiserror.workspace = true
+anyhow.workspace = true
+
+serde.workspace = true
+serde_json.workspace = true
+serde_derive.workspace = true
+
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["json", "env-filter"] }
+tracing-attributes = "0.1.27"
+
 config = "0.14.0"
-anyhow = "1.0.79"
 rand = "0.8.5"
 
 qdrant-client = "1.7.0"
@@ -18,15 +28,9 @@ tokio = { version =  "1.36.0", features = ["full"] }
 
 teloxide = { version = "0.12", features = ["macros", "webhooks-axum"] }
 
-log = "0.4"
-pretty_env_logger = "0.5.0"
-
 async-openai = "0.20.0"
 openai_dive = "0.4.5"
 
-serde = "1.0.196"
-serde_json = "1.0.113"
-serde_derive = "1.0.196"
 secrecy = "0.8.0"
 
 #sql DB
@@ -38,5 +42,5 @@ sqlx-macros = "0.7.3"
 chrono = { version = "0.4", features = ["serde"] }
 
 #requests
-reqwest = "0.11.24"
+reqwest = "0.12.4"
 bytes = "1"

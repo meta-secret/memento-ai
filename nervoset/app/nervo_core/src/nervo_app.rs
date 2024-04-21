@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::ai::ai_db::NervoAiDb;
 use config::Config as AppConfig;
+use tracing::info;
 
 use crate::ai::nervo_llm::NervoLlm;
 use crate::ai::nervo_llm::NervoLlmConfig;
@@ -11,8 +12,7 @@ use crate::db::local_db::LocalDb;
 use crate::telegram::r2_d2;
 
 pub async fn start_nervo_bot() -> anyhow::Result<()> {
-    pretty_env_logger::init();
-    log::info!("Starting command bot...");
+    info!("Starting command bot...");
 
     let nervo_config: NervoConfig = {
         let app_config = AppConfig::builder()
