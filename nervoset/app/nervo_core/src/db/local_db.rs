@@ -6,7 +6,7 @@ use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
-use tracing::{debug};
+use tracing::{debug, info};
 
 pub struct LocalDb {
     app_config: NervoConfig,
@@ -38,7 +38,7 @@ impl LocalDb {
     {
         debug!("save message");
         self.create_table(table_name).await?;
-
+        debug!("table created");
         let items_count = self.count_items(table_name).await?;
         if items_count >= 10 && need_restriction {
             self.overwrite_messages(message, table_name).await?;
