@@ -1,7 +1,7 @@
 version: '3'
 
 env:
-  DOCKER_REGISTRY_URL: "https://registry-1.docker.io/v2/"
+  DOCKER_REGISTRY_URL: "https://index.docker.io/v1/"
   DOCKER_REGISTRY_USER:
     sh: task -t hazmat/Taskfile.yml vault_secret_docker_user
   DOCKER_REGISTRY_PASS:

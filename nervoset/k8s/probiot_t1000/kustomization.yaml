@@ -5,10 +5,10 @@ commonLabels:
   app: probiot-t1000
 
 configMapGenerator:
-  - name: example-configmap-1
+  - name: nervobot-config
     files:
-      - application.properties
+      - config.toml
 
 resources:
-  - deployment.yaml
+  - statefulset.yaml
   - pvc.yaml

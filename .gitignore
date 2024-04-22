@@ -40,3 +40,4 @@ nervoset/config/groot/config.toml
 /nervoset/.devbox/
 /nervoset/app/target
 
+/nervoset/k8s/probiot_t1000/config.toml

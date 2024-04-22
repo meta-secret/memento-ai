@@ -1,10 +1,12 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: probiot-t1000
+  name: probiot-t1000-pvc
+  namespace: default
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: local-path
   resources:
     requests:
-      storage: 8Gi
+      storage: 16Gi

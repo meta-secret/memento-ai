@@ -3,7 +3,7 @@ name: Deployment
 on:
   workflow_dispatch:
     inputs:
-      k3d_deployment:
+      k8s_deployment:
         description: ''
         required: false
         default: 'prod'
@@ -25,31 +25,27 @@ jobs:
       - name: enable docker
         uses: docker/setup-buildx-action@v3
 
-      - name: install nix
-        uses: cachix/install-nix-action@v25
-
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.8.0
+        with:
+          project-path: 'infra'
+          enable-cache: 'true'
 
       - name: Run Vault
-        working-directory: infra/hazmat
+        working-directory: infra
         env:
           NERVOSET_VOID_SENTINEL: ${{ secrets.NERVOSET_VOID_SENTINEL }}
         run: |
           sudo chown -R 1000:1000 vault
-          devbox run vault_full_run
+          devbox run 'cd hazmat && task vault_full_run'
 
-      - name: Infrastructure bootstrap
-        working-directory: infra/provisioning/gh_bootstrap
-        run: |
-          nix-shell --run 'just bootstrap'
-
-      - name: Prepare credentials for deployment
-        working-directory: infra/hazmat
-        run: |
-          mkdir -p ../deployment/tmp
-          devbox run task save_tf_security_vars PATH=../deployment/tmp
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.8.0
+        with:
+          project-path: 'nervoset'
+          enable-cache: 'true'
 
       - name: Deployment
-        working-directory: infra/deployment
+        working-directory: nervoset
         run: |
           devbox run task tf_deployment

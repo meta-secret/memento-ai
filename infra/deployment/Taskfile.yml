@@ -6,15 +6,28 @@ vars:
   DEPLOYMENT_TF_VARS : "{{.DEPLOYMENT_TMP_DIR}}/security.tfvars.json"
 
 tasks:
-  k3d_cluster_deploy:
+  default:
     cmds:
-      - k3d cluster create --config k3d/k3d.yaml || true
+      - task --list-all
+
+  k3d_within_docker:
+    cmds:
+      - |-
+        docker run -it --rm \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -v /usr/bin/docker:/usr/bin/docker \
+          -v /usr/local/bin/k3d:/usr/local/bin/k3d \
+          ubuntu:latest \
+          bash
+
+  k3d_prod_cluster_deploy:
+    cmds:
+      - k3d cluster create --config k3d/k3d.prod.yaml || true
+
+  k3d_dev_cluster_deploy:
+    cmds:
+      - k3d cluster create --config k3d/k3d.dev.yaml || true
 
   k3d_delete:
     cmds:
       - k3d cluster delete {{cluster_name}} || true
-
-  tf_deployment:
-    cmds:
-      - terraform init -var-file={{.DEPLOYMENT_TF_VARS}}
-      - terraform apply -auto-approve -var-file={{.DEPLOYMENT_TF_VARS}}
