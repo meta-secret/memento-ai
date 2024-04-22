@@ -1,8 +1,9 @@
+use tracing::info;
 use nervo_bot_core::nervo_app;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    println!("Start Nervo Bot");
+    info!("Starting R2D2...");
 
     // build our application with a single route
     //let app = Router::new().route("/", get(|| async { "Hello, World!" }));

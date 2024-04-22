@@ -24,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::subscriber::set_global_default(subscriber)
         .expect("setting default subscriber failed");
-    info!("started?");
+    info!("Starting Probiot...");
     start_probiot().await?;
     Ok(())
 }

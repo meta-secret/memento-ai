@@ -62,6 +62,20 @@ tasks:
           -v ./config/probiot_t1000/config.toml:/app/nervoset/config.toml \
           {{.PROBIOT_T1000_IMAGE}}
 
+  docker_probiot_t1000_container_run:
+    requires:
+      vars:
+        - CONTAINER_NAME
+    cmds:
+      - task: docker_probiot_t1000_build
+      - mkdir -p config/probiot_t1000
+      - |-
+        docker run -ti --rm \
+          --name {{.CONTAINER_NAME}} \
+          -v ./config/probiot_t1000/config.toml:/app/nervoset/config.toml \
+          {{.PROBIOT_T1000_IMAGE}} \
+          bash
+
   docker_probiot_t1000_push:
     cmds:
       - task: docker_probiot_t1000_build

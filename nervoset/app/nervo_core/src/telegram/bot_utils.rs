@@ -79,7 +79,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                 .build()?;
 
             let is_moderation_passed = app_state.nervo_llm.moderate(&message_text).await?;
-            println!("Is moderation passed {:?}", is_moderation_passed);
+            info!("Is moderation passed {:?}", is_moderation_passed);
             if is_moderation_passed {
                 let tg_message = TelegramMessage {
                     id: msg.chat.id.0 as u64,
@@ -141,7 +141,7 @@ pub async fn chat_gpt_conversation(
     msg: ChatCompletionRequestUserMessage,
     is_voice: bool,
 ) -> anyhow::Result<()> {
-    println!("Start GPt conversation: username {:?} chat_id {:?}", &username, chat_id );
+    info!("Start GPt conversation: username {:?} chat_id {:?}", &username, chat_id );
     let reply = app_state
         .nervo_llm
         .chat(username, msg, &app_state.local_db)
@@ -149,10 +149,10 @@ pub async fn chat_gpt_conversation(
         .unwrap_or(String::from("I'm sorry, internal error."));
 
     if is_voice {
-        println!("Send voice answer");
+        info!("Send voice answer");
         create_speech(&bot, reply.clone(), chat_id, &app_state).await;
     } else {
-        println!("Send to chat_id {:?} text answer {:?}", chat_id, &reply);
+        info!("Send to chat_id {:?} text answer {:?}", chat_id, &reply);
         bot.send_message(chat_id, reply)
             .parse_mode(ParseMode::Markdown)
             .reply_to_message_id(message.id.clone())
@@ -181,7 +181,7 @@ async fn create_speech(bot: &Bot, text: String, chat_id: ChatId, app_state: &App
             let _ = bot.send_voice(chat_id.clone(), input_file).await;
         }
         Err(err) => {
-            println!("ERROR: {:?}", err);
+            info!("ERROR: {:?}", err);
             let _ = bot.send_message(chat_id.clone(), err.to_string()).await;
         }
     }
@@ -288,14 +288,14 @@ impl<'a> MessageParser<'a> {
                     Ok((user.clone(), text.clone()))
                 }
                 Err(err) => {
-                    println!("ERROR {:?}", err.to_string());
+                    info!("ERROR {:?}", err.to_string());
                     Err(anyhow::Error::msg(err.to_string()))
                 }
             }
         } else {
-            println!("Файл '{}' не существует.", file_path);
+            info!("File '{}' doesn't exist.", file_path);
             Err(anyhow::Error::msg(format!(
-                "Файл '{}' не существует.",
+                "File '{}' doesn't exist.",
                 file_path
             )))
         }

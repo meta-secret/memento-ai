@@ -9,6 +9,7 @@ use async_openai::types::{
 };
 use async_openai::Client;
 use secrecy::ExposeSecret;
+use tracing::info;
 
 #[derive(Clone, Debug)]
 pub struct NervoLlmConfig {
@@ -151,7 +152,7 @@ impl NervoLlm {
         match response {
             Ok(text) => Ok(text.text),
             Err(err) => {
-                println!("RESPONSE: ERR {:?}", err);
+                info!("RESPONSE: ERR {:?}", err);
                 return Err(err.into());
             }
         }
