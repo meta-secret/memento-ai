@@ -17,14 +17,13 @@
     "rustup@1.26.0",
     "iotop@0.6",
     "atop@2.8.1",
-    "coreutils@9.4"
+    "coreutils@9.4",
+    "nodejs@22.0.0"
   ],
   "shell": {
     "init_hook": [
       "rustup default stable"
     ],
-    "scripts": {
-
-    }
+    "scripts": {}
   }
 }
