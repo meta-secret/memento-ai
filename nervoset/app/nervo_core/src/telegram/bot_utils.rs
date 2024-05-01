@@ -141,7 +141,10 @@ pub async fn chat_gpt_conversation(
     msg: ChatCompletionRequestUserMessage,
     is_voice: bool,
 ) -> anyhow::Result<()> {
-    info!("Start GPt conversation: username {:?} chat_id {:?}", &username, chat_id );
+    info!(
+        "Start GPt conversation: username {:?} chat_id {:?}",
+        &username, chat_id
+    );
     let reply = app_state
         .nervo_llm
         .chat(username, msg, &app_state.local_db)
@@ -352,7 +355,7 @@ async fn save_user_id(app_state: Arc<AppState>, user_id: String) -> anyhow::Resu
     let contains_id = user_ids.iter().any(|user| user.id == user_id);
     info!("user {:?} exists = {:?}", user_id, contains_id);
     if !contains_id {
-        let user = TelegramUser{
+        let user = TelegramUser {
             id: user_id.parse().unwrap(),
         };
         app_state
@@ -365,11 +368,7 @@ async fn save_user_id(app_state: Arc<AppState>, user_id: String) -> anyhow::Resu
 
 async fn load_user_ids(app_state: &AppState) -> anyhow::Result<Vec<TelegramUser>> {
     match app_state.local_db.read_messages("all_users_list").await {
-        Ok(ids) => {
-            Ok(ids)
-        },
-        Err(_err) => {
-            Ok(Vec::new())
-        },
+        Ok(ids) => Ok(ids),
+        Err(_err) => Ok(Vec::new()),
     }
 }

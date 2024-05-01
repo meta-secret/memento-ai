@@ -1,5 +1,5 @@
-use tracing::info;
 use nervo_bot_core::nervo_app;
+use tracing::info;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

@@ -8,24 +8,34 @@ use std::sync::Arc;
 use async_openai::config::OpenAIConfig;
 use config::Config as AppConfig;
 use nervo_bot_core::db::local_db::LocalDb;
-use tracing::{info, Level};
-use tracing_subscriber::FmtSubscriber;
+use tracing::{debug_span, info, Instrument, Level, Span};
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[tokio::main]
-#[tracing::instrument]
 async fn main() -> anyhow::Result<()> {
+    // Define a filter that excludes logs from the particular crate
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("debug"))
+        .add_directive("hyper=info".parse()?)
+        .add_directive("h2=info".parse()?)
+        .add_directive("tower=info".parse()?)
+        .add_directive("sqlx=info".parse()?);
+
     // a builder for `FmtSubscriber`.
     let subscriber = FmtSubscriber::builder()
+        // Use a more compact, abbreviated log format
+        .compact()
         // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
         // will be written to stdout.
         .with_max_level(Level::DEBUG)
+        .with_env_filter(filter)
         // completes the builder.
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     info!("Starting Probiot...");
-    start_probiot().await?;
+    start_probiot().instrument(debug_span!("probiot")).await?;
     Ok(())
 }
 
