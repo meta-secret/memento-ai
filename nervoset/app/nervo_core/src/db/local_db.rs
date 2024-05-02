@@ -4,7 +4,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
-use sqlx::{ConnectOptions, Row};
+use sqlx::{ConnectOptions, Row, Sqlite};
 use std::str::FromStr;
 use tracing::{debug, info};
 
@@ -138,6 +138,98 @@ impl LocalDb {
             .bind(&message_json)
             .execute(&mut conn)
             .await?;
+        Ok(())
+    }
+
+    pub async fn get_user_permissions_tg_id(&self, tg_user_id: u64) -> anyhow::Result<Vec<String>>{
+        let mut conn = self.connect_db().await?;
+        let sql = format!(
+            "SELECT DISTINCT role FROM user_roles ur \
+                LEFT JOIN user_external_ids uei ON uei.user_id=ur.user_id \
+            WHERE external_resource_code='TELEGRAM' AND \
+            external_resource_id='{}' \
+            AND datetime('now') >= dt_from \
+            AND (dt_to is NULL OR datetime('now') <= dt_to)",
+            tg_user_id.to_string()
+        );
+        let roles_result = sqlx::query(&sql).fetch_all(&mut conn).await?;
+        let mut result: Vec<String> = Vec::new();
+
+        for row in roles_result {
+            result.push(row.get(0));
+        }
+        Ok(result)
+    }
+
+    pub async fn init_db(&self) -> anyhow::Result<()>{
+        let mut conn = self.connect_db().await?;
+
+        let user_create_table_query = "CREATE TABLE IF NOT EXISTS user (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE,
+                info TEXT
+            )";
+        sqlx::query(&user_create_table_query).execute(&mut conn).await?;
+
+        let user_external_ids_create_table_query = "CREATE TABLE
+            IF NOT EXISTS user_external_ids (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id integer NOT NULL,
+                external_resource_code TEXT NOT NULL,
+                external_resource_id TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES user(id)
+            )";
+        sqlx::query(&user_external_ids_create_table_query).execute(&mut conn).await?;
+
+        let roles_create_table_query = "CREATE TABLE
+            IF NOT EXISTS user_roles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id integer,
+                role TEXT NOT NULL,
+                dt_from TEXT NOT NULL,
+                dt_to TEXT,
+                FOREIGN KEY(user_id) REFERENCES user(id)
+            )";
+        sqlx::query(&roles_create_table_query).execute(&mut conn).await?;
+
+        //fill SUPERADMINS
+        struct User {
+            tg_id: String,
+            username: String
+        }
+        // тут список суперадминов, т.е. разработчиков которым будет доступно всё
+        let super_admins = [
+           User{tg_id: "121178660".to_string(), username: "ozatot".to_string()},
+        ];
+
+        for user in super_admins {
+            let query = format!(
+                "SELECT EXISTS (SELECT 1 FROM user WHERE username = '{}')",
+                user.username
+            );
+
+            let user_exists: bool = sqlx::query_scalar(&query).fetch_one(&mut conn).await?;
+            if !user_exists {
+                let create_user_query = format!("INSERT INTO user (username) VALUES ('{}')", user.username);
+                sqlx::query(&create_user_query).execute(&mut conn).await?;
+
+                let user_bd_id_query = format!("SELECT id FROM user WHERE username='{}'", user.username);
+                let user_bd_id: i64 = sqlx::query_scalar(&user_bd_id_query).fetch_one(&mut conn).await?;
+
+                let create_tg_id_query = format!(
+                    "INSERT INTO user_external_ids (user_id, external_resource_code, \
+                    external_resource_id) VALUES ({}, 'TELEGRAM', '{}')", user_bd_id, user.tg_id);
+                sqlx::query(&create_tg_id_query).execute(&mut conn).await?;
+
+                let create_user_query = format!(
+                    " INSERT INTO user_roles (user_id, role, dt_from) VALUES ({}, 'SUPERADMIN', datetime('now'));", user_bd_id);
+                sqlx::query(&create_user_query).execute(&mut conn).await?;
+
+            }
+
+        }
+
+
         Ok(())
     }
 }

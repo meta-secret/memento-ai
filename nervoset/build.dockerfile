@@ -34,3 +34,6 @@ RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificat
 
 COPY --from=builder /app/nervoset/target/release/${APP_NAME} /app/nervoset/nervobot
 CMD ./nervobot
+
+# install sqlite3
+RUN apt-get install -y sqlite3 libsqlite3-dev
