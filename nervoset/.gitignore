@@ -1,0 +1,16 @@
+.devbox
+devbox.lock
+
+target
+app/target
+app/Cargo.lock
+app/nervo_core/Cargo.lock
+
+config/docker_compose/nervoset.env
+config/probiot_t1000/config.yaml
+config/r2d2/config.yaml
+config/groot/config.yaml
+
+k8s/probiot_t1000/config.yaml
+k8s/probiot_t1000/.kclvm
+k8s/testo
