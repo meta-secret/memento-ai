@@ -9,7 +9,6 @@ use openai_dive::v1::resources::audio::{
     AudioOutputFormat, AudioSpeechParameters, AudioSpeechResponseFormat,
     AudioTranscriptionParameters, AudioVoice,
 };
-use serde::de::DeserializeOwned;
 use std::sync::Arc;
 use teloxide::net::Download;
 use teloxide::prelude::ChatId;

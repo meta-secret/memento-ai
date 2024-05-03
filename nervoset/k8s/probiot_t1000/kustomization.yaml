@@ -7,7 +7,7 @@ commonLabels:
 configMapGenerator:
   - name: nervobot-config
     files:
-      - config.toml
+      - config.yaml
 
 resources:
   - statefulset.yaml

@@ -9,19 +9,19 @@ use rand::rngs::OsRng;
 use rand::Rng;
 use serde_json::json;
 
-use crate::common::NervoConfig;
+use crate::common::QdrantParams;
 
 pub struct NervoAiDb {
     pub qdrant_client: QdrantClient,
 }
 
-impl TryFrom<&NervoConfig> for NervoAiDb {
+impl TryFrom<&QdrantParams> for NervoAiDb {
     type Error = anyhow::Error;
 
-    fn try_from(config: &NervoConfig) -> Result<Self, Self::Error> {
-        let qdrant_client = QdrantClient::from_url(config.qdrant_server_url.as_str())
+    fn try_from(config: &QdrantParams) -> Result<Self, Self::Error> {
+        let qdrant_client = QdrantClient::from_url(config.server_url.as_str())
             // using an env variable for the API KEY for example
-            .with_api_key(config.qdrant_api_key.clone())
+            .with_api_key(config.api_key.clone())
             .build()?;
 
         Ok(NervoAiDb { qdrant_client })

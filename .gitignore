@@ -5,10 +5,9 @@ nervoset/app/target
 nervoset/Cargo.lock
 nervoset/nervo_core/Cargo.lock
 
-nervoset/config/docker_compose/nervoset.env
-nervoset/config/probiot_t1000/config.toml
-nervoset/config/r2d2/config.toml
-nervoset/config/groot/config.toml
+nervoset/config/probiot_t1000/config.yaml
+nervoset/config/r2d2/config.yaml
+nervoset/config/groot/config.yaml
 
 /infra/hazmat/tmp/
 /infra/deployment/tf/cluster/.terraform.lock.hcl
@@ -40,4 +39,6 @@ nervoset/config/groot/config.toml
 /nervoset/.devbox/
 /nervoset/app/target
 
-/nervoset/k8s/probiot_t1000/config.toml
+/nervoset/k8s/probiot_t1000/config.yaml
+/nervoset/k8s/probiot_t1000/.kclvm
+/nervoset/k8s/testo/

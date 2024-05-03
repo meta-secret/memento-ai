@@ -1,26 +1,26 @@
-use crate::common::NervoConfig;
+use crate::common::{DatabaseParams};
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
-use sqlx::{ConnectOptions, Row, Sqlite};
+use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
-use tracing::{debug, info};
+use tracing::{debug};
 
 pub struct LocalDb {
-    app_config: NervoConfig,
+    db_params: DatabaseParams,
 }
 
 impl LocalDb {
-    pub async fn try_init(app_config: NervoConfig) -> anyhow::Result<Self> {
-        Ok(Self { app_config })
+    pub async fn try_init(db_params: DatabaseParams) -> anyhow::Result<Self> {
+        Ok(Self { db_params })
     }
 }
 
 impl LocalDb {
     async fn connect_db(&self) -> anyhow::Result<SqliteConnection> {
-        let conn = SqliteConnectOptions::from_str(self.app_config.database_url.as_str())?
+        let conn = SqliteConnectOptions::from_str(self.db_params.url.as_str())?
             .create_if_missing(true)
             .connect()
             .await?;

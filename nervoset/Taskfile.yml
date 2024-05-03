@@ -59,7 +59,7 @@ tasks:
       - |- 
         docker run --rm \
           --name {{.CONTAINER_NAME}} \
-          -v ./config/probiot_t1000/config.toml:/app/nervoset/config.toml \
+          -v ./config/probiot_t1000/config.yaml:/app/nervoset/config.yaml \
           {{.PROBIOT_T1000_IMAGE}}
 
   docker_probiot_t1000_container_run:
@@ -72,7 +72,7 @@ tasks:
       - |-
         docker run -ti --rm \
           --name {{.CONTAINER_NAME}} \
-          -v ./config/probiot_t1000/config.toml:/app/nervoset/config.toml \
+          -v ./config/probiot_t1000/config.yaml:/app/nervoset/config.yaml \
           {{.PROBIOT_T1000_IMAGE}} \
           bash
 
@@ -103,7 +103,7 @@ tasks:
       - |-
         docker run --rm \
           --name {{.CONTAINER_NAME}} \
-          -v ./config/r2d2/config.toml:/app/nervoset/config.toml \
+          -v ./config/r2d2/config.yaml:/app/nervoset/config.yaml \
           {{.R2D2_IMAGE}}
 
   docker_r2d2_push:
@@ -134,7 +134,7 @@ tasks:
       - |-
         docker run --rm \
           --name {{.CONTAINER_NAME}} \
-          -v ./config/groot/config.toml:/app/nervoset/config.toml \
+          -v ./config/groot/config.yaml:/app/nervoset/config.yaml \
           -v ./app/groot/resources/:/app/nervoset/resources \
           {{.GROOT_IMAGE}}
 

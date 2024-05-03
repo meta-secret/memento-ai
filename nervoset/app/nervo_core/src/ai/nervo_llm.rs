@@ -1,6 +1,6 @@
 use crate::db::local_db::LocalDb;
 use crate::models::nervo_message_model::TelegramMessage;
-use async_openai::config::{Config, OpenAIConfig};
+use async_openai::config::OpenAIConfig;
 use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
     ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
@@ -8,49 +8,22 @@ use async_openai::types::{
     CreateTranscriptionRequest, ModerationInput, Role,
 };
 use async_openai::Client;
-use secrecy::ExposeSecret;
+use serde_derive::Deserialize;
 use tracing::info;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct NervoLlmConfig {
-    model_name: String,
-    embedding_model_name: String,
-    max_tokens: u16,
-    temperature: f32,
-    open_ai_config: OpenAIConfig,
-}
-
-impl From<OpenAIConfig> for NervoLlmConfig {
-    fn from(open_ai_config: OpenAIConfig) -> Self {
-        NervoLlmConfig {
-            model_name: String::from("gpt-3.5-turbo"),
-            embedding_model_name: String::from("text-embedding-3-small"),
-            //embedding_model_name: String::from("text-embedding-3-large"),
-            max_tokens: 512u16,
-            temperature: 0.1f32,
-            open_ai_config,
-        }
-    }
+    pub api_key: String,
+    pub model_name: String,
+    pub embedding_model_name: String,
+    pub max_tokens: u16,
+    pub temperature: f32
 }
 
 impl NervoLlmConfig {
-    pub fn with_model_name(mut self, model_name: String) -> Self {
-        self.model_name = model_name;
-        self
-    }
-
-    pub fn with_max_tokens(mut self, max_tokens: u16) -> Self {
-        self.max_tokens = max_tokens;
-        self
-    }
-
-    pub fn with_temperature(mut self, temperature: f32) -> Self {
-        self.temperature = temperature;
-        self
-    }
-
-    pub fn model_name(&self) -> &str {
-        &self.model_name
+    pub fn open_ai_config(&self) -> OpenAIConfig {
+        let cfg = OpenAIConfig::new();
+        cfg.with_api_key(self.api_key.clone())
     }
 }
 
@@ -63,17 +36,17 @@ impl From<NervoLlmConfig> for NervoLlm {
     fn from(llm_config: NervoLlmConfig) -> Self {
         NervoLlm {
             llm_config: llm_config.clone(),
-            client: Client::with_config(llm_config.open_ai_config),
+            client: Client::with_config(llm_config.open_ai_config()),
         }
     }
 }
 
 impl NervoLlm {
     pub fn model_name(&self) -> &str {
-        self.llm_config.model_name()
+        self.llm_config.model_name.as_str()
     }
-    pub fn api_key(&self) -> &String {
-        self.llm_config.open_ai_config.api_key().expose_secret()
+    pub fn api_key(&self) -> &str {
+        self.llm_config.api_key.as_str()
     }
 }
 

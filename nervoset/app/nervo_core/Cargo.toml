@@ -11,6 +11,8 @@ name = "nervo_bot_core"
 thiserror.workspace = true
 anyhow.workspace = true
 
+config.workspace = true
+
 serde.workspace = true
 serde_json.workspace = true
 serde_derive.workspace = true
@@ -19,7 +21,6 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["json", "env-filter"] }
 tracing-attributes = "0.1.27"
 
-config = "0.14.0"
 rand = "0.8.5"
 
 qdrant-client = "1.7.0"

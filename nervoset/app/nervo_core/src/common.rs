@@ -1,7 +1,8 @@
 use crate::ai::ai_db::NervoAiDb;
-use crate::ai::nervo_llm::NervoLlm;
+use crate::ai::nervo_llm::{NervoLlm, NervoLlmConfig};
 use crate::db::local_db::LocalDb;
 use serde::Deserialize;
+use config::Config as AppConfig;
 
 /// Application state
 pub struct AppState {
@@ -13,16 +14,40 @@ pub struct AppState {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct NervoConfig {
-    pub openai_api_key: String,
-    pub model_name: String,
-    pub max_tokens: u16,
-    pub temperature: f32,
+    pub telegram: TelegramBotParams,
+    pub llm: NervoLlmConfig,
+    pub qdrant: QdrantParams,
+    pub database: DatabaseParams,
+}
 
-    pub qdrant_server_url: String,
-    pub qdrant_api_key: String,
+#[derive(Debug, Clone, Deserialize)]
+pub struct TelegramBotParams {
+    pub bot_id: u64,
+    pub token: String,
+}
 
-    pub telegram_bot_token: String,
-    pub telegram_bot_id: u64,
+#[derive(Debug, Clone, Deserialize)]
+pub struct QdrantParams {
+    pub server_url: String,
+    pub api_key: String,
+}
 
-    pub database_url: String,
+#[derive(Debug, Clone, Deserialize)]
+pub struct DatabaseParams {
+    pub url: String,
+}
+
+impl NervoConfig {
+    pub fn load() -> anyhow::Result<NervoConfig> {
+        let config_file = config::File::with_name("config")
+            .format(config::FileFormat::Yaml);
+
+        let app_config = AppConfig::builder()
+            .add_source(config_file)
+            .build()?;
+        
+        let cfg = app_config.try_deserialize()?;
+        
+        Ok(cfg)
+    }
 }

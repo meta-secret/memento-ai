@@ -5,7 +5,6 @@ use anyhow::Result;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
 use teloxide::Bot as TelegramBot;
-use teloxide::types::{MessageKind};
 
 use crate::common::AppState;
 use crate::telegram::roles_and_permissions::{
