@@ -937,7 +937,6 @@ name = "groot"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-openai",
  "config",
  "nervo-core",
  "reqwest 0.12.4",
@@ -1586,6 +1585,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "nervo_server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum 0.7.5",
+ "config",
+ "nervo-core",
+ "qdrant-client",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "tracing-attributes",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "never"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1922,7 +1940,6 @@ name = "probiot_t1000"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-openai",
  "config",
  "nervo-core",
  "qdrant-client",

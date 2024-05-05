@@ -29,7 +29,6 @@ tokio = { version =  "1.36.0", features = ["full"] }
 
 teloxide = { version = "0.12", features = ["macros", "webhooks-axum"] }
 
-async-openai = "0.20.0"
 openai_dive = "0.4.5"
 
 secrecy = "0.8.0"
@@ -45,3 +44,5 @@ chrono = { version = "0.4", features = ["serde"] }
 #requests
 reqwest = "0.12.4"
 bytes = "1"
+
+async-openai.workspace = true
