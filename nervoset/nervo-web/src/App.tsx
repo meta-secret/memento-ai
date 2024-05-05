@@ -1,35 +1,71 @@
-import {useState} from 'react'
+import {useState, Component} from 'react'
 import './App.css'
 
-function ReplyContent() {
-    return (
-        <div className="flex bg-slate-100 px-4 py-8 dark:bg-slate-900 sm:px-6">
-            <img
-                className="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
-                src="https://dummyimage.com/256x256/354ea1/ffffff&text=G"
-            />
 
+function App() {
+    const [count, setCount] = useState(0)
+
+    let messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Как дела, боров?"},
+        {"role": "assistant", "content": "Всё отлично! Как твои?. Всё отлично! Как твои? Всё отлично! Как твои?"},
+        {"role": "user", "content": "Загниваем! Всё ништяк!"}
+    ]
+
+    const conversation = [];
+    for (let i = 0; i < messages.length; i++) {
+        let message = messages[i];
+        if (message["role"] === "user") {
+            conversation.push(<RequestContent text={message["content"]}/>);
+            continue;
+        }
+        if (message["role"] === "assistant") {
+            conversation.push(<ReplyContent text={message["content"]}/>);
+        }
+    }
+
+    return (
+        <div className="flex h-[97vh] w-full flex-col">
+            {/* Prompt Messages */}
             <div
-                className="flex w-full flex-col items-start lg:flex-row lg:justify-between"
+                className="flex-1 overflow-y-auto  bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-slate-800 dark:text-slate-300 sm:text-base sm:leading-7"
             >
-                <p className="max-w-3xl">
-                    Certainly! Quantum computing is a new type of computing that relies on
-                    the principles of quantum physics. Traditional computers, like the one
-                    you might be using right now, use bits to store and process
-                    information. These bits can represent either a 0 or a 1. In contrast,
-                    quantum computers use quantum bits, or qubits.<br/><br/>
-                    Unlike bits, qubits can represent not only a 0 or a 1 but also a
-                    superposition of both states simultaneously. This means that a qubit
-                    can be in multiple states at once, which allows quantum computers to
-                    perform certain calculations much faster and more efficiently.
-                </p>
-                <LikeDislike/>
+                {conversation}
             </div>
+
+            {/* Prompt message input */}
+            <MessagingPanel/>
         </div>
-    );
+    )
 }
 
-function RequestContent() {
+class ReplyContent extends Component<any, any> {
+    render () {
+        return (
+            <div className="flex bg-slate-100 px-4 py-8 dark:bg-slate-900 sm:px-6">
+                <img
+                    className="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
+                    src="https://dummyimage.com/256x256/354ea1/ffffff&text=G"
+                />
+
+                <div
+                    className="flex w-full flex-col items-start lg:flex-row lg:justify-between"
+                >
+                    <p className="max-w-3xl">
+                        {this.props.text}
+                    </p>
+                    <LikeDislike/>
+                </div>
+            </div>
+        );
+    }
+}
+
+interface RequestContentProps {
+    text?: string
+}
+
+function RequestContent(props) {
     return (
         <div className="flex flex-row px-4 py-8 sm:px-6">
             <img
@@ -38,7 +74,7 @@ function RequestContent() {
             />
 
             <div className="flex max-w-3xl items-center">
-                <p>Explain quantum computing in simple terms</p>
+                <p>{props.text}</p>
             </div>
         </div>
     );
@@ -156,30 +192,5 @@ function MessagingPanel() {
     );
 }
 
-function App() {
-    const [count, setCount] = useState(0)
-
-    //let messages = server.getConversation();
-
-    const conversation = [];
-    for (let i = 0; i < 2; i++) {
-        conversation.push(<RequestContent/>);
-        conversation.push(<ReplyContent/>);
-    }
-
-    return (
-        <div className="flex h-[97vh] w-full flex-col">
-            {/* Prompt Messages */}
-            <div
-                className="flex-1 overflow-y-auto  bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-slate-800 dark:text-slate-300 sm:text-base sm:leading-7"
-            >
-                {conversation}
-            </div>
-
-            {/* Prompt message input */}
-            <MessagingPanel/>
-        </div>
-    )
-}
 
 export default App
