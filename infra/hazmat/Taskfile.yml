@@ -254,6 +254,21 @@ tasks:
           PATH: docker
           KEY: email
 
+  vault_secret_nervoset_probiot_t1000:
+    cmds:
+      - task: vault_kv_get
+        vars:
+          PATH: nervoset
+          KEY: probiot_config
+
+  save_nervoset_probiot_t1000_config_to_k8s:
+    vars:
+      PROBIOT_CONFIG:
+        sh: task vault_secret_nervoset_probiot_t1000
+    cmds:
+      - echo '{{.PROBIOT_CONFIG}}' > ../../nervoset/k8s/probiot_t1000/config.yaml
+    silent: true
+
   save_tf_security_vars:
     vars:
       PROD_HOST:
@@ -273,7 +288,7 @@ tasks:
 
   vault_kv_get:
     cmds:
-      - docker exec {{.VAULT_CONTAINER_NAME}} vault kv get -mount="kv" -format=yaml -field={{.KEY}} {{.PATH}} | xargs
+      - docker exec {{.VAULT_CONTAINER_NAME}} vault kv get -mount="kv" -field={{.KEY}} {{.PATH}}
 
   local_tmp_clean_up:
     cmds:

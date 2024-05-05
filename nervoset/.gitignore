@@ -14,3 +14,4 @@ config/groot/config.yaml
 k8s/probiot_t1000/config.yaml
 k8s/probiot_t1000/.kclvm
 k8s/testo
+/k8s/probiot_t1000/build

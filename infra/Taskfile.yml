@@ -1,5 +1,7 @@
 version: '3'
 
+set: [pipefail]
+
 includes:
   kube: kube.yml
 
@@ -13,23 +15,23 @@ tasks:
     cmds:
       - task auth
       - task login
-    silent: true
 
   completions:
     cmds:
+      - alias k=kubectl
+
       - kubectl completion bash > ~/.kube/completion.bash
       - source ~/.kube/completion.bash
 
-      - alias k=kubectl,
+      - complete -o default -F __start_kubectl k
 
-      - complete -o default -F __start_kubectl k,
+      - k3d completion bash > ~/.k3d/completion.bash
+      - source ~/.k3d/completion.bash
 
-      - k3d completion bash > ~/.k3d/completion.bash,
-      - source ~/.k3d/completion.bash,
+      - helm completion bash > ~/.helm/completion.bash
+      - source ~/.helm/completion.bash
 
-      - helm completion bash > ~/.helm/completion.bash,
-      - source ~/.helm/completion.bash,
-
-      - curl --silent https://raw.githubusercontent.com/go-task/task/main/completion/bash/task.bash > ~/.task/completion.bash,
+      - mkdir -p ~/.task/
+      - curl --silent https://raw.githubusercontent.com/go-task/task/main/completion/bash/task.bash > ~/.task/completion.bash
       - source ~/.task/completion.bash
-    silent: true
+    interactive: true

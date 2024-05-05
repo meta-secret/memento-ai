@@ -2,7 +2,6 @@
   "$schema": "https://raw.githubusercontent.com/jetpack-io/devbox/0.10.3/.schema/devbox.schema.json",
   "packages": [
     "k3d@5.6.0",
-    "just@1.25.2",
     "k9s@0.32.4",
     "kubernetes-helm@3.14.3",
     "kubectl@1.29.3",
@@ -11,13 +10,10 @@
     "age@1.1.1",
     "gnupg@2.4.5",
     "jq@1.7.1",
-    "terraform@1.7.5",
-    "bash-completion@2.11",
     "htop@3.3.0",
-    "iotop@0.6",
-    "atop@2.8.1",
     "coreutils@9.4",
-    "gawk@5.2.2"
+    "gawk@5.2.2",
+    "bash-completion@2.13.0"
   ],
   "shell": {
     "init_hook": [],
