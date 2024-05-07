@@ -19,8 +19,9 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["json", "env-filter"] }
 tracing-attributes = "0.1.27"
 
+async-openai.workspace = true
+
 tokio = { version = "1.36.0", features = ["full"] }
 
-qdrant-client = "1.7.0"
-
 axum = "0.7.5"
+

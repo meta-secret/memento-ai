@@ -19,6 +19,10 @@ vars:
   GROOT_VERSION: '0.1'
   GROOT_IMAGE: "cypherkitty/nervoset:groot_v{{.GROOT_VERSION}}"
 
+  SERVER_DIR: '{{.DEPS_DIR}}/nervo_server'
+  SERVER_VERSION: '0.1'
+  SERVER_IMAGE: "cypherkitty/nervoset:nervo_server_v{{.SERVER_VERSION}}"
+
   BASE_IMAGE: "nervoset/base:latest"
 
 tasks:
@@ -142,6 +146,40 @@ tasks:
     cmds:
       - task: docker_groot_build
       - docker push {{.GROOT_IMAGE}}
+
+  # Nervo-server tasks
+
+  docker_nervo_server_build:
+    cmds:
+      - task: docker_base_build
+      - |-
+        docker buildx build \
+          --tag {{.SERVER_IMAGE}} \
+          --output type=docker \
+          --file build.dockerfile \
+          --build-arg="APP_NAME=nervo_server" \
+          .
+
+  docker_nervo_server_run:
+    requires:
+      vars:
+        - CONTAINER_NAME
+    cmds:
+      - task: docker_nervo_server_build
+      - mkdir -p config/nervo_server
+      - |-
+        docker run --rm \
+          --name {{.CONTAINER_NAME}} \
+          -v ./config/nervo_server/config.yaml:/app/nervoset/config.yaml \
+          -v ./app/nervo_server/resources/:/app/nervoset/resources \
+          -p 3000:3000 \
+          {{.SERVER_IMAGE}}
+
+  docker_nervo_server_push:
+    cmds:
+      - task: docker_server_build
+      - docker push {{.SERVER_IMAGE}}
+
 
   prepare_dependencies:
     vars:
