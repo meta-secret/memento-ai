@@ -1,4 +1,4 @@
-use crate::common::{DatabaseParams};
+use crate::common::DatabaseParams;
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -6,7 +6,6 @@ use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
-use tracing::{debug};
 
 pub struct LocalDb {
     db_params: DatabaseParams,
@@ -27,7 +26,7 @@ impl LocalDb {
         Ok(conn)
     }
 
-    pub async fn save_message<T>(
+    pub async fn save_to_local_db<T>(
         &self,
         message: T,
         table_name: &str,
@@ -36,20 +35,17 @@ impl LocalDb {
     where
         T: Serialize + Send + 'static,
     {
-        debug!("save message");
         self.create_table(table_name).await?;
-        debug!("table created");
         let items_count = self.count_items(table_name).await?;
         if items_count >= 10 && need_restriction {
             self.overwrite_messages(message, table_name).await?;
         } else {
             self.insert_message(message, table_name).await?;
         }
-
         Ok(())
     }
 
-    pub async fn read_messages<T>(&self, table_name: &str) -> anyhow::Result<Vec<T>>
+    pub async fn read_from_local_db<T>(&self, table_name: &str) -> anyhow::Result<Vec<T>>
     where
         T: DeserializeOwned,
     {
@@ -62,10 +58,8 @@ impl LocalDb {
         for row in rows {
             let message_json: String = row.try_get("message")?;
             let message = serde_json::from_str(&message_json)?;
-
             messages.push(message);
         }
-
         Ok(messages)
     }
 
@@ -74,9 +68,7 @@ impl LocalDb {
             "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'table_{}')",
             table_name
         );
-
         let mut conn = self.connect_db().await?;
-
         let table_exists: bool = sqlx::query_scalar(&query).fetch_one(&mut conn).await?;
 
         if !table_exists {
@@ -88,10 +80,8 @@ impl LocalDb {
            )",
                 table_name
             );
-
             sqlx::query(&query).execute(&mut conn).await?;
-        }
-
+        };
         Ok(())
     }
 
@@ -141,7 +131,7 @@ impl LocalDb {
         Ok(())
     }
 
-    pub async fn get_user_permissions_tg_id(&self, tg_user_id: u64) -> anyhow::Result<Vec<String>>{
+    pub async fn get_user_permissions_tg_id(&self, tg_user_id: u64) -> anyhow::Result<Vec<String>> {
         let mut conn = self.connect_db().await?;
         let sql = format!(
             "SELECT DISTINCT role FROM user_roles ur \
@@ -161,7 +151,7 @@ impl LocalDb {
         Ok(result)
     }
 
-    pub async fn init_db(&self) -> anyhow::Result<()>{
+    pub async fn init_db(&self) -> anyhow::Result<()> {
         let mut conn = self.connect_db().await?;
 
         let user_create_table_query = "CREATE TABLE IF NOT EXISTS user (
@@ -169,7 +159,9 @@ impl LocalDb {
                 username TEXT UNIQUE,
                 info TEXT
             )";
-        sqlx::query(&user_create_table_query).execute(&mut conn).await?;
+        sqlx::query(&user_create_table_query)
+            .execute(&mut conn)
+            .await?;
 
         let user_external_ids_create_table_query = "CREATE TABLE
             IF NOT EXISTS user_external_ids (
@@ -179,7 +171,9 @@ impl LocalDb {
                 external_resource_id TEXT NOT NULL,
                 FOREIGN KEY(user_id) REFERENCES user(id)
             )";
-        sqlx::query(&user_external_ids_create_table_query).execute(&mut conn).await?;
+        sqlx::query(&user_external_ids_create_table_query)
+            .execute(&mut conn)
+            .await?;
 
         let roles_create_table_query = "CREATE TABLE
             IF NOT EXISTS user_roles (
@@ -190,17 +184,20 @@ impl LocalDb {
                 dt_to TEXT,
                 FOREIGN KEY(user_id) REFERENCES user(id)
             )";
-        sqlx::query(&roles_create_table_query).execute(&mut conn).await?;
+        sqlx::query(&roles_create_table_query)
+            .execute(&mut conn)
+            .await?;
 
         //fill SUPERADMINS
         struct User {
             tg_id: String,
-            username: String
+            username: String,
         }
         // тут список суперадминов, т.е. разработчиков которым будет доступно всё
-        let super_admins = [
-           User{tg_id: "121178660".to_string(), username: "ozatot".to_string()},
-        ];
+        let super_admins = [User {
+            tg_id: "121178660".to_string(),
+            username: "ozatot".to_string(),
+        }];
 
         for user in super_admins {
             let query = format!(
@@ -210,25 +207,28 @@ impl LocalDb {
 
             let user_exists: bool = sqlx::query_scalar(&query).fetch_one(&mut conn).await?;
             if !user_exists {
-                let create_user_query = format!("INSERT INTO user (username) VALUES ('{}')", user.username);
+                let create_user_query =
+                    format!("INSERT INTO user (username) VALUES ('{}')", user.username);
                 sqlx::query(&create_user_query).execute(&mut conn).await?;
 
-                let user_bd_id_query = format!("SELECT id FROM user WHERE username='{}'", user.username);
-                let user_bd_id: i64 = sqlx::query_scalar(&user_bd_id_query).fetch_one(&mut conn).await?;
+                let user_bd_id_query =
+                    format!("SELECT id FROM user WHERE username='{}'", user.username);
+                let user_bd_id: i64 = sqlx::query_scalar(&user_bd_id_query)
+                    .fetch_one(&mut conn)
+                    .await?;
 
                 let create_tg_id_query = format!(
                     "INSERT INTO user_external_ids (user_id, external_resource_code, \
-                    external_resource_id) VALUES ({}, 'TELEGRAM', '{}')", user_bd_id, user.tg_id);
+                    external_resource_id) VALUES ({}, 'TELEGRAM', '{}')",
+                    user_bd_id, user.tg_id
+                );
                 sqlx::query(&create_tg_id_query).execute(&mut conn).await?;
 
                 let create_user_query = format!(
                     " INSERT INTO user_roles (user_id, role, dt_from) VALUES ({}, 'SUPERADMIN', datetime('now'));", user_bd_id);
                 sqlx::query(&create_user_query).execute(&mut conn).await?;
-
             }
-
         }
-
 
         Ok(())
     }

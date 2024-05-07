@@ -1,17 +1,23 @@
 use nervo_bot_core::ai::ai_db::NervoAiDb;
 use nervo_bot_core::ai::nervo_llm::NervoLlm;
 use nervo_bot_core::common::{AppState, NervoConfig};
-use nervo_bot_core::telegram::probiot_t1000;
+use nervo_bot_core::telegram::{wall_e};
 
 use std::sync::Arc;
 
 use nervo_bot_core::db::local_db::LocalDb;
-use tracing::{debug_span, info, Instrument, Level};
+use tracing::{debug_span, Instrument, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[tokio::main]
-
 async fn main() -> anyhow::Result<()> {
+    println!("Start Wall-E");
+
+    start_walle().await?;
+    Ok(())
+}
+
+pub async fn start_walle() -> anyhow::Result<()> {
     // Define a filter that excludes logs from the particular crate
     let filter = EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| EnvFilter::new("debug"))
@@ -31,24 +37,9 @@ async fn main() -> anyhow::Result<()> {
         // completes the builder.
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("setting default subscriber failed");
 
-    info!("Starting Probiot...");
-    start_probiot().instrument(debug_span!("probiot")).await?;
-    Ok(())
-    // match start_probiot().instrument(debug_span!("probiot")).await {
-    //     Ok(_) => {
-    //         info!("OK");
-    //         Ok(())
-    //     }
-    //     Err(err) => {
-    //         info!("fuck! {:?}", err);
-    //         Ok(())
-    //     }
-    // }
-}
-
-pub async fn start_probiot() -> anyhow::Result<()> {
     let nervo_config = NervoConfig::load()?;
 
     let nervo_llm = NervoLlm::from(nervo_config.llm.clone());
@@ -66,7 +57,10 @@ pub async fn start_probiot() -> anyhow::Result<()> {
         nervo_config,
     });
 
-    probiot_t1000::start(bot_token, app_state).await?;
+    wall_e::start(bot_token, app_state)
+        .instrument(debug_span!("walle"))
+        .await?;
+    
 
     Ok(())
 }

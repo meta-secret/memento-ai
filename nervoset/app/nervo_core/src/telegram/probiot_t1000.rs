@@ -7,11 +7,8 @@ use teloxide::prelude::*;
 use teloxide::Bot as TelegramBot;
 
 use crate::common::AppState;
-use crate::telegram::roles_and_permissions::{
-    has_role,
-    PROBIOT_MEMBER,
-    PROBIOT_OWNER};
 use crate::telegram::bot_utils::{chat, system_message, SystemMessage};
+use crate::telegram::roles_and_permissions::{has_role, PROBIOT_MEMBER, PROBIOT_OWNER};
 
 #[derive(BotCommands, Clone)]
 #[command(
@@ -27,17 +24,20 @@ enum ProbiotCommands {
 
 #[derive(BotCommands, Clone)]
 #[command(
-rename_rule = "lowercase",
-description = "These commands are supported:"
+    rename_rule = "lowercase",
+    description = "These commands are supported:"
 )]
 enum ProbiotOwnerCommands {
     #[command(description = "Get whitelisted users list")]
     GetWhiteListMembers,
 }
 
-
 pub async fn permission_restricted(bot: Bot, msg: Message) -> Result<()> {
-    bot.send_message(msg.chat.id, "сорян, я пока не работаю, приходите через 2 мес.").await?;
+    bot.send_message(
+        msg.chat.id,
+        "сорян, я пока не работаю, приходите через 2 мес.",
+    )
+    .await?;
     Ok(())
 }
 
@@ -66,40 +66,34 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
             .branch(cmd_handler)
             .branch(msg_handler);
 
-        let permission_restricted_handler = Update::filter_message().endpoint(
-            permission_restricted
-        );
+        let permission_restricted_handler =
+            Update::filter_message().endpoint(permission_restricted);
 
         Update::filter_message()
             .branch(
-                dptree::filter_async(
-                    |msg: Message, app_state: Arc<AppState>| async move {
-                        has_role(
-                            app_state,
-                            msg.from().clone(),
-                            &PROBIOT_OWNER.to_string()).await
-                    }
-                ).chain(owner_handler))
+                dptree::filter_async(|msg: Message, app_state: Arc<AppState>| async move {
+                    has_role(app_state, msg.from().clone(), &PROBIOT_OWNER.to_string()).await
+                })
+                .chain(owner_handler),
+            )
             .branch(
-                dptree::filter_async(
-                    |msg: Message, app_state: Arc<AppState>| async move {
-                        has_role(
-                            app_state,
-                            msg.from().clone(),
-                            &PROBIOT_MEMBER.to_string()).await
-                    }
-                ).chain(authorized_user_handler.clone())
+                dptree::filter_async(|msg: Message, app_state: Arc<AppState>| async move {
+                    has_role(app_state, msg.from().clone(), &PROBIOT_MEMBER.to_string()).await
+                })
+                .chain(authorized_user_handler.clone()),
             )
             .branch(
                 dptree::filter(|msg: Message, app_state: Arc<AppState>| {
-                        msg.from().map(|user|
+                    msg.from()
+                        .map(|user| {
                             WHITELIST_MEMBERS
-                                .contains(&user.username.clone().unwrap_or_default().as_str()))
-                                .unwrap_or(false)
-                    })
-                .chain(authorized_user_handler))
+                                .contains(&user.username.clone().unwrap_or_default().as_str())
+                        })
+                        .unwrap_or(false)
+                })
+                .chain(authorized_user_handler),
+            )
             .branch(permission_restricted_handler)
-
     };
 
     Dispatcher::builder(bot, handler)
@@ -139,20 +133,15 @@ async fn command_handler(
     }
 }
 
-async fn owner_command_handler(
-    bot: Bot,
-    msg: Message,
-    cmd: ProbiotOwnerCommands,
-) -> Result<()> {
+async fn owner_command_handler(bot: Bot, msg: Message, cmd: ProbiotOwnerCommands) -> Result<()> {
     match cmd {
         ProbiotOwnerCommands::GetWhiteListMembers => {
-            let formatted_usernames = WHITELIST_MEMBERS.iter()
+            let formatted_usernames = WHITELIST_MEMBERS
+                .iter()
                 .map(|username| format!("@{}", username).to_string())
                 .collect::<Vec<String>>();
-            bot.send_message(
-                msg.chat.id,
-                formatted_usernames.join("\n"),
-            ).await?;
+            bot.send_message(msg.chat.id, formatted_usernames.join("\n"))
+                .await?;
             Ok(())
         }
     }

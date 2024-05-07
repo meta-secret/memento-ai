@@ -19,6 +19,10 @@ vars:
   GROOT_VERSION: '0.1'
   GROOT_IMAGE: "cypherkitty/nervoset:groot_v{{.GROOT_VERSION}}"
 
+  WALLE_DIR: '{{.DEPS_DIR}}/walle'
+  WALLE_VERSION: '0.1'
+  WALLE_IMAGE: "cypherkitty/nervoset:walle_v{{.WALLE_VERSION}}"
+
   SERVER_DIR: '{{.DEPS_DIR}}/nervo_server'
   SERVER_VERSION: '0.1'
   SERVER_IMAGE: "cypherkitty/nervoset:nervo_server_v{{.SERVER_VERSION}}"
@@ -146,6 +150,38 @@ tasks:
     cmds:
       - task: docker_groot_build
       - docker push {{.GROOT_IMAGE}}
+
+  # Wall-e tasks
+
+  docker_walle_build:
+    cmds:
+      - task: docker_base_build
+      - |-
+        docker buildx build \
+          --tag {{.WALLE_IMAGE}} \
+          --output type=docker \
+          --file build.dockerfile \
+          --build-arg="APP_NAME=walle" \
+          .
+
+  docker_walle_run:
+    requires:
+      vars:
+        - CONTAINER_NAME
+    cmds:
+      - task: docker_walle_build
+      - mkdir -p config/groot
+      - |-
+        docker run --rm \
+          --name {{.CONTAINER_NAME}} \
+          -v ./config/walle/config.toml:/app/nervoset/config.toml \
+          -v ./app/walle/resources/:/app/nervoset/resources \
+          {{.WALLE_IMAGE}}
+
+  docker_walle_push:
+    cmds:
+      - task: docker_walle_build
+      - docker push {{.WALLE_IMAGE}}
 
   # Nervo-server tasks
 

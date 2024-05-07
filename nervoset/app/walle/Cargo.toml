@@ -1,7 +1,10 @@
 [package]
-name = "probiot_t1000"
+name = "walle"
 version = "0.1.0"
 edition = "2021"
+
+[build]
+rustc-wrapper = "sccache"
 
 [dependencies]
 nervo-core = { path = "../nervo_core" }
@@ -22,3 +25,4 @@ tracing-attributes = "0.1.27"
 tokio = { version = "1.36.0", features = ["full"] }
 
 teloxide = { version = "0.12", features = ["macros"] }
+

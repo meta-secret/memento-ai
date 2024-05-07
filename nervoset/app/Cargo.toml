@@ -7,6 +7,7 @@ members = [
     "nervo_core",
     "probiot_t1000",
     "r2d2",
+    "walle",
     "nervo_server"
 ]
 

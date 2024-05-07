@@ -21,15 +21,16 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["json", "env-filter"] }
 tracing-attributes = "0.1.27"
 
-rand = "0.8.5"
+qdrant-client.workspace = true
 
-qdrant-client = "1.7.0"
+rand = "0.8.5"
 
 tokio = { version =  "1.36.0", features = ["full"] }
 
 teloxide = { version = "0.12", features = ["macros", "webhooks-axum"] }
 
 openai_dive = "0.4.5"
+tiktoken-rs = "0.5.8"
 
 secrecy = "0.8.0"
 

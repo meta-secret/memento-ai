@@ -12,9 +12,9 @@ pub async fn start_nervo_bot() -> anyhow::Result<()> {
     info!("Starting command bot...");
 
     let nervo_config = NervoConfig::load()?;
-    
+
     let nervo_llm = NervoLlm::from(nervo_config.llm.clone());
-    
+
     let nervo_ai_db = NervoAiDb::try_from(&nervo_config.qdrant)?;
 
     let local_db = LocalDb::try_init(nervo_config.database.clone()).await?;

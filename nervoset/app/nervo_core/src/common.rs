@@ -1,8 +1,8 @@
 use crate::ai::ai_db::NervoAiDb;
 use crate::ai::nervo_llm::{NervoLlm, NervoLlmConfig};
 use crate::db::local_db::LocalDb;
-use serde::Deserialize;
 use config::Config as AppConfig;
+use serde::Deserialize;
 
 /// Application state
 pub struct AppState {
@@ -39,15 +39,12 @@ pub struct DatabaseParams {
 
 impl NervoConfig {
     pub fn load() -> anyhow::Result<NervoConfig> {
-        let config_file = config::File::with_name("config")
-            .format(config::FileFormat::Yaml);
+        let config_file = config::File::with_name("config").format(config::FileFormat::Yaml);
 
-        let app_config = AppConfig::builder()
-            .add_source(config_file)
-            .build()?;
-        
+        let app_config = AppConfig::builder().add_source(config_file).build()?;
+
         let cfg = app_config.try_deserialize()?;
-        
+
         Ok(cfg)
     }
 }

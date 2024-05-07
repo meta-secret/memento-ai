@@ -173,26 +173,24 @@ async fn endpoint(
             dialogue.update(ChatState::Conversation).await?;
             Ok(())
         }
-        Command::Save(text) => {
+        Command::Save(_) => {
             let user = parser.parse_user().await?;
-            let UserId(user_id) = user.id;
+            let UserId(_) = user.id;
 
             // do embedding using openai
-            let embedding = app_state.nervo_llm.embedding(text.as_str()).await.unwrap();
 
             //save the embedding into qdrant db
-            let response = app_state
-                .nervo_ai_db
-                .save(user_id, embedding, text)
-                .await
-                .unwrap();
+            // let response = app_state
+            //     .nervo_ai_db
+            //     .save(&app_state, user_id, text)
+            //     .await?;
 
-            bot.send_message(
-                msg.chat.id,
-                format!("{:?}", response.result.unwrap().status()),
-            )
-            .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
-            .await?;
+            // bot.send_message(
+            //     msg.chat.id,
+            //     format!("{:?}", response.status()),
+            // )
+            // .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
+            // .await?;
             Ok(())
         }
         Command::Search(search_text) => {
@@ -289,14 +287,16 @@ async fn vector_search<'a>(
     let user = parser.parse_user().await?;
     let UserId(user_id) = user.id;
 
-    // do embedding using openai
-    let embedding = parser.app_state.nervo_llm.embedding(search_text).await?;
-
     //save the embedding into qdrant db
     let response = parser
         .app_state
         .nervo_ai_db
-        .search(user_id, embedding)
+        .search(
+            &parser.app_state,
+            user_id.to_string(),
+            String::from(search_text),
+            5,
+        )
         .await?;
 
     let mut results = vec![];

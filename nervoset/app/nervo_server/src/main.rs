@@ -1,21 +1,17 @@
-use std::fs::File;
-use std::io::Read;
 use std::sync::Arc;
 
 use async_openai::types::{
-    ChatCompletionRequestMessage,
-    ChatCompletionRequestUserMessage,
-    ChatCompletionRequestUserMessageContent,
-    Role
-};
-use axum::{
-    http::StatusCode,
-    Json,
-    Router, routing::{get, post},
+    ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
+    ChatCompletionRequestUserMessageContent, Role,
 };
 use axum::extract::{Path, State};
-use serde::{Deserialize, Serialize};
+use axum::{
+    http::StatusCode,
+    routing::{get, post},
+    Json, Router,
+};
 use nervo_bot_core::ai::ai_db::NervoAiDb;
+use serde::{Deserialize, Serialize};
 
 use nervo_bot_core::ai::nervo_llm::NervoLlm;
 use nervo_bot_core::common::{AppState, NervoConfig};
@@ -25,7 +21,7 @@ use nervo_bot_core::db::local_db::LocalDb;
 async fn main() -> anyhow::Result<()> {
     // initialize tracing
     tracing_subscriber::fmt::init();
-    
+
     let nervo_config = NervoConfig::load()?;
 
     let nervo_llm = NervoLlm::from(nervo_config.llm.clone());
@@ -50,10 +46,9 @@ async fn main() -> anyhow::Result<()> {
     // run our app with hyper, listening globally on port 3000
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await?;
-    
+
     Ok(())
 }
-
 
 // basic handler that responds with a static string
 async fn root() -> &'static str {
@@ -61,26 +56,32 @@ async fn root() -> &'static str {
 }
 
 async fn chat(
-    Path(user_id): Path<String>, 
-    State(state): State<Arc<AppState>>
+    Path(user_id): Path<String>,
+    State(state): State<Arc<AppState>>,
 ) -> Result<Json<Chat>, StatusCode> {
     // OpenAI interacting
     let message = ChatCompletionRequestUserMessage {
-        content: ChatCompletionRequestUserMessageContent::Text(String::from("Привет, похвали меня за выполненную работу!")),
+        content: ChatCompletionRequestUserMessageContent::Text(String::from(
+            "Привет, похвали меня за выполненную работу!",
+        )),
         role: Role::User,
         name: None,
     };
-    
+
     let message_text = state
-        .nervo_llm.chat_batch(vec![ChatCompletionRequestMessage::from(message)])
+        .nervo_llm
+        .chat_batch(vec![ChatCompletionRequestMessage::from(message)])
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .unwrap_or_else(|| String::from("Can't talk, too busy now..."));
-    
+
     // Формируем объект сообщения
     let chat = Chat {
         user: user_id,
-        messages: vec![Message { role: "user".to_string(), content: message_text }],
+        messages: vec![Message {
+            role: "user".to_string(),
+            content: message_text,
+        }],
     };
 
     Ok(Json(chat))
