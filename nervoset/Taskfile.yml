@@ -68,6 +68,7 @@ tasks:
         docker run --rm \
           --name {{.CONTAINER_NAME}} \
           -v ./config/probiot_t1000/config.yaml:/app/nervoset/config.yaml \
+          -v ./app/probiot_t1000/resources/:/app/nervoset/resources \
           {{.PROBIOT_T1000_IMAGE}}
 
   docker_probiot_t1000_container_run:
@@ -81,6 +82,7 @@ tasks:
         docker run -ti --rm \
           --name {{.CONTAINER_NAME}} \
           -v ./config/probiot_t1000/config.yaml:/app/nervoset/config.yaml \
+          -v ./app/probiot_t1000/resources/:/app/nervoset/resources \
           {{.PROBIOT_T1000_IMAGE}} \
           bash
 

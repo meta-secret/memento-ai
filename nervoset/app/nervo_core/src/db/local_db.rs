@@ -197,7 +197,12 @@ impl LocalDb {
         let super_admins = [User {
             tg_id: "121178660".to_string(),
             username: "ozatot".to_string(),
-        }];
+        },
+            User {
+                tg_id: "124607629".to_string(),
+                username: "llio6oh".to_string(),
+            }
+        ];
 
         for user in super_admins {
             let query = format!(

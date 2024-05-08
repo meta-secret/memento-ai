@@ -47,3 +47,4 @@ reqwest = "0.12.4"
 bytes = "1"
 
 async-openai.workspace = true
+log = "0.4.21"

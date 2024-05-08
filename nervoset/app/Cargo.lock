@@ -1599,6 +1599,7 @@ dependencies = [
  "bytes",
  "chrono",
  "config",
+ "log",
  "openai_dive",
  "qdrant-client",
  "rand",

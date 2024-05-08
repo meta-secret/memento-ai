@@ -6,7 +6,7 @@ use crate::models::qdrant_search_layers::{
 use crate::models::system_messages::SystemMessages;
 use crate::models::user_model::TelegramUser;
 use anyhow::bail;
-use async_openai::types::{ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs};
+use async_openai::types::{ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, ChatCompletionRequestUserMessageContent};
 use chrono::Utc;
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::audio::{
@@ -102,7 +102,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                 let question_msg = ChatCompletionRequestUserMessageArgs::default()
                     .content(tg_message.message.clone())
                     .build()?;
-
+                
                 chat_gpt_conversation(
                     &bot,
                     &msg,
@@ -253,7 +253,6 @@ impl<'a> MessageParser<'a> {
                 }
             }
         } else {
-            info!("File '{}' doesn't exist.", file_path);
             Err(anyhow::Error::msg(format!(
                 "File '{}' doesn't exist.",
                 file_path
@@ -283,9 +282,7 @@ pub enum SystemMessage {
 
 impl SystemMessage {
     pub async fn as_str(&self) -> String {
-        let json_string = fs::read_to_string("resources/system_messages.json")
-            .await
-            .unwrap_or_else(|err| err.to_string());
+        let json_string = fs::read_to_string("resources/system_messages.json").await.unwrap();
         let system_messages_models: SystemMessages =
             serde_json::from_str(&json_string).expect("Failed to parse JSON");
 
@@ -324,33 +321,6 @@ async fn load_user_ids(app_state: &AppState) -> anyhow::Result<Vec<TelegramUser>
     }
 }
 
-// Layering for LLM
-// pub async fn vectorised_chat_gpt_conversation(
-//     bot: &Bot,
-//     message: &Message,
-//     chat_id: ChatId,
-//     app_state: &Arc<AppState>,
-//     user: User,
-//     is_voice: bool,
-// ) -> anyhow::Result<()> {
-//     let mut reply = String::new();
-//
-//     let prechecking_result = prechecking_crap_request_is_ok(&app_state, &bot, &message, chat_id.clone(), is_voice.clone(), &message.text().unwrap(), &user).await?;
-//     if prechecking_result != String::new() {
-//         reply = openai_chat_preparations(&app_state, &prechecking_result, user, chat_id.clone()).await?;
-//         if is_voice {
-//             create_speech(&bot, reply.clone(), chat_id, &app_state).await;
-//         } else {
-//             bot.send_message(chat_id, reply)
-//                 .parse_mode(ParseMode::Markdown)
-//                 .reply_to_message_id(message.id.clone())
-//                 .await?;
-//         }
-//     }
-//
-//     Ok(())
-// }
-
 pub async fn chat_gpt_conversation(
     bot: &Bot,
     message: &Message,
@@ -361,12 +331,17 @@ pub async fn chat_gpt_conversation(
     user: &User,
     direct_message: bool,
 ) -> anyhow::Result<()> {
-    let user_final_question: ChatCompletionRequestUserMessage;
+    let user_final_question: String;
     if !direct_message {
+        let msg_text = match msg.content {
+            ChatCompletionRequestUserMessageContent::Text(text) => {text}
+            ChatCompletionRequestUserMessageContent::Array(_) => { String::new() }
+        };
+        
         let initial_user_request =
-            detecting_crap_request(&app_state, &message.text().unwrap(), &user).await?;
-
-        if initial_user_request == String::new() {
+            detecting_crap_request(&app_state, &msg_text, &user).await?;
+        
+        if initial_user_request == "SKIP" {
             let crap_system_role =
                 std::fs::read_to_string("resources/crap_request_system_role.txt")
                     .expect("Failed to read system message from file");
@@ -375,31 +350,31 @@ pub async fn chat_gpt_conversation(
                 crap_system_role,
                 &message.text().unwrap()
             );
-            user_final_question = ChatCompletionRequestUserMessageArgs::default()
+            let request_to_llm = ChatCompletionRequestUserMessageArgs::default()
                 .content(user_request)
                 .build()?;
+            user_final_question = app_state
+                .nervo_llm
+                .chat(request_to_llm)
+                .await?
+                .unwrap_or(String::from("I'm sorry, internal error."));
         } else {
             let result =
                 openai_chat_preparations(&app_state, &initial_user_request, user.clone(), chat_id)
                     .await?;
-            user_final_question = ChatCompletionRequestUserMessageArgs::default()
-                .content(result)
-                .build()?;
+            user_final_question = result
         };
     } else {
-        user_final_question = msg
+        user_final_question = match msg.content {
+            ChatCompletionRequestUserMessageContent::Text(text) => {text}
+            ChatCompletionRequestUserMessageContent::Array(_) => {String::new()}
+        }
     }
 
-    let reply = app_state
-        .nervo_llm
-        .chat(user_final_question)
-        .await?
-        .unwrap_or(String::from("I'm sorry, internal error."));
-
     if is_voice {
-        create_speech(&bot, reply.clone(), chat_id, &app_state).await;
+        create_speech(&bot, user_final_question.clone(), chat_id, &app_state).await;
     } else {
-        bot.send_message(chat_id, reply)
+        bot.send_message(chat_id, user_final_question)
             .parse_mode(ParseMode::Markdown)
             .reply_to_message_id(message.id.clone())
             .await?;
@@ -451,18 +426,16 @@ async fn openai_chat_preparations(
             let processing_layers = layers_info.layers;
             let mut search_content = String::new();
 
-            for i in 1..processing_layers.len() {
-                let processing_layer = &processing_layers[i];
-
-                if !processing_layer.collection_names.is_empty() {
-                    for collection_name in &processing_layer.collection_names {
+            for processing_layer in processing_layers{
+                if !processing_layer.collection_params.is_empty() {
+                    for collection_param in &processing_layer.collection_params {
                         let db_search = &app_state
                             .nervo_ai_db
                             .search(
                                 &app_state,
-                                collection_name.clone(),
+                                collection_param.name.clone(),
                                 rephrased_prompt.clone(),
-                                processing_layer.vectors_limit.clone(),
+                                collection_param.vectors_limit.clone(),
                             )
                             .await?;
 
@@ -473,10 +446,9 @@ async fn openai_chat_preparations(
                                 else {
                                     bail!("Oooops! Error")
                                 };
-
-                                let index = processing_layer.index as usize;
+                                
                                 let token_limit =
-                                    processing_layer.collections_tokens_limit[index] as usize;
+                                    collection_param.tokens_limit.clone() as usize;
                                 let mut tokens = bpe.split_by_token(&result, true)?;
                                 if tokens.len() > token_limit {
                                     tokens.truncate(token_limit);
@@ -600,7 +572,6 @@ async fn create_layer_content(
         tool_choice: None,
         user: None,
     };
-    info!("start layer_processing_content");
     let layer_processing_content = match client.chat().create(params).await {
         Ok(value) => value.choices[0].message.content.to_owned(),
         Err(err) => {
@@ -608,12 +579,10 @@ async fn create_layer_content(
             bail!("Error {:?}", err)
         }
     };
-    info!("finished layer_processing_content");
     let layer_content_text = match layer_processing_content {
         ChatMessageContent::Text(text) => text,
         _ => String::new(),
     };
-
     Ok(layer_content_text)
 }
 
@@ -624,7 +593,6 @@ async fn detecting_crap_request(
     user: &User,
 ) -> anyhow::Result<String> {
     let layers_info = get_all_search_layers().await?;
-
     let layer_content = create_layer_content(
         &app_state,
         &prompt,
@@ -634,6 +602,5 @@ async fn detecting_crap_request(
         String::new(),
     )
     .await?;
-
     Ok(layer_content)
 }
