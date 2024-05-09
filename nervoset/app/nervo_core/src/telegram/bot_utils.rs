@@ -6,7 +6,7 @@ use crate::models::qdrant_search_layers::{
 use crate::models::system_messages::SystemMessages;
 use crate::models::user_model::TelegramUser;
 use anyhow::bail;
-use async_openai::types::{ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, ChatCompletionRequestUserMessageContent};
+use async_openai::types::{ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageArgs, Role};
 use chrono::Utc;
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::audio::{
@@ -26,6 +26,7 @@ use teloxide::Bot;
 use tiktoken_rs::p50k_base;
 use tokio::fs;
 use tracing::{error, info};
+use crate::ai::nervo_llm::LlmMessage;
 
 pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Result<()> {
     info!("Start chat...");
@@ -99,10 +100,12 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                         .save_to_local_db(tg_message.clone(), &name, true)
                         .await?;
                 }
-                let question_msg = ChatCompletionRequestUserMessageArgs::default()
-                    .content(tg_message.message.clone())
-                    .build()?;
-                
+
+                let question_msg = LlmMessage {
+                    role: Role::User,
+                    content: tg_message.message.clone(),
+                };
+
                 chat_gpt_conversation(
                     &bot,
                     &msg,
@@ -113,14 +116,15 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                     &user,
                     false,
                 )
-                .await?
+                    .await?
             } else {
                 // Moderation is not passed
                 if let Some(_) = &user.username {
                     let question = format!("I have a message from the user, I know the message is unacceptable, can you please read the message and reply that the message is not acceptable. Reply using the same language the massage uses. Here is the message: {:?}", &message_text);
-                    let question_msg = ChatCompletionRequestUserMessageArgs::default()
-                        .content(question)
-                        .build()?;
+                    let question_msg = LlmMessage {
+                        role: Role::User,
+                        content: question,
+                    };
 
                     chat_gpt_conversation(
                         &bot,
@@ -132,7 +136,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                         &user,
                         true,
                     )
-                    .await?
+                        .await?
                 } else {
                     return Ok(());
                 }
@@ -326,50 +330,44 @@ pub async fn chat_gpt_conversation(
     message: &Message,
     chat_id: ChatId,
     app_state: &Arc<AppState>,
-    msg: ChatCompletionRequestUserMessage,
+    msg: LlmMessage,
     is_voice: bool,
     user: &User,
     direct_message: bool,
 ) -> anyhow::Result<()> {
-    let user_final_question: String;
-    if !direct_message {
-        let msg_text = match msg.content {
-            ChatCompletionRequestUserMessageContent::Text(text) => {text}
-            ChatCompletionRequestUserMessageContent::Array(_) => { String::new() }
-        };
-        
-        let initial_user_request =
-            detecting_crap_request(&app_state, &msg_text, &user).await?;
-        
+    let user_final_question = if direct_message {
+        msg.content
+    } else {
+        let initial_user_request = detecting_crap_request(&app_state, &msg.content, &user)
+            .await?;
+
         if initial_user_request == "SKIP" {
-            let crap_system_role =
-                std::fs::read_to_string("resources/crap_request_system_role.txt")
+            let crap_system_role = std::fs::read_to_string("resources/crap_request_system_role.txt")
                     .expect("Failed to read system message from file");
+            
             let user_request = format!(
                 "{:?}\nТекущий запрос пользователя: {:?}",
                 crap_system_role,
                 &message.text().unwrap()
             );
-            let request_to_llm = ChatCompletionRequestUserMessageArgs::default()
-                .content(user_request)
-                .build()?;
-            user_final_question = app_state
+            
+            let request_to_llm = LlmMessage {
+                role: Role::User,
+                content: user_request,
+            };
+            
+            app_state
                 .nervo_llm
-                .chat(request_to_llm)
+                .send_msg(request_to_llm)
                 .await?
-                .unwrap_or(String::from("I'm sorry, internal error."));
+                .content
         } else {
             let result =
                 openai_chat_preparations(&app_state, &initial_user_request, user.clone(), chat_id)
                     .await?;
-            user_final_question = result
-        };
-    } else {
-        user_final_question = match msg.content {
-            ChatCompletionRequestUserMessageContent::Text(text) => {text}
-            ChatCompletionRequestUserMessageContent::Array(_) => {String::new()}
+            result
         }
-    }
+    };
 
     if is_voice {
         create_speech(&bot, user_final_question.clone(), chat_id, &app_state).await;
@@ -426,7 +424,7 @@ async fn openai_chat_preparations(
             let processing_layers = layers_info.layers;
             let mut search_content = String::new();
 
-            for processing_layer in processing_layers{
+            for processing_layer in processing_layers {
                 if !processing_layer.collection_params.is_empty() {
                     for collection_param in &processing_layer.collection_params {
                         let db_search = &app_state
@@ -443,10 +441,10 @@ async fn openai_chat_preparations(
                             if search_result.score.clone() > 0.1 {
                                 let Some(Kind::StringValue(result)) =
                                     &search_result.payload["text"].kind
-                                else {
-                                    bail!("Oooops! Error")
-                                };
-                                
+                                    else {
+                                        bail!("Oooops! Error")
+                                    };
+
                                 let token_limit =
                                     collection_param.tokens_limit.clone() as usize;
                                 let mut tokens = bpe.split_by_token(&result, true)?;
@@ -470,7 +468,7 @@ async fn openai_chat_preparations(
                     rephrased_prompt.clone(),
                     search_content.clone(),
                 )
-                .await?;
+                    .await?;
             }
 
             let tg_message = TelegramMessage {
@@ -494,6 +492,7 @@ async fn openai_chat_preparations(
         }
     }
 }
+
 async fn get_all_search_layers() -> anyhow::Result<QDrantSearchInfo> {
     let json_string = fs::read_to_string("resources/vectorisation_roles.json").await?;
     let layers_info: QDrantSearchInfo =
@@ -601,6 +600,6 @@ async fn detecting_crap_request(
         String::new(),
         String::new(),
     )
-    .await?;
+        .await?;
     Ok(layer_content)
 }

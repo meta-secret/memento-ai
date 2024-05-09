@@ -1,5 +1,6 @@
+use anyhow::bail;
 use async_openai::config::OpenAIConfig;
-use async_openai::types::ChatCompletionRequestMessage;
+use async_openai::types::{ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent, Role};
 use async_openai::types::ChatCompletionRequestUserMessage;
 use async_openai::types::CreateChatCompletionRequestArgs;
 use async_openai::types::CreateEmbeddingRequestArgs;
@@ -8,7 +9,7 @@ use async_openai::types::CreateModerationRequest;
 use async_openai::types::CreateTranscriptionRequest;
 use async_openai::types::ModerationInput;
 use async_openai::Client;
-use serde_derive::Deserialize;
+use serde_derive::{Deserialize, Serialize};
 use tracing::{error};
 
 #[derive(Clone, Debug, Deserialize)]
@@ -62,10 +63,50 @@ impl NervoLlm {
 }
 
 impl NervoLlm {
-    pub async fn chat_batch(
+    pub async fn send_msg_batch(
         &self,
-        messages: Vec<ChatCompletionRequestMessage>,
-    ) -> anyhow::Result<Option<String>> {
+        chat: LlmChat,
+    ) -> anyhow::Result<LlmMessage> {
+
+        let mut messages = vec![];
+        for msg in chat.messages {
+            match msg.role {
+                Role::System => {
+                    let message = ChatCompletionRequestSystemMessage {
+                        content: msg.content.clone(),
+                        role: msg.role,
+                        name: None,
+                    };
+                    messages.push(ChatCompletionRequestMessage::from(message));
+                }
+                Role::User => {
+                    let message = ChatCompletionRequestUserMessage {
+                        content: ChatCompletionRequestUserMessageContent::Text(msg.content.clone()),
+                        role: msg.role,
+                        name: None,
+                    };
+                    messages.push(ChatCompletionRequestMessage::from(message));
+                }
+                Role::Assistant => {
+                    let message = ChatCompletionRequestAssistantMessage {
+                        content: Some(msg.content.clone()),
+                        role: msg.role,
+                        name: None,
+                        tool_calls: None,
+                        function_call: None,
+                    };
+
+                    messages.push(ChatCompletionRequestMessage::from(message));
+                }
+                Role::Tool => {
+                    bail!("Role::Tool is not supported")
+                }
+                Role::Function => {
+                    bail!("Role::Function is not supported")
+                }
+            }
+        }
+
         let request = CreateChatCompletionRequestArgs::default()
             .max_tokens(self.llm_config.max_tokens)
             .model(self.llm_config.model_name.clone())
@@ -74,19 +115,24 @@ impl NervoLlm {
             .build()?;
 
         let chat_response = self.client.chat().create(request).await?;
-        let maybe_reply = chat_response.choices.first();
-        let maybe_msg = maybe_reply.and_then(|reply| reply.message.content.clone());
+        let reply = chat_response.choices.first().unwrap();
+        
+        let response = LlmMessage {
+            role: Role::Assistant,
+            content: reply.message.content.clone().unwrap_or(String::from("error"))
+        };
 
-        Ok(maybe_msg)
+        Ok(response)
     }
 
-    pub async fn chat(
+    pub async fn send_msg(
         &self,
-        message: ChatCompletionRequestUserMessage,
-    ) -> anyhow::Result<Option<String>> {
-        let mut messages: Vec<ChatCompletionRequestMessage> = Vec::new();
-        messages.push(ChatCompletionRequestMessage::from(message));
-        self.chat_batch(messages).await
+        message: LlmMessage,
+    ) -> anyhow::Result<LlmMessage> {
+        self.send_msg_batch(LlmChat {
+            user: String::from("anon"),
+            messages: vec![message],
+        }).await
     }
     pub async fn moderate(&self, text: &str) -> anyhow::Result<bool> {
         let request = CreateModerationRequest {
@@ -111,4 +157,16 @@ impl NervoLlm {
             }
         }
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct LlmChat {
+    pub user: String,
+    pub messages: Vec<LlmMessage>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct LlmMessage {
+    pub role: Role,
+    pub content: String,
 }

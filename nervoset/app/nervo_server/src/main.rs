@@ -1,19 +1,16 @@
 use std::sync::Arc;
 
-use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestUserMessage,
-    ChatCompletionRequestUserMessageContent, Role,
-};
-use axum::extract::{Path, State};
+use async_openai::types::Role;
 use axum::{
     http::StatusCode,
-    routing::{get, post},
-    Json, Router,
+    Json,
+    Router, routing::{get, post},
 };
-use nervo_bot_core::ai::ai_db::NervoAiDb;
+use axum::extract::{Path, State};
 use serde::{Deserialize, Serialize};
 
-use nervo_bot_core::ai::nervo_llm::NervoLlm;
+use nervo_bot_core::ai::ai_db::NervoAiDb;
+use nervo_bot_core::ai::nervo_llm::{LlmChat, LlmMessage, NervoLlm};
 use nervo_bot_core::common::{AppState, NervoConfig};
 use nervo_bot_core::db::local_db::LocalDb;
 
@@ -40,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/", get(root))
         .route("/chat/:user_id", get(chat))
-        .route("/users", post(create_user))
+        .route("/send_message", post(send_message))
         .with_state(app_state);
 
     // run our app with hyper, listening globally on port 3000
@@ -58,49 +55,34 @@ async fn root() -> &'static str {
 async fn chat(
     Path(user_id): Path<String>,
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Chat>, StatusCode> {
-    // OpenAI interacting
-    let message = ChatCompletionRequestUserMessage {
-        content: ChatCompletionRequestUserMessageContent::Text(String::from(
-            "Привет, похвали меня за выполненную работу!",
-        )),
-        role: Role::User,
-        name: None,
-    };
+) -> Result<Json<LlmChat>, StatusCode> {
+    // LLM interacting
 
-    let message_text = state
-        .nervo_llm
-        .chat_batch(vec![ChatCompletionRequestMessage::from(message)])
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .unwrap_or_else(|| String::from("Can't talk, too busy now..."));
+    //TODO получить историю сообщений из базы данных
 
     // Формируем объект сообщения
-    let chat = Chat {
+    let chat = LlmChat {
         user: user_id,
-        messages: vec![Message {
-            role: "user".to_string(),
-            content: message_text,
+        messages: vec![LlmMessage {
+            role: Role::User,
+            content: String::from("hey hey"),
         }],
     };
 
     Ok(Json(chat))
 }
 
-async fn create_user(
-    // this argument tells axum to parse the request body
-    // as JSON into a `CreateUser` type
-    Json(payload): Json<CreateUser>,
-) -> (StatusCode, Json<User>) {
-    // insert your application logic here
-    let user = User {
-        id: 1337,
-        username: payload.username,
-    };
+async fn send_message(
+    State(state): State<Arc<AppState>>,
+    Json(msg): Json<LlmMessage>,
+) -> Result<Json<LlmMessage>, StatusCode> {
+    let reply = state.nervo_llm.send_msg(msg)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    // this will be converted into a JSON response
-    // with a status code of `201 Created`
-    (StatusCode::CREATED, Json(user))
+    //TODO Сохранить сообщение в базу данных
+
+    Ok(Json(reply))
 }
 
 // the input to our `create_user` handler
@@ -119,22 +101,4 @@ struct User {
 #[derive(Serialize, Deserialize)]
 struct ChatParams {
     user_id: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct Chat {
-    user: String,
-    messages: Vec<Message>,
-}
-
-// #[derive(Serialize, Deserialize)]
-// struct Message {
-//     role: String,
-//     content: String,
-// }
-
-#[derive(Serialize, Deserialize)]
-struct Message {
-    role: String,
-    content: String,
 }

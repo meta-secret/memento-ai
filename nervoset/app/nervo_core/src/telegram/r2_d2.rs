@@ -1,17 +1,14 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use async_openai::types::{
-    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
-    ChatCompletionRequestUserMessageArgs,
-};
+use async_openai::types::Role;
 use qdrant_client::qdrant::value::Kind;
-use teloxide::dispatching::dialogue::InMemStorage;
-
-use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
-use teloxide::Bot as TelegramBot;
 use teloxide::{prelude::*, utils::command::BotCommands};
+use teloxide::Bot as TelegramBot;
+use teloxide::dispatching::dialogue::InMemStorage;
+use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
 
+use crate::ai::nervo_llm::{LlmChat, LlmMessage};
 use crate::common::AppState;
 use crate::telegram::bot_utils::{chat, MessageParser};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
@@ -213,10 +210,11 @@ async fn endpoint(
 
             let mut messages = vec![];
             for text in &result_strings {
-                let user_msg = ChatCompletionRequestUserMessageArgs::default()
-                    .content(text.chars().take(1000).collect::<String>())
-                    .build()?;
-                messages.push(ChatCompletionRequestMessage::from(user_msg));
+                let user_msg = LlmMessage {
+                    role: Role::User,
+                    content: text.chars().take(1000).collect::<String>(),
+                };
+                messages.push(user_msg);
             }
 
             let enriched_question = format!(
@@ -225,23 +223,25 @@ async fn endpoint(
                 question
             );
 
-            let system_msg = ChatCompletionRequestSystemMessageArgs::default()
-                .content(enriched_question)
-                .build()?
-                .into();
+            let system_msg = LlmMessage {
+                role: Role::System,
+                content: enriched_question.clone(),
+            };
             messages.insert(0, system_msg);
 
             let reply = app_state
                 .nervo_llm
-                .chat_batch(messages)
-                .await?
-                .unwrap_or(String::from("I'm sorry, internal error."));
+                .send_msg_batch(LlmChat {
+                    user: "anon".to_string(),
+                    messages,
+                })
+                .await?;
 
             //for embeddings in &result_strings {
             //    bot.send_message(msg.chat.id, embeddings).await?;
             //}
 
-            bot.send_message(msg.chat.id, format!("{}", reply))
+            bot.send_message(msg.chat.id, format!("{}", reply.content))
                 .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
                 .await?;
 
