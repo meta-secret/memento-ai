@@ -30,4 +30,4 @@ tasks:
 
   k3d_delete:
     cmds:
-      - k3d cluster delete {{cluster_name}} || true
+      - k3d cluster delete {{ .CLUSTER_NAME }} || true

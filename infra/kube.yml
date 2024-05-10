@@ -10,6 +10,10 @@ env:
     sh: task -t hazmat/Taskfile.yml vault_secret_docker_email
 
 tasks:
+  default:
+    cmds:
+      - task --list-all
+
   docker_login:
     cmds:
       - echo {{.DOCKER_REGISTRY_PASS}} | docker login --username={{.DOCKER_REGISTRY_USER}} --password-stdin ${DOCKER_REGISTRY_URL}
