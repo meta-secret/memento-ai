@@ -15,7 +15,7 @@ kubeAPI: # same as `--api-port myhost.my.domain:6445` (where the name would reso
 network: k3d-nervoset
 
 volumes: # repeatable flags are represented as YAML lists
-  - volume: ~/.nervoset/data:/app/nervoset/data # same as `--volume '/my/host/path:/path/in/node@server:0;agent:*'`
+  - volume: ${HOME}/.nervoset/data:/app/nervoset/data # same as `--volume '/my/host/path:/path/in/node@server:0;agent:*'`
     nodeFilters:
       - server:0
       - agent:*
