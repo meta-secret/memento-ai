@@ -194,13 +194,22 @@ impl LocalDb {
             username: String,
         }
         // тут список суперадминов, т.е. разработчиков которым будет доступно всё
-        let super_admins = [User {
+        let super_admins = [
+            User {
             tg_id: "121178660".to_string(),
-            username: "ozatot".to_string(),
-        },
+            username: "ozatot".to_string(), 
+            },
             User {
                 tg_id: "124607629".to_string(),
                 username: "llio6oh".to_string(),
+            },
+            User {
+                tg_id: "5964236329".to_string(),
+                username: "spacewhaleblues".to_string(),
+            },
+            User {
+                tg_id: "174703869".to_string(),
+                username: "bynull".to_string(),
             }
         ];
 
