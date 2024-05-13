@@ -436,7 +436,7 @@ async fn openai_chat_preparations(
                                 collection_param.vectors_limit.clone(),
                             )
                             .await?;
-
+                        
                         for search_result in &db_search.result {
                             if search_result.score.clone() > 0.1 {
                                 let Some(Kind::StringValue(result)) =
@@ -447,9 +447,11 @@ async fn openai_chat_preparations(
 
                                 let token_limit =
                                     collection_param.tokens_limit.clone() as usize;
+                                let vectors_limit = collection_param.vectors_limit.clone() as usize;
                                 let mut tokens = bpe.split_by_token(&result, true)?;
-                                if tokens.len() > token_limit {
-                                    tokens.truncate(token_limit);
+                                
+                                if tokens.len() > (token_limit / vectors_limit) {
+                                    tokens.truncate(token_limit / vectors_limit);
                                     let response = tokens.join("");
                                     search_content.push_str(&response);
                                 } else {
@@ -484,7 +486,7 @@ async fn openai_chat_preparations(
             let cached_messages: Vec<TelegramMessage> =
                 app_state.local_db.read_from_local_db(&username).await?;
 
-            if cached_messages.len() % 5 == 0 {
+            if cached_messages.len() % 1 == 0 {
                 rephrased_prompt.push_str(&layers_info.info_message);
             };
 
