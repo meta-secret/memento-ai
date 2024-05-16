@@ -5,7 +5,7 @@ kind: Simple
 metadata:
   name: nervoset
 servers: 1
-agents: 1
+agents: 3
 
 kubeAPI: # same as `--api-port myhost.my.domain:6445` (where the name would resolve to 127.0.0.1)
   host: "prod.metaelon.space" # important for the `server` setting in the kubeconfig

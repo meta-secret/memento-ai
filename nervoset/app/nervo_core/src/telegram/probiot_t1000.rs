@@ -72,18 +72,22 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
         Update::filter_message()
             .branch(
                 dptree::filter_async(|msg: Message, app_state: Arc<AppState>| async move {
-                    has_role(app_state, msg.from().clone(), &PROBIOT_OWNER.to_string()).await
+                    has_role(app_state, msg.from().clone(), &PROBIOT_OWNER)
+                        .await
+                        .unwrap_or(false)
                 })
                 .chain(owner_handler),
             )
             .branch(
                 dptree::filter_async(|msg: Message, app_state: Arc<AppState>| async move {
-                    has_role(app_state, msg.from().clone(), &PROBIOT_MEMBER.to_string()).await
+                    has_role(app_state, msg.from().clone(), &PROBIOT_MEMBER.to_string())
+                        .await
+                        .unwrap_or(false)
                 })
                 .chain(authorized_user_handler.clone()),
             )
             .branch(
-                dptree::filter(|msg: Message, app_state: Arc<AppState>| {
+                dptree::filter(|msg: Message, _app_state: Arc<AppState>| {
                     msg.from()
                         .map(|user| {
                             WHITELIST_MEMBERS

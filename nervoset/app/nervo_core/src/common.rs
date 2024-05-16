@@ -29,7 +29,7 @@ pub struct TelegramBotParams {
 #[derive(Debug, Clone, Deserialize)]
 pub struct QdrantParams {
     pub server_url: String,
-    pub api_key: String,
+    pub api_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

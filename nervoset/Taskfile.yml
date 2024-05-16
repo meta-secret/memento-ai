@@ -1,234 +1,42 @@
 version: '3'
 
 vars:
-  APP_DIR: 'app'
+  REGISTRY: 'cypherkitty'
 
-  TARGET_DIR: 'target'
-  DEPS_DIR: '{{.TARGET_DIR}}/nervoset_dependencies'
-  NERVO_CORE_DIR: '{{.DEPS_DIR}}/nervo_core'
+includes:
+  probiot:
+    taskfile: .task/docker.yml
+    vars:
+      APP_NAME: 'probiot_t1000'
+      VERSION: '0.1'
 
-  PROBIOT_T100_DIR: '{{.DEPS_DIR}}/probiot_t1000'
-  PROBIOT_T1000_VERSION: '0.1'
-  PROBIOT_T1000_IMAGE : "cypherkitty/nervoset:probiot_t1000_v{{.PROBIOT_T1000_VERSION}}"
+  jarvis:
+    taskfile: .task/docker.yml
+    vars:
+      APP_NAME: 'r2d2'
+      VERSION: '0.1'
 
-  R2D2_DIR: '{{.DEPS_DIR}}/r2d2'
-  R2D2_VERSION: '0.1'
-  R2D2_IMAGE: "cypherkitty/nervoset:r2d2_v{{.R2D2_VERSION}}"
+  groot:
+    taskfile: .task/docker.yml
+    vars:
+      APP_NAME: 'groot'
+      VERSION: '0.1'
 
-  GROOT_DIR: '{{.DEPS_DIR}}/groot'
-  GROOT_VERSION: '0.1'
-  GROOT_IMAGE: "cypherkitty/nervoset:groot_v{{.GROOT_VERSION}}"
+  walle:
+    taskfile: .task/docker.yml
+    vars:
+      APP_NAME: 'walle'
+      VERSION: '0.1'
 
-  WALLE_DIR: '{{.DEPS_DIR}}/walle'
-  WALLE_VERSION: '0.1'
-  WALLE_IMAGE: "cypherkitty/nervoset:walle_v{{.WALLE_VERSION}}"
-
-  SERVER_DIR: '{{.DEPS_DIR}}/nervo_server'
-  SERVER_VERSION: '0.1'
-  SERVER_IMAGE: "cypherkitty/nervoset:nervo_server_v{{.SERVER_VERSION}}"
-
-  BASE_IMAGE: "nervoset/base:latest"
+  nervo_server:
+    taskfile: .task/docker.yml
+    vars:
+      APP_NAME: 'nervo_server'
+      VERSION: '0.1'
+      HOST_PORT: '3000'
+      DOCKER_PORT: '3000'
 
 tasks:
   default:
     cmds:
       - task --list-all
-
-  docker_base_build:
-    cmds:
-      - task: prepare_dependencies
-      - docker buildx build --tag {{.BASE_IMAGE}} --output type=docker --file base.dockerfile .
-
-  docker_test:
-    cmds:
-      - task: docker_base_build
-      - docker run --rm {{.BASE_IMAGE}} cargo test --release
-
-  # Probiot tasks
-
-  docker_probiot_t1000_build:
-    cmds:
-      - task: docker_base_build
-      - |-
-        docker buildx build \
-          --tag {{.PROBIOT_T1000_IMAGE}} \
-          --output type=docker \
-          --file build.dockerfile \
-          --build-arg="APP_NAME=probiot_t1000" \
-          .
-
-  docker_probiot_t1000_run:
-    requires:
-      vars:
-        - CONTAINER_NAME
-    cmds:
-      - task: docker_probiot_t1000_build
-      - mkdir -p config/probiot_t1000
-      - |- 
-        docker run --rm \
-          --name {{.CONTAINER_NAME}} \
-          -v ./config/probiot_t1000/config.yaml:/app/nervoset/config.yaml \
-          -v ./app/probiot_t1000/resources/:/app/nervoset/resources \
-          {{.PROBIOT_T1000_IMAGE}}
-
-  docker_probiot_t1000_container_run:
-    requires:
-      vars:
-        - CONTAINER_NAME
-    cmds:
-      - task: docker_probiot_t1000_build
-      - mkdir -p config/probiot_t1000
-      - |-
-        docker run -ti --rm \
-          --name {{.CONTAINER_NAME}} \
-          -v ./config/probiot_t1000/config.yaml:/app/nervoset/config.yaml \
-          -v ./app/probiot_t1000/resources/:/app/nervoset/resources \
-          {{.PROBIOT_T1000_IMAGE}} \
-          bash
-
-  docker_probiot_t1000_push:
-    cmds:
-      - task: docker_probiot_t1000_build
-      - docker push {{.PROBIOT_T1000_IMAGE}}
-
-  # R2D2 tasks
-  docker_r2d2_build:
-    cmds:
-      - task: docker_base_build
-      - |-
-        docker buildx build \
-          --tag {{.R2D2_IMAGE}} \
-          --output type=docker \
-          --file build.dockerfile \
-          --build-arg="APP_NAME=r2d2" \
-          .
-
-  docker_r2d2_run:
-    requires:
-      vars:
-        - CONTAINER_NAME
-    cmds:
-      - task: docker_r2d2_build
-      - mkdir -p config/r2d2
-      - |-
-        docker run --rm \
-          --name {{.CONTAINER_NAME}} \
-          -v ./config/r2d2/config.yaml:/app/nervoset/config.yaml \
-          {{.R2D2_IMAGE}}
-
-  docker_r2d2_push:
-    cmds:
-      - task: docker_r2d2_build
-      - docker push {{.R2D2_IMAGE}}
-
-  # Groot tasks
-
-  docker_groot_build:
-    cmds:
-      - task: docker_base_build
-      - |-
-        docker buildx build \
-          --tag {{.GROOT_IMAGE}} \
-          --output type=docker \
-          --file build.dockerfile \
-          --build-arg="APP_NAME=groot" \
-          .
-
-  docker_groot_run:
-    requires:
-      vars:
-        - CONTAINER_NAME
-    cmds:
-      - task: docker_groot_build
-      - mkdir -p config/groot
-      - |-
-        docker run --rm \
-          --name {{.CONTAINER_NAME}} \
-          -v ./config/groot/config.yaml:/app/nervoset/config.yaml \
-          -v ./app/groot/resources/:/app/nervoset/resources \
-          {{.GROOT_IMAGE}}
-
-  docker_groot_push:
-    cmds:
-      - task: docker_groot_build
-      - docker push {{.GROOT_IMAGE}}
-
-  # Wall-e tasks
-
-  docker_walle_build:
-    cmds:
-      - task: docker_base_build
-      - |-
-        docker buildx build \
-          --tag {{.WALLE_IMAGE}} \
-          --output type=docker \
-          --file build.dockerfile \
-          --build-arg="APP_NAME=walle" \
-          .
-
-  docker_walle_run:
-    requires:
-      vars:
-        - CONTAINER_NAME
-    cmds:
-      - task: docker_walle_build
-      - mkdir -p config/groot
-      - |-
-        docker run --rm \
-          --name {{.CONTAINER_NAME}} \
-          -v ./config/walle/config.toml:/app/nervoset/config.toml \
-          -v ./app/walle/resources/:/app/nervoset/resources \
-          {{.WALLE_IMAGE}}
-
-  docker_walle_push:
-    cmds:
-      - task: docker_walle_build
-      - docker push {{.WALLE_IMAGE}}
-
-  # Nervo-server tasks
-
-  docker_nervo_server_build:
-    cmds:
-      - task: docker_base_build
-      - |-
-        docker buildx build \
-          --tag {{.SERVER_IMAGE}} \
-          --output type=docker \
-          --file build.dockerfile \
-          --build-arg="APP_NAME=nervo_server" \
-          .
-
-  docker_nervo_server_run:
-    requires:
-      vars:
-        - CONTAINER_NAME
-    cmds:
-      - task: docker_nervo_server_build
-      - mkdir -p config/nervo_server
-      - |-
-        docker run --rm \
-          --name {{.CONTAINER_NAME}} \
-          -v ./config/nervo_server/config.yaml:/app/nervoset/config.yaml \
-          -v ./app/nervo_server/resources/:/app/nervoset/resources \
-          -p 3000:3000 \
-          {{.SERVER_IMAGE}}
-
-  docker_nervo_server_push:
-    cmds:
-      - task: docker_server_build
-      - docker push {{.SERVER_IMAGE}}
-
-
-  prepare_dependencies:
-    vars:
-      CHEF_IMAGE_NAME: "lukemathwalker/cargo-chef:latest-rust-1.77-bookworm"
-    cmds:
-      - mkdir -p target/chef
-      - |-
-        docker run --rm \
-          --user=$(id -u) \
-          --workdir=/app \
-          -v $(pwd)/app:/app \
-          -v $(pwd)/target/chef:/chef \
-          {{.CHEF_IMAGE_NAME}} \
-          cargo chef prepare --recipe-path /chef/recipe.json

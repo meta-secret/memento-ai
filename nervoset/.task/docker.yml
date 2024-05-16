@@ -1,0 +1,93 @@
+version: '3'
+
+includes:
+  common: common.yml
+
+vars:
+  BASE_IMAGE: "nervoset/base:latest"
+  IMAGE_NAME: "{{.REGISTRY}}/nervoset:{{.APP_NAME}}_v{{.VERSION}}"
+
+tasks:
+
+  base_build:
+    internal: true
+    cmds:
+      - task: common:prepare_dependencies
+      - docker buildx build --tag {{.BASE_IMAGE}} --output type=docker --file base.dockerfile .
+
+  test:
+    cmds:
+      - task: base_build
+      - docker run --rm {{.BASE_IMAGE}} cargo test --release
+
+  build:
+    requires:
+      vars:
+        - IMAGE_NAME
+        - APP_NAME
+    cmds:
+      - task: base_build
+      - |-
+        docker buildx build \
+          --tag {{.IMAGE_NAME}} \
+          --output type=docker \
+          --file build.dockerfile \
+          --build-arg="APP_NAME={{ .APP_NAME }}" \
+          .
+
+  run:
+    requires:
+      vars:
+        - IMAGE_NAME
+        - APP_NAME
+        - CONTAINER_NAME
+    cmds:
+      - mkdir -p config/{{.APP_NAME}}
+
+      - task: build
+        vars:
+          IMAGE_NAME: "{{.IMAGE_NAME}}"
+          APP_NAME: "{{.APP_NAME}}"
+
+      - |-
+        docker run --rm \
+          --name {{.CONTAINER_NAME}} \
+          -v ./config/{{.APP_NAME}}/config.yaml:/app/nervoset/config.yaml \
+          -v ./app/{{.APP_NAME}}/resources/:/app/nervoset/resources \
+          {{if .HOST_PORT}}-p {{.HOST_PORT}}:{{.DOCKER_PORT}}{{end}} \
+          {{.IMAGE_NAME}}
+
+    push:
+      requires:
+        vars:
+          - IMAGE_NAME
+          - APP_NAME
+      cmds:
+        - task: build
+          vars:
+            IMAGE_NAME: "{{.IMAGE_NAME}}"
+            APP_NAME: "{{.APP_NAME}}"
+        - docker push {{.IMAGE_NAME}}
+
+  container_run:
+    requires:
+      vars:
+        - IMAGE_NAME
+        - CONTAINER_NAME
+        - APP_NAME
+    cmds:
+      - task: build
+        vars:
+          IMAGE_NAME: "{{.IMAGE_NAME}}"
+          APP_NAME: "{{.APP_NAME}}"
+
+      - mkdir -p config/{{.APP_NAME}}
+
+      - |-
+        docker run -ti --rm \
+          --name {{.CONTAINER_NAME}} \
+          -v ./config/{{.APP_NAME}}/config.yaml:/app/nervoset/config.yaml \
+          -v ./app/{{.APP_NAME}}/resources/:/app/nervoset/resources \
+          {{.IMAGE_NAME}} \
+          bash
+        

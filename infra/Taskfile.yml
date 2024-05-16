@@ -2,9 +2,6 @@ version: '3'
 
 set: [pipefail]
 
-#includes:
-#  kube: kube.yml
-
 tasks:
   default:
     cmds:

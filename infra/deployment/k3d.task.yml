@@ -1,0 +1,19 @@
+version: '3'
+
+set: [pipefail]
+
+tasks:
+  k8s_deploy:
+    requires:
+      vars:
+        - CLUSTER_NAME
+        - K3D_CONFIG
+    cmds:
+      - k3d cluster create {{ .CLUSTER_NAME }} --config {{.K3D_CONFIG}} || true
+
+  k8s_delete:
+    requires:
+      vars:
+        - CLUSTER_NAME
+    cmds:
+      - k3d cluster delete {{ .CLUSTER_NAME }} || true

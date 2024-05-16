@@ -2,15 +2,18 @@
 
 apiVersion: k3d.io/v1alpha5
 kind: Simple
-metadata:
-  name: nervoset
-servers: 1
-agents: 1
 
-kubeAPI: # same as `--api-port myhost.my.domain:6445` (where the name would resolve to 127.0.0.1)
-  host: "nervoset.metaelon.space" # important for the `server` setting in the kubeconfig
-  hostIP: "99.189.238.139" # where the Kubernetes API will be listening on
-  hostPort: "6445" # where the Kubernetes API listening port will be mapped to on your host system
+# Must be set externally
+#metadata:
+#  name: nervoset
+
+servers: 1
+agents: 3
+
+#kubeAPI: # same as `--api-port myhost.my.domain:6445` (where the name would resolve to 127.0.0.1)
+#  host: "nervoset.metaelon.space" # important for the `server` setting in the kubeconfig
+#  hostIP: "99.189.238.139" # where the Kubernetes API will be listening on
+#  hostPort: "6445" # where the Kubernetes API listening port will be mapped to on your host system
 
 network: k3d-nervoset
 
@@ -20,11 +23,20 @@ volumes: # repeatable flags are represented as YAML lists
       - server:0
       - agent:*
 
-ports:
-  - port: 80:80
-    nodeFilters:
-      - loadbalancer
-  - port: 443:443
-    nodeFilters:
-      - loadbalancer
+registries: # define how registries should be created or used
+  create: # creates a default registry to be used with the cluster; same as `--registry-create registry.localhost`
+    name: nervoset.metaelon.space
+    host: "0.0.0.0"
+    hostPort: "5000"
+    #volumes:
+    #  - /some/path:/var/lib/registry # persist registry data locally
+
+
+#ports:
+#  - port: 80:80
+#    nodeFilters:
+#      - loadbalancer
+#  - port: 443:443
+#    nodeFilters:
+#      - loadbalancer
 

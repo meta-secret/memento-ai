@@ -1,9 +1,18 @@
 version: '3'
 
-vars:
-  CLUSTER_NAME : "nervoset"
-  DEPLOYMENT_TMP_DIR : "tmp"
-  DEPLOYMENT_TF_VARS : "{{.DEPLOYMENT_TMP_DIR}}/security.tfvars.json"
+includes:
+  k3d_dev:
+    taskfile: k3d.task.yml
+    vars:
+      CLUSTER_NAME: '{{.CLUSTER_NAME | default "nervoset-dev"}}'
+      K3D_CONFIG: "k3d/k3d.dev.yaml"
+  k3d_prod:
+    taskfile: k3d.task.yml
+    vars:
+      CLUSTER_NAME: '{{.CLUSTER_NAME | default "nervoset-prod"}}'
+      K3D_CONFIG: "k3d/k3d.prod.yaml"
+
+  vector_db: vector_db.task.yml
 
 tasks:
   default:
@@ -19,15 +28,3 @@ tasks:
           -v /usr/local/bin/k3d:/usr/local/bin/k3d \
           ubuntu:latest \
           bash
-
-  k3d_prod_cluster_deploy:
-    cmds:
-      - k3d cluster create --config k3d/k3d.prod.yaml || true
-
-  k3d_dev_cluster_deploy:
-    cmds:
-      - k3d cluster create --config k3d/k3d.dev.yaml || true
-
-  k3d_delete:
-    cmds:
-      - k3d cluster delete {{ .CLUSTER_NAME }} || true
