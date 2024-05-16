@@ -995,6 +995,7 @@ dependencies = [
  "async-openai",
  "config",
  "nervo-core",
+ "regex",
  "reqwest 0.12.4",
  "serde",
  "serde_derive",
