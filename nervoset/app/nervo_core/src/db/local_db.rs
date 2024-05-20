@@ -1,11 +1,13 @@
 use crate::common::DatabaseParams;
 
+use anyhow::bail;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
+use tracing::{error, info};
 
 pub struct LocalDb {
     db_params: DatabaseParams,
@@ -54,10 +56,15 @@ impl LocalDb {
         let mut conn = self.connect_db().await?;
         let rows = sqlx::query(&query).fetch_all(&mut conn).await?;
         let mut messages = Vec::new();
-
         for row in rows {
             let message_json: String = row.try_get("message")?;
-            let message = serde_json::from_str(&message_json)?;
+            let message = match serde_json::from_str(&message_json) {
+                Ok(res) => res,
+                Err(err) => {
+                    error!("error {:?}", err);
+                    bail!("error");
+                }
+            };
             messages.push(message);
         }
         Ok(messages)
@@ -196,8 +203,8 @@ impl LocalDb {
         // тут список суперадминов, т.е. разработчиков которым будет доступно всё
         let super_admins = [
             User {
-            tg_id: "121178660".to_string(),
-            username: "ozatot".to_string(), 
+                tg_id: "121178660".to_string(),
+                username: "ozatot".to_string(),
             },
             User {
                 tg_id: "124607629".to_string(),
@@ -210,7 +217,7 @@ impl LocalDb {
             User {
                 tg_id: "174703869".to_string(),
                 username: "bynull".to_string(),
-            }
+            },
         ];
 
         for user in super_admins {

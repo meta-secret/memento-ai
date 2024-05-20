@@ -1,7 +1,7 @@
 use nervo_bot_core::ai::ai_db::NervoAiDb;
 use nervo_bot_core::ai::nervo_llm::NervoLlm;
 use nervo_bot_core::common::{AppState, NervoConfig};
-use nervo_bot_core::telegram::{wall_e};
+use nervo_bot_core::telegram::wall_e;
 
 use std::sync::Arc;
 
@@ -37,8 +37,7 @@ pub async fn start_walle() -> anyhow::Result<()> {
         // completes the builder.
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 
     let nervo_config = NervoConfig::load()?;
 
@@ -60,7 +59,6 @@ pub async fn start_walle() -> anyhow::Result<()> {
     wall_e::start(bot_token, app_state)
         .instrument(debug_span!("walle"))
         .await?;
-    
 
     Ok(())
 }

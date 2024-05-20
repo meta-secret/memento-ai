@@ -14,7 +14,7 @@ pub struct QDrantSearchLayer {
     pub system_role_text: String,
     pub temperature: f32,
     pub max_tokens: u32,
-    pub collection_params: Vec<QDrantCollectionParameters>
+    pub collection_params: Vec<QDrantCollectionParameters>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -32,7 +32,7 @@ pub enum QDrantUserRoleTextType {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct  QDrantCollectionParameters {
+pub struct QDrantCollectionParameters {
     pub name: String,
     pub tokens_limit: i64,
     pub vectors_limit: u64,

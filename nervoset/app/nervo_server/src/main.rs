@@ -1,23 +1,31 @@
 use std::sync::Arc;
 
-use async_openai::types::Role;
+use axum::extract::{Path, State};
 use axum::{
     http::StatusCode,
-    Json,
-    Router, routing::{get, post},
+    routing::{get, post},
+    Json, Router,
 };
-use axum::extract::{Path, State};
 use serde::{Deserialize, Serialize};
+use tracing::{debug, info, Level};
+use tracing_subscriber::FmtSubscriber;
 
 use nervo_bot_core::ai::ai_db::NervoAiDb;
 use nervo_bot_core::ai::nervo_llm::{LlmChat, LlmMessage, NervoLlm};
 use nervo_bot_core::common::{AppState, NervoConfig};
 use nervo_bot_core::db::local_db::LocalDb;
+use nervo_bot_core::models::nervo_message_model::TelegramMessage;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // initialize tracing
-    tracing_subscriber::fmt::init();
+    let subscriber = FmtSubscriber::builder()
+        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
+        // will be written to stdout.
+        .with_max_level(Level::INFO)
+        // completes the builder.
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    info!("Starting Server...");
 
     let nervo_config = NervoConfig::load()?;
 
@@ -36,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route("/", get(root))
-        .route("/chat/:user_id", get(chat))
+        .route("/chat/:chat_id", get(chat)) // Chat id should be like "${chat_id}_${user_id}"
         .route("/send_message", post(send_message))
         .with_state(app_state);
 
@@ -53,20 +61,20 @@ async fn root() -> &'static str {
 }
 
 async fn chat(
-    Path(user_id): Path<String>,
+    Path(chat_id): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<LlmChat>, StatusCode> {
     // LLM interacting
+    info!("Read messages from DB");
+    let cached_messages: Vec<LlmMessage> = state
+        .local_db
+        .read_from_local_db(&chat_id)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    //TODO получить историю сообщений из базы данных
-
-    // Формируем объект сообщения
     let chat = LlmChat {
-        user: user_id,
-        messages: vec![LlmMessage {
-            role: Role::User,
-            content: String::from("hey hey"),
-        }],
+        chat_id: chat_id.parse().expect("Failed to parse string"),
+        messages: cached_messages,
     };
 
     Ok(Json(chat))
@@ -74,13 +82,27 @@ async fn chat(
 
 async fn send_message(
     State(state): State<Arc<AppState>>,
-    Json(msg): Json<LlmMessage>,
+    Json(msg_request): Json<SendMessageRequest>,
 ) -> Result<Json<LlmMessage>, StatusCode> {
-    let reply = state.nervo_llm.send_msg(msg)
+    info!("Save message to DB");
+    let user_id_number: u64 = msg_request.user_id.parse().expect("Failed to parse string");
+    let chat_id_number: u64 = msg_request.chat_id.parse().expect("Failed to parse string");
+    let table_name = format!("{:?}_{:?}", msg_request.chat_id, msg_request.user_id);
+    state
+        .local_db
+        .save_to_local_db(msg_request.llm_message.clone(), &table_name, true)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    //TODO Сохранить сообщение в базу данных
+    let reply = state
+        .nervo_llm
+        .send_msg(
+            msg_request.llm_message.clone(),
+            chat_id_number,
+            user_id_number,
+        )
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(reply))
 }
@@ -101,4 +123,11 @@ struct User {
 #[derive(Serialize, Deserialize)]
 struct ChatParams {
     user_id: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct SendMessageRequest {
+    user_id: String,
+    chat_id: String,
+    llm_message: LlmMessage,
 }

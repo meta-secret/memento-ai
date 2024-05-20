@@ -3,10 +3,10 @@ use std::sync::Arc;
 use anyhow::Result;
 use async_openai::types::Role;
 use qdrant_client::qdrant::value::Kind;
-use teloxide::{prelude::*, utils::command::BotCommands};
-use teloxide::Bot as TelegramBot;
 use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
+use teloxide::Bot as TelegramBot;
+use teloxide::{prelude::*, utils::command::BotCommands};
 
 use crate::ai::nervo_llm::{LlmChat, LlmMessage};
 use crate::common::AppState;
@@ -209,8 +209,10 @@ async fn endpoint(
                 .collect::<Vec<String>>();
 
             let mut messages = vec![];
+            let user = parser.parse_user().await?;
             for text in &result_strings {
                 let user_msg = LlmMessage {
+                    sender_id: user.id.0,
                     role: Role::User,
                     content: text.chars().take(1000).collect::<String>(),
                 };
@@ -224,6 +226,7 @@ async fn endpoint(
             );
 
             let system_msg = LlmMessage {
+                sender_id: user.id.0,
                 role: Role::System,
                 content: enriched_question.clone(),
             };
@@ -231,10 +234,13 @@ async fn endpoint(
 
             let reply = app_state
                 .nervo_llm
-                .send_msg_batch(LlmChat {
-                    user: "anon".to_string(),
-                    messages,
-                })
+                .send_msg_batch(
+                    LlmChat {
+                        chat_id: msg.chat.id.0 as u64,
+                        messages,
+                    },
+                    user.id.0,
+                )
                 .await?;
 
             //for embeddings in &result_strings {

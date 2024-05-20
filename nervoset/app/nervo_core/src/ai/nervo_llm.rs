@@ -1,6 +1,7 @@
+use crate::models::nervo_message_model::TelegramMessage;
 use anyhow::bail;
+use anyhow::Result;
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent, Role};
 use async_openai::types::ChatCompletionRequestUserMessage;
 use async_openai::types::CreateChatCompletionRequestArgs;
 use async_openai::types::CreateEmbeddingRequestArgs;
@@ -8,9 +9,14 @@ use async_openai::types::CreateEmbeddingResponse;
 use async_openai::types::CreateModerationRequest;
 use async_openai::types::CreateTranscriptionRequest;
 use async_openai::types::ModerationInput;
+use async_openai::types::{
+    ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
+    ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent, Role,
+};
 use async_openai::Client;
 use serde_derive::{Deserialize, Serialize};
-use tracing::{error};
+use teloxide::types::ChatId;
+use tracing::error;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct NervoLlmConfig {
@@ -66,8 +72,8 @@ impl NervoLlm {
     pub async fn send_msg_batch(
         &self,
         chat: LlmChat,
+        sender_id: u64,
     ) -> anyhow::Result<LlmMessage> {
-
         let mut messages = vec![];
         for msg in chat.messages {
             match msg.role {
@@ -75,7 +81,7 @@ impl NervoLlm {
                     let message = ChatCompletionRequestSystemMessage {
                         content: msg.content.clone(),
                         role: msg.role,
-                        name: None,
+                        name: Some(msg.sender_id.to_string()),
                     };
                     messages.push(ChatCompletionRequestMessage::from(message));
                 }
@@ -83,7 +89,7 @@ impl NervoLlm {
                     let message = ChatCompletionRequestUserMessage {
                         content: ChatCompletionRequestUserMessageContent::Text(msg.content.clone()),
                         role: msg.role,
-                        name: None,
+                        name: Some(msg.sender_id.to_string()),
                     };
                     messages.push(ChatCompletionRequestMessage::from(message));
                 }
@@ -91,7 +97,7 @@ impl NervoLlm {
                     let message = ChatCompletionRequestAssistantMessage {
                         content: Some(msg.content.clone()),
                         role: msg.role,
-                        name: None,
+                        name: Some(msg.sender_id.to_string()),
                         tool_calls: None,
                         function_call: None,
                     };
@@ -116,10 +122,15 @@ impl NervoLlm {
 
         let chat_response = self.client.chat().create(request).await?;
         let reply = chat_response.choices.first().unwrap();
-        
+
         let response = LlmMessage {
+            sender_id,
             role: Role::Assistant,
-            content: reply.message.content.clone().unwrap_or(String::from("error"))
+            content: reply
+                .message
+                .content
+                .clone()
+                .unwrap_or(String::from("error")),
         };
 
         Ok(response)
@@ -128,11 +139,17 @@ impl NervoLlm {
     pub async fn send_msg(
         &self,
         message: LlmMessage,
-    ) -> anyhow::Result<LlmMessage> {
-        self.send_msg_batch(LlmChat {
-            user: String::from("anon"),
-            messages: vec![message],
-        }).await
+        chat_id: u64,
+        sender_id: u64,
+    ) -> Result<LlmMessage> {
+        self.send_msg_batch(
+            LlmChat {
+                chat_id,
+                messages: vec![message],
+            },
+            sender_id,
+        )
+        .await
     }
     pub async fn moderate(&self, text: &str) -> anyhow::Result<bool> {
         let request = CreateModerationRequest {
@@ -161,12 +178,13 @@ impl NervoLlm {
 
 #[derive(Serialize, Deserialize)]
 pub struct LlmChat {
-    pub user: String,
+    pub chat_id: u64,
     pub messages: Vec<LlmMessage>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct LlmMessage {
+    pub sender_id: u64,
     pub role: Role,
     pub content: String,
 }

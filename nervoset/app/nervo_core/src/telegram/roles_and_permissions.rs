@@ -1,7 +1,7 @@
 use crate::common::AppState;
+use anyhow::Result;
 use std::sync::Arc;
 use teloxide::types::User;
-use anyhow::Result;
 
 pub const SUPER_ADMIN: &str = "SUPERADMIN";
 pub const PROBIOT_OWNER: &str = "PROBOT_OWNER";
@@ -12,19 +12,16 @@ async fn get_roles(app_state: Arc<AppState>, maybe_user: Option<&User>) -> Resul
         return Ok(Vec::new());
     };
 
-    app_state
-        .local_db
-        .get_user_permissions_tg_id(id.0)
-        .await
+    app_state.local_db.get_user_permissions_tg_id(id.0).await
 }
 
 pub async fn has_role(app_state: Arc<AppState>, user: Option<&User>, role: &str) -> Result<bool> {
     let user_roles = get_roles(app_state, user).await?;
-    
+
     let role_str = String::from(role);
     let super_admin_str = String::from(SUPER_ADMIN);
-    
+
     let has_role = user_roles.contains(&role_str) || user_roles.contains(&super_admin_str);
-    
+
     Ok(has_role)
 }
