@@ -50,7 +50,7 @@ tasks:
           APP_NAME: "{{.APP_NAME}}"
 
       - |-
-        docker run --rm \
+        docker run --rm {{if .DAEMON}}-d {{end}} \
           --name {{.CONTAINER_NAME}} \
           -v ./config/{{.APP_NAME}}/config.yaml:/app/nervoset/config.yaml \
           -v ./app/{{.APP_NAME}}/resources/:/app/nervoset/resources \
