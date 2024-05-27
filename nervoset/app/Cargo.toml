@@ -18,9 +18,25 @@ anyhow = "1.0"
 
 config = { version = "0.14", features = ["yaml"] }
 
+rand = "0.8.5"
+
+axum = "0.7.5"
+reqwest = "0.12.3"
+
+tokio = { version =  "1.36.0", features = ["full"] }
+
+#sql DB
+sqlx = { version = "0.7.4", features = ["macros", "sqlite", "runtime-tokio-native-tls"] }
+#sqlx-rt = "0.6.3"
+sqlx-macros = "0.7.3"
+
+#time and date
+chrono = { version = "0.4", features = ["serde"] }
+
 # Logging and tracing
 tracing = "0.1"
 tracing-subscriber = { version = "0.3" }
+tracing-attributes = "0.1.27"
 
 # Json
 serde = { version = "1.0.188", features = ["derive"] }
@@ -31,3 +47,5 @@ serde_derive = "1.0.188"
 async-openai = "0.21.0"
 
 qdrant-client = "1.9.0"
+
+teloxide = { version = "0.12", features = ["macros"] }

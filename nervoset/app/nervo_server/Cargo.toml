@@ -16,12 +16,11 @@ serde_json.workspace = true
 serde_derive.workspace = true
 
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["json", "env-filter"] }
-tracing-attributes = "0.1.27"
+tracing-subscriber.workspace = true
+tracing-attributes.workspace = true
 
 async-openai.workspace = true
 
-tokio = { version = "1.36.0", features = ["full"] }
+tokio.workspace = true
 
-axum = "0.7.5"
-
+axum.workspace = true

@@ -18,33 +18,29 @@ serde_json.workspace = true
 serde_derive.workspace = true
 
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["json", "env-filter"] }
-tracing-attributes = "0.1.27"
+tracing-subscriber.workspace = true
+tracing-attributes.workspace = true
 
 qdrant-client.workspace = true
 
-rand = "0.8.5"
+rand.workspace = true
 
-tokio = { version =  "1.36.0", features = ["full"] }
+tokio.workspace = true
 
-teloxide = { version = "0.12", features = ["macros", "webhooks-axum"] }
+teloxide.workspace = true
+
+reqwest.workspace = true
 
 openai_dive = "0.4.5"
 tiktoken-rs = "0.5.8"
 
-secrecy = "0.8.0"
-
 #sql DB
-sqlx = { version = "0.7.3", features = ["macros", "sqlite", "runtime-tokio-native-tls"] }
-#sqlx-rt = "0.6.3"
-sqlx-macros = "0.7.3"
+sqlx.workspace = true
+sqlx-macros.workspace = true
 
 #time and date
-chrono = { version = "0.4", features = ["serde"] }
-
-#requests
-reqwest = "0.12.4"
-bytes = "1"
+chrono.workspace = true
 
 async-openai.workspace = true
-log = "0.4.21"
+
+bytes = "1"

@@ -16,11 +16,11 @@ serde_json.workspace = true
 serde_derive.workspace = true
 
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["json", "env-filter"] }
-tracing-attributes = "0.1.27"
+tracing-subscriber.workspace = true
+tracing-attributes.workspace = true
 
-tokio = { version = "1.36.0", features = ["full"] }
+tokio.workspace = true
 
 qdrant-client.workspace = true
 
-teloxide = { version = "0.12", features = ["macros", "webhooks-axum"] }
+teloxide.workspace = true
