@@ -1,4 +1,3 @@
-
 schema Metadata:
     name: str
     labels: Labels

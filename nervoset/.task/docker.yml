@@ -1,24 +1,18 @@
 version: '3'
 
+set: [pipefail]
+
+requires:
+  vars:
+    - REGISTRY
+    - REPOSITORY
+    - APP_NAME
+    - VERSION
+
 includes:
   common: common.yml
 
-vars:
-  BASE_IMAGE: "nervoset/base:latest"
-  IMAGE_NAME: "{{.REGISTRY}}/nervoset:{{.APP_NAME}}_v{{.VERSION}}"
-
 tasks:
-
-  base_build:
-    internal: true
-    cmds:
-      - task: common:prepare_dependencies
-      - docker buildx build --tag {{.BASE_IMAGE}} --output type=docker --file base.dockerfile .
-
-  test:
-    cmds:
-      - task: base_build
-      - docker run --rm {{.BASE_IMAGE}} cargo test --release
 
   build:
     requires:
@@ -26,7 +20,7 @@ tasks:
         - IMAGE_NAME
         - APP_NAME
     cmds:
-      - task: base_build
+      - task: common:base_build
       - |-
         docker buildx build \
           --tag {{.IMAGE_NAME}} \
@@ -57,17 +51,17 @@ tasks:
           {{if .HOST_PORT}}-p {{.HOST_PORT}}:{{.DOCKER_PORT}}{{end}} \
           {{.IMAGE_NAME}}
 
-    push:
-      requires:
+  push:
+    requires:
+      vars:
+        - IMAGE_NAME
+        - APP_NAME
+    cmds:
+      - task: build
         vars:
-          - IMAGE_NAME
-          - APP_NAME
-      cmds:
-        - task: build
-          vars:
-            IMAGE_NAME: "{{.IMAGE_NAME}}"
-            APP_NAME: "{{.APP_NAME}}"
-        - docker push {{.IMAGE_NAME}}
+          IMAGE_NAME: "{{.IMAGE_NAME}}"
+          APP_NAME: "{{.APP_NAME}}"
+      - docker push {{.IMAGE_NAME}}
 
   container_run:
     requires:
@@ -90,4 +84,3 @@ tasks:
           -v ./app/{{.APP_NAME}}/resources/:/app/nervoset/resources \
           {{.IMAGE_NAME}} \
           bash
-        

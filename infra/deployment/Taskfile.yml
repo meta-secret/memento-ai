@@ -2,22 +2,50 @@ version: '3'
 
 includes:
   k3d_dev:
-    taskfile: k3d.task.yml
+    taskfile: k3d/Taskfile.yml
+    dir: k3d
     vars:
-      CLUSTER_NAME: '{{.CLUSTER_NAME | default "nervoset-dev"}}'
-      K3D_CONFIG: "k3d/k3d.dev.yaml"
-  k3d_prod:
-    taskfile: k3d.task.yml
-    vars:
-      CLUSTER_NAME: '{{.CLUSTER_NAME | default "nervoset-prod"}}'
-      K3D_CONFIG: "k3d/k3d.prod.yaml"
+      #CLUSTER_NAME: '{{.CLUSTER_NAME | default "nervoset-dev"}}'
+      K3D_CONFIG: "k3d.dev.yaml"
 
-  vector_db: vector_db.task.yml
+  k3d_prod:
+    taskfile: k3d/Taskfile.yml
+    dir: k3d
+    vars:
+      #CLUSTER_NAME: '{{.CLUSTER_NAME | default "nervoset-prod"}}'
+      K3D_CONFIG: "k3d.prod.yaml"
+
+  docker_registry:
+    taskfile: docker-registry/Taskfile.yml
+
+  vector_db:
+    taskfile: db/vector_db/Taskfile.yml
 
 tasks:
   default:
     cmds:
       - task --list-all
+
+  # k3d installation has to be done outside of this task
+  infra_dev:
+    requires:
+      vars:
+        - K8S_CLUSTER_NAME
+    cmds:
+      - task -t ../Taskfile.yml auth
+
+      - task: docker_registry:docker_login
+
+      # deploy k8s cluster with k3d
+      - task: k3d_dev:k8s_deploy
+        vars:
+          CLUSTER_NAME: '{{.K8S_CLUSTER_NAME}}'
+
+      # setup docker registry authentication in k8s
+      - task: docker_registry:setup_docker_registry
+
+      # deploy qdrant
+      - task: vector_db:qdrant_deploy
 
   k3d_within_docker:
     cmds:

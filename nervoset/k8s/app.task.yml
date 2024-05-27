@@ -1,0 +1,61 @@
+version: '3'
+
+set: [pipefail]
+
+vars:
+  CONFIGS: pvc.k statefulset.k
+  BUILD_DIR: build
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+
+  deliver_config:
+    requires:
+      vars:
+        - APP_NAME
+    cmds:
+      - task -t ../../../infra/Taskfile.yml hazmat:void_sentinel:vault:get_{{.APP_NAME}}_config > {{.BUILD_DIR}}/config.yaml
+
+  generate_config_maps:
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - |
+        kubectl create configmap \
+          nervobot-config \
+          --from-file={{.BUILD_DIR}}/config.yaml \
+          --dry-run=client -o yaml > \
+          {{ .BUILD_DIR }}/configmap.yaml
+      - rm -rf {{.BUILD_DIR}}/config.yaml
+
+  generate_manifests:
+    requires:
+      vars:
+        - IMAGE_NAME #cypherkitty/nervoset:probiot_t1000_v0.1
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - for: { var: CONFIGS }
+        cmd: kcl {{ .ITEM }} -D imageName="{{.IMAGE_NAME}}" > {{ .BUILD_DIR }}/{{ .ITEM }}.yaml
+
+  generate:
+    cmds:
+      - rm -rf {{ .BUILD_DIR }}
+      - mkdir -p {{ .BUILD_DIR }}
+      - task: deliver_config
+      - task: generate_config_maps
+      - task: generate_manifests
+
+  apply:
+    cmds:
+      - task: generate
+      - kubectl apply -f {{ .BUILD_DIR }}
+
+  delete:
+    cmds:
+      - task: generate
+      - kubectl delete -f {{ .BUILD_DIR }}
+
+  describe:
+    cmds:
+      - kubectl describe pod probiot-t1000-0

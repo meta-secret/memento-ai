@@ -31,7 +31,7 @@ spec = {
             containers = [
                 {
                     name = common.projectName
-                    image = "cypherkitty/nervoset:probiot_t1000_v0.1"
+                    image = option("imageName")
                     imagePullPolicy = "Always"
                     volumeMounts = [
                         {

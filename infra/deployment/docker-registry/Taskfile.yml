@@ -1,0 +1,47 @@
+version: '3'
+
+vars:
+  BUILD_DIR: build
+  PROJECT_DIR: ..
+  DOCKER_REGISTRY_URL: "https://index.docker.io/v1/"
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+
+  docker_login:
+    vars:
+      DOCKER_REGISTRY_USER:
+        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_user
+      DOCKER_REGISTRY_PASS:
+        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_pass
+      DOCKER_REGISTRY_EMAIL:
+        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_email
+    cmds:
+      - echo {{.DOCKER_REGISTRY_PASS}} | docker login --username={{.DOCKER_REGISTRY_USER}} --password-stdin ${DOCKER_REGISTRY_URL}
+    silent: true
+
+
+  # https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+  setup_docker_registry:
+    vars:
+      DOCKER_REGISTRY_USER:
+        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_user
+      DOCKER_REGISTRY_PASS:
+        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_pass
+      DOCKER_REGISTRY_EMAIL:
+        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_email
+    cmds:
+      - |-
+        kubectl create secret docker-registry docker-registry-secret \
+        --docker-server={{.DOCKER_REGISTRY_URL}} \
+        --docker-username={{.DOCKER_REGISTRY_USER}} \
+        --docker-password={{.DOCKER_REGISTRY_PASS}} \
+        --docker-email={{.DOCKER_REGISTRY_EMAIL}} \
+        || true
+    silent: true
+
+  print_docker_registry_auth:
+    cmds:
+      - kubectl get secret docker-registry-secret --output="jsonpath={.data.\.dockerconfigjson}" | base64 --decode

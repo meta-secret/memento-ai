@@ -1,9 +1,13 @@
 version: '3'
 
+set: [pipefail]
+
 includes:
   probiot:
-    taskfile: probiot_t1000/Taskfile.yml
+    taskfile: app.task.yml
     dir: probiot_t1000
+    vars:
+      APP_NAME: 'probiot_t1000'
 
 tasks:
   default:

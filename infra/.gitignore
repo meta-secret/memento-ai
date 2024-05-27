@@ -24,3 +24,6 @@ deployment/.terraform
 
 .devbox
 devbox.lock
+tmp/
+deployment/docker-registry/.kclvm/
+/deployment/docker-registry/build/

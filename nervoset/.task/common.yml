@@ -1,5 +1,8 @@
 version: '3'
 
+vars:
+  BASE_IMAGE: "nervoset/base:latest"
+
 tasks:
   prepare_dependencies:
     internal: true
@@ -15,3 +18,9 @@ tasks:
           -v $(pwd)/target/chef:/chef \
           {{.CHEF_IMAGE_NAME}} \
           cargo chef prepare --recipe-path /chef/recipe.json
+
+  base_build:
+    internal: true
+    cmds:
+      - task: prepare_dependencies
+      - docker buildx build --tag {{.BASE_IMAGE}} --output type=docker --file base.dockerfile .

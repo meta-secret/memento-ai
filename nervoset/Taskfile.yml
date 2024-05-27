@@ -1,42 +1,93 @@
 version: '3'
 
+set: [pipefail]
+
 vars:
   REGISTRY: 'cypherkitty'
+  REPOSITORY: 'nervoset'
+
+  BASE_IMAGE: "nervoset/base:latest"
+
+  APP_VERSION: '0.1'
+
+  ENV: 'dev'
 
 includes:
+  common: .task/common.yml
+
   probiot:
     taskfile: .task/docker.yml
     vars:
       APP_NAME: 'probiot_t1000'
-      VERSION: '0.1'
+      VERSION: '{{.APP_VERSION}}'
+      IMAGE_NAME:
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
 
   jarvis:
     taskfile: .task/docker.yml
     vars:
       APP_NAME: 'r2d2'
-      VERSION: '0.1'
+      VERSION: '{{.APP_VERSION}}'
+      IMAGE_NAME:
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
 
   groot:
     taskfile: .task/docker.yml
     vars:
       APP_NAME: 'groot'
-      VERSION: '0.1'
+      VERSION: '{{.APP_VERSION}}'
+      IMAGE_NAME:
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
 
   walle:
     taskfile: .task/docker.yml
     vars:
       APP_NAME: 'walle'
-      VERSION: '0.1'
+      VERSION: '{{.APP_VERSION}}'
+      IMAGE_NAME:
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
 
   nervo_server:
     taskfile: .task/docker.yml
     vars:
       APP_NAME: 'nervo_server'
-      VERSION: '0.1'
+      VERSION: '{{.APP_VERSION}}'
       HOST_PORT: '3000'
       DOCKER_PORT: '3000'
+      IMAGE_NAME:
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+
+  k8s:
+    taskfile: k8s/Taskfile.yml
+    dir: k8s
+    vars:
+      REGISTRY: '{{.REGISTRY}}'
+      REPOSITORY: '{{.REPOSITORY}}'
+      VERSION: '{{.APP_VERSION}}'
+      IMAGE_NAME:
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
 
 tasks:
   default:
     cmds:
       - task --list-all
+
+  img_name:
+    requires:
+      vars:
+        - REGISTRY
+        - REPOSITORY
+        - APP_NAME
+        - APP_VERSION
+    vars:
+      PROD_IMAGE_NAME: '{{.REGISTRY}}/{{.REPOSITORY}}:{{.APP_NAME}}_v{{.APP_VERSION}}'
+      DEV_IMAGE_NAME: '{{.REGISTRY}}/{{.REPOSITORY}}:{{.APP_NAME}}_$(whoami)_dev_v{{.APP_VERSION}}'
+      IMAGE_NAME: '{{if eq .ENV "prod"}}{{.PROD_IMAGE_NAME}}{{else}}{{.DEV_IMAGE_NAME}}{{end}}'
+    cmds:
+      - echo {{.IMAGE_NAME}}
+
+  test:
+    cmds:
+      - task: common:base_build
+      - docker run --rm {{.BASE_IMAGE}} cargo test --release
+

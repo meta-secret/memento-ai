@@ -2,16 +2,22 @@ version: '3'
 
 set: [pipefail]
 
+includes:
+  hazmat:
+    taskfile: hazmat/Taskfile.yml
+    dir: hazmat
+  deployment:
+    taskfile: deployment/Taskfile.yml
+    dir: deployment
+
 tasks:
   default:
     cmds:
       - task --list-all
 
   auth:
-    dir: hazmat
     cmds:
-      - task auth
-      - task login
+      - task hazmat:void_sentinel:auth
 
   completions:
     cmds:

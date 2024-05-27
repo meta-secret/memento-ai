@@ -1,0 +1,107 @@
+version: '3'
+
+set: [pipefail]
+
+vars:
+  SENTINEL_SK_FILE: "tmp/void_sentinel_sk.txt"
+  LOCAL_TMP_DIR: "tmp"
+
+  PK_FILE: "vault/nervoset-pk.txt"
+  SK_ENC_FILE: "vault/nervoset-sk.enc.txt"
+
+  SK_PLAINTEXT_FILE: "{{.LOCAL_TMP_DIR}}/nervoset-sk.txt"
+  MASTER_PASS_FILE: "{{.LOCAL_TMP_DIR}}/master_pass.txt"
+
+includes:
+  vault:
+    taskfile: vault.task.yml
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+
+  hash_pass:
+    cmds:
+      - ./hash_pass.sh
+
+  auth:
+    cmds:
+      - ./hash_auth.sh
+
+  # How to set the master password locally:
+  # 1. execute task auth
+  # 2. set SENTINEL_MASTER_PASSWORD as an env variable, by executing:
+  #    export SENTINEL_MASTER_PASSWORD=$(cat tmp/master_pass.txt)
+  gpg_decrypt_sentinel_key:
+    cmds:
+      - task: genesis
+      #echo "your_passphrase" | gpg --decrypt --batch --yes --passphrase-fd 0 --output decrypted_file.txt encrypted_file.gpg
+      - |-
+        gpg --batch --yes --decrypt \
+          --passphrase ${SENTINEL_MASTER_PASSWORD} \
+          --output {{.SK_PLAINTEXT_FILE}} \
+          {{.SK_ENC_FILE}}
+    silent: true
+
+  gpg_decrypt_sentinel_key_with_master_password_file:
+    cmds:
+      #echo "your_passphrase" | gpg --decrypt --batch --yes --passphrase-fd 0 --output decrypted_file.txt encrypted_file.gpg
+      - |-
+        gpg --batch --yes --decrypt \
+          --passphrase-file {{.MASTER_PASS_FILE}} \
+          --output {{.SK_PLAINTEXT_FILE}} \
+          {{.SK_ENC_FILE}}
+    silent: true
+
+  age_generate_key:
+    cmds:
+      - mkdir -p {{.LOCAL_TMP_DIR}}
+      - rm -rf {{.LOCAL_TMP_DIR}}/**
+      - age-keygen --output={{.SK_PLAINTEXT_FILE}}
+      - age-keygen -y {{.SK_PLAINTEXT_FILE}} > {{.PK_FILE}}
+      #age --encrypt --passphrase --armor --output={{SK_ENC_FILE}} {{SK_PLAINTEXT_FILE}}
+      #gpg --batch --yes --passphrase-file {{.MASTER_PASS_FILE}} --symmetric --armor --cipher-algo AES256 --output {{SK_ENC_FILE}} {{SK_PLAINTEXT_FILE}}
+      - |-
+        gpg \
+          --symmetric \
+          --pinentry-mode=loopback \
+          --no-symkey-cache \
+          --armor \
+          --cipher-algo AES256 \
+          --output {{.SK_ENC_FILE}} \
+          {{.SK_PLAINTEXT_FILE}}
+      - rm -rf {{.LOCAL_TMP_DIR}}
+
+  age_key_rotation:
+    cmds:
+      - task: age_generate_key
+      - task: age_encrypt
+      - task: age_decrypt
+
+  age_decrypt:
+    requires:
+      vars:
+        - SECRET_TEXT_FILE
+    cmds:
+      - task: gpg_decrypt_sentinel_key
+      #gpg --batch --yes --armor --passphrase-file passphrase.txt --decrypt --output decrypted_file.txt encrypted_file.gpg
+      - age --decrypt --identity={{.SK_PLAINTEXT_FILE}} {{.SECRET_TEXT_FILE}}
+    silent: true
+
+  age_encrypt:
+    requires:
+      vars:
+        - PLAIN_TEXT_FILE
+    cmds:
+      - age --encrypt --armor --recipients-file={{.PK_FILE}} --output=secret.enc.txt {{.PLAIN_TEXT_FILE}}
+    silent: true
+
+  genesis:
+    internal: true
+    preconditions:
+      - sh: test -f {{.SK_ENC_FILE}}
+        msg: "Encrypted Master password file: {{.SK_ENC_FILE}} does not exists. Please create it first."
+
+      - sh: '[ ! -z "${SENTINEL_MASTER_PASSWORD}" ]'
+        msg: "Master password variable: SENTINEL_MASTER_PASSWORD is not set"

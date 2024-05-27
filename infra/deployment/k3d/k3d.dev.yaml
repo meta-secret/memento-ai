@@ -23,15 +23,6 @@ volumes: # repeatable flags are represented as YAML lists
       - server:0
       - agent:*
 
-registries: # define how registries should be created or used
-  create: # creates a default registry to be used with the cluster; same as `--registry-create registry.localhost`
-    name: nervoset.metaelon.space
-    host: "0.0.0.0"
-    hostPort: "5000"
-    #volumes:
-    #  - /some/path:/var/lib/registry # persist registry data locally
-
-
 #ports:
 #  - port: 80:80
 #    nodeFilters:
