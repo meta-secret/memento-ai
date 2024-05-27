@@ -28,9 +28,9 @@ tasks:
 
   # k3d installation has to be done outside of this task
   infra_dev:
-    requires:
-      vars:
-        - K8S_CLUSTER_NAME
+    vars:
+      K8S_CLUSTER_NAME:
+        sh: echo $(whoami)-nervoset-dev
     cmds:
       - task -t ../Taskfile.yml auth
 
@@ -40,6 +40,9 @@ tasks:
       - task: k3d_dev:k8s_deploy
         vars:
           CLUSTER_NAME: '{{.K8S_CLUSTER_NAME}}'
+
+      # setup persistent volume for k8s
+      - kubectl apply -f kube
 
       # setup docker registry authentication in k8s
       - task: docker_registry:setup_docker_registry
