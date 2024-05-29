@@ -2,8 +2,13 @@ version: '3'
 
 set: [pipefail]
 
+requires:
+  vars:
+    - CONFIGS
+    - K8S_APP_NAME
+    - IMAGE_NAME
+
 vars:
-  CONFIGS: pvc.k statefulset.k
   BUILD_DIR: build
 
 tasks:
@@ -11,19 +16,23 @@ tasks:
     cmds:
       - task --list-all
 
-  deliver_config:
-    requires:
-      vars:
-        - APP_NAME
+  print_vars:
     cmds:
-      - task -t ../../../infra/Taskfile.yml hazmat:void_sentinel:vault:get_{{.APP_NAME}}_config > {{.BUILD_DIR}}/config.yaml
+      - echo configs {{.CONFIGS}}
+      - echo app name {{.K8S_APP_NAME}}
+      - echo img name {{.IMAGE_NAME}}
+
+  deliver_config:
+    cmds:
+      - task -t ../../../infra/Taskfile.yml hazmat:void_sentinel:vault:get_{{.K8S_APP_NAME}}_config > {{.BUILD_DIR}}/config.yaml
 
   generate_config_maps:
     cmds:
       - mkdir -p {{.BUILD_DIR}}
+      - task: deliver_config
       - |
         kubectl create configmap \
-          nervobot-config \
+          {{.K8S_APP_NAME}}-config \
           --from-file={{.BUILD_DIR}}/config.yaml \
           --dry-run=client -o yaml > \
           {{ .BUILD_DIR }}/configmap.yaml
@@ -42,7 +51,6 @@ tasks:
     cmds:
       - rm -rf {{ .BUILD_DIR }}
       - mkdir -p {{ .BUILD_DIR }}
-      - task: deliver_config
       - task: generate_config_maps
       - task: generate_manifests
 

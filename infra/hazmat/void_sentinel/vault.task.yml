@@ -104,8 +104,29 @@ tasks:
     cmds:
       - task: decrypt
         vars:
-          BASE_PATH: probiot_t1000
-          KEY_NAME: config
+          BASE_PATH: nervobot
+          KEY_NAME: probiot_t1000.config.yaml
+
+  get_groot_config:
+    cmds:
+      - task: decrypt
+        vars:
+          BASE_PATH: nervobot
+          KEY_NAME: groot.config.yaml
+
+  get_r2d2_config:
+    cmds:
+      - task: decrypt
+        vars:
+          BASE_PATH: nervobot
+          KEY_NAME: r2d2.config.yaml
+
+  get_nervo-server_config:
+    cmds:
+      - task: decrypt
+        vars:
+          BASE_PATH: nervobot
+          KEY_NAME: nervo-server.config.yaml
 
   get_test:
     cmds:

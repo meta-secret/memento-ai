@@ -56,7 +56,7 @@ spec = {
                 {
                     name = "config"
                     configMap = {
-                        name = "nervobot-config"
+                        name = "${common.projectName}-config"
                     }
                 }
             ]

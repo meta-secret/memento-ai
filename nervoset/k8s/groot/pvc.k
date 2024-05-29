@@ -10,7 +10,7 @@ spec = {
     accessModes = [
         "ReadWriteOnce"
     ]
-    storageClassName = "manual"
+    storageClassName = "local-path"
     resources = {
         requests = {
             storage = "16Gi"

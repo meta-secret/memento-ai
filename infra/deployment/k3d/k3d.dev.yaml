@@ -23,11 +23,11 @@ volumes: # repeatable flags are represented as YAML lists
       - server:0
       - agent:*
 
-#ports:
-#  - port: 80:80
-#    nodeFilters:
-#      - loadbalancer
-#  - port: 443:443
-#    nodeFilters:
-#      - loadbalancer
+ports:
+  - port: 8080:80
+    nodeFilters:
+      - loadbalancer
+  - port: 443:443
+    nodeFilters:
+      - loadbalancer
 
