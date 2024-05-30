@@ -51,6 +51,13 @@ tasks:
           {{if .HOST_PORT}}-p {{.HOST_PORT}}:{{.DOCKER_PORT}}{{end}} \
           {{.IMAGE_NAME}}
 
+  stop:
+    requires:
+      vars:
+        - APP_NAME
+    cmds:
+      - docker kill {{.APP_NAME}}
+
   push:
     requires:
       vars:

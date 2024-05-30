@@ -19,7 +19,8 @@
   ],
   "shell": {
     "init_hook": [
-      "rustup default stable"
+      "rustup default stable",
+      "cargo install wasm-pack"
     ],
     "scripts": {}
   }

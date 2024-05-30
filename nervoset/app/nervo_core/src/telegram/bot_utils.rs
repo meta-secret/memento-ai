@@ -93,7 +93,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                     timestamp: Utc::now().naive_utc(),
                 };
 
-                // Local caching
+                // User question local caching
                 if let Some(name) = &user.username {
                     app_state
                         .local_db
@@ -101,6 +101,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                         .await?;
                 }
 
+                // Create question for LLM
                 let question_msg = LlmMessage {
                     sender_id: user.id.0,
                     role: Role::User,
@@ -432,6 +433,7 @@ async fn openai_chat_preparations(
             for processing_layer in processing_layers {
                 if !processing_layer.collection_params.is_empty() {
                     for collection_param in &processing_layer.collection_params {
+
                         let db_search = &app_state
                             .nervo_ai_db
                             .search(
@@ -489,8 +491,7 @@ async fn openai_chat_preparations(
 
             let cached_messages: Vec<TelegramMessage> =
                 app_state.local_db.read_from_local_db(&username).await?;
-
-            if cached_messages.len() % 1 == 0 {
+            if cached_messages.len() % 5 == 0 {
                 rephrased_prompt.push_str(&layers_info.info_message);
             };
 

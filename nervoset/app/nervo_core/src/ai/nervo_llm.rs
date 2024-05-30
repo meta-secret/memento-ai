@@ -176,13 +176,13 @@ impl NervoLlm {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct LlmChat {
     pub chat_id: u64,
     pub messages: Vec<LlmMessage>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LlmMessage {
     pub sender_id: u64,
     pub role: Role,

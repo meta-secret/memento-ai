@@ -21,6 +21,9 @@ tracing-attributes.workspace = true
 
 async-openai.workspace = true
 
-tokio.workspace = true
 
+tower-http = { version = "0.5.2", features = ["cors", "trace"] }
+http = "1.1.0"
+
+tokio.workspace = true
 axum.workspace = true

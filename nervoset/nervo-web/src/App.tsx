@@ -1,27 +1,94 @@
-import {useState, Component} from 'react'
-import './App.css'
+import React, {useState, useEffect, ChangeEvent, FormEvent, Component} from 'react';
+import './App.css';
+import {send_message, get_chat, configure} from 'nervo-wasm';
 
+interface ChatMessage {
+    role: string;
+    content: string;
+}
+
+interface Chat {
+    chat_id: number,
+    messages:ChatMessage[]
+}
+
+// TODO: Delete
+const chatId = "8";
+const userId = "123456789";
 
 function App() {
-    const [count, setCount] = useState(0)
 
-    let messages = [
-        {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "Как дела, боров?"},
-        {"role": "assistant", "content": "Всё отлично! Как твои?. Всё отлично! Как твои? Всё отлично! Как твои?"},
-        {"role": "user", "content": "Загниваем! Всё ништяк!"}
-    ]
+    // let conversation = [];
+    const [conversation, setConversation] = useState<JSX.Element[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | boolean>(false);
 
-    const conversation = [];
-    for (let i = 0; i < messages.length; i++) {
-        let message = messages[i];
-        if (message["role"] === "user") {
-            conversation.push(<RequestContent text={message["content"]}/>);
-            continue;
+    configure();
+
+    async function fetchChat() {
+        try {
+            console.log("3. fetch data")
+            let chatString = await get_chat(chatId, userId);
+            console.log("After get chat")
+            console.log("chat messages {:?}", chatString)
+            let chat: Chat = JSON.parse(chatString);
+            console.log("Messages parse done")
+
+            const conversationElements = chat.messages.map((message, index) => {
+                console.log("handle message!")
+                if (message.role === "User") {
+                    console.log("User message")
+                    return <RequestContent key={index} text={message.content}/>;
+                } else if (message.role === "Assistant") {
+                    console.log("assistant message")
+                    return <ReplyContent key={index} text={message.content}/>;
+                }
+                console.log("end async function")
+                return null;
+            });
+
+            console.log("set conversation " + conversationElements.length)
+            setConversation(conversationElements);
+
+            // conversation = []
+
+            // for (let i = 0; i < messages.length; i++) {
+            //     let message = messages[i];
+            //     if (message["role"] === "User") {
+            //         conversation.push(<RequestContent text={message["content"]}/>);
+            //         continue;
+            //     }
+            //     if (message["role"] === "Assistant") {
+            //         conversation.push(<ReplyContent text={message["content"]}/>);
+            //     }
+            // }
+
+        } catch (error) {
+            console.error("Failed to fetch chat: ", error);
+            setError("Failed to fetch chat");
+        } finally {
+            console.log("Finally!!!!")
+            setLoading(false);
         }
-        if (message["role"] === "assistant") {
-            conversation.push(<ReplyContent text={message["content"]}/>);
-        }
+    }
+
+    console.log("#1. begin")
+
+    useEffect(() => {
+        fetchChat().catch(console.error);
+    }, []);
+
+    //const sendMessage = (messageText) => {
+    //    send_message(chatId, userId, "User", messageText)
+    //}
+
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
+    if (error) {
+        console.log("Error!!!!", error)
+        return <div>{error}</div>;
     }
 
     return (
@@ -39,27 +106,27 @@ function App() {
     )
 }
 
-class ReplyContent extends Component<any, any> {
-    render () {
-        return (
-            <div className="flex bg-slate-100 px-4 py-8 dark:bg-slate-900 sm:px-6">
-                <img
-                    className="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
-                    src="https://dummyimage.com/256x256/354ea1/ffffff&text=G"
-                />
-
-                <div
-                    className="flex w-full flex-col items-start lg:flex-row lg:justify-between"
-                >
-                    <p className="max-w-3xl">
-                        {this.props.text}
-                    </p>
-                    <LikeDislike/>
-                </div>
-            </div>
-        );
-    }
+interface ReplyContentProps {
+    text: string;
 }
+
+const ReplyContent: React.FC<ReplyContentProps> = ({text}) => {
+    return (
+        <div className="flex bg-slate-100 px-4 py-8 dark:bg-slate-900 sm:px-6">
+            <img
+                className="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
+                src="https://dummyimage.com/256x256/354ea1/ffffff&text=G"
+                alt="Assistant Avatar"
+            />
+            <div className="flex w-full flex-col items-start lg:flex-row lg:justify-between">
+                <p className="max-w-3xl">
+                    {text}
+                </p>
+                <LikeDislike/>
+            </div>
+        </div>
+    );
+};
 
 interface RequestContentProps {
     text?: string
@@ -82,122 +149,108 @@ class RequestContent extends Component<any, any> {
     }
 }
 
+const LikeDislike: React.FC = () => {
+    return (
+        <div className="mt-4 flex flex-row justify-start gap-x-2 text-slate-500 lg:mt-0">
+            <button className="hover:text-blue-600">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path
+                        d="M7 11v8a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1v-7a1 1 0 0 1 1 -1h3a4 4 0 0 0 4 -4v-1a2 2 0 0 1 4 0v5h3a2 2 0 0 1 2 2l-1 5a2 3 0 0 1 -2 2h-7a3 3 0 0 1 -3 -3"
+                    ></path>
+                </svg>
+            </button>
+            <button className="hover:text-blue-600" type="button">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path
+                        d="M7 13v-8a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v7a1 1 0 0 0 1 1h3a4 4 0 0 1 4 4v1a2 2 0 0 0 4 0v-5h3a2 2 0 0 0 2 -2l-1 -5a2 3 0 0 0 -2 -2h-7a3 3 0 0 0 -3 3"
+                    ></path>
+                </svg>
+            </button>
+            <button className="hover:text-blue-600" type="button">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                    <path
+                        d="M8 8m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z"
+                    ></path>
+                    <path
+                        d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"
+                    ></path>
+                </svg>
+            </button>
+        </div>
+    );
+};
 
-class LikeDislike extends Component<any, any> {
-    render() {
-        return (
-            <div
-                className="mt-4 flex flex-row justify-start gap-x-2 text-slate-500 lg:mt-0"
-            >
-                <button className="hover:text-blue-600">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 24 24"
-                        strokeWidth="2"
-                        stroke="currentColor"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    >
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                        <path
-                            d="M7 11v8a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1v-7a1 1 0 0 1 1 -1h3a4 4 0 0 0 4 -4v-1a2 2 0 0 1 4 0v5h3a2 2 0 0 1 2 2l-1 5a2 3 0 0 1 -2 2h-7a3 3 0 0 1 -3 -3"
-                        ></path>
-                    </svg>
-                </button>
-                <button className="hover:text-blue-600" type="button">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 24 24"
-                        strokeWidth="2"
-                        stroke="currentColor"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    >
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                        <path
-                            d="M7 13v-8a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v7a1 1 0 0 0 1 1h3a4 4 0 0 1 4 4v1a2 2 0 0 0 4 0v-5h3a2 2 0 0 0 2 -2l-1 -5a2 3 0 0 0 -2 -2h-7a3 3 0 0 0 -3 3"
-                        ></path>
-                    </svg>
-                </button>
-                <button className="hover:text-blue-600" type="button">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        viewBox="0 0 24 24"
-                        strokeWidth="2"
-                        stroke="currentColor"
-                        fill="none"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    >
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                        <path
-                            d="M8 8m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z"
-                        ></path>
-                        <path
-                            d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"
-                        ></path>
-                    </svg>
+interface MessagingPanelProps {
+    sendMessage: (messageText: string) => void;
+}
+
+const MessagingPanel: React.FC<MessagingPanelProps> = ({sendMessage}) => {
+    const [messageText, setMessageText] = useState('');
+
+    const handleMessageChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+        setMessageText(event.target.value);
+    };
+
+    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (messageText.trim() !== '') {
+            sendMessage(messageText);
+            setMessageText('');
+        }
+    };
+
+    return (
+        <form className="mt-2" onSubmit={handleSubmit}>
+            <label htmlFor="chat-input" className="sr-only">Enter your prompt</label>
+            <div className="relative">
+                <textarea
+                    id="chat-input"
+                    name="chat-input"
+                    rows={1}
+                    className="w-full resize-none border-0 bg-transparent p-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+                    placeholder="Enter your prompt..."
+                    value={messageText}
+                    onChange={handleMessageChange}
+                />
+                <button
+                    type="submit"
+                    className="absolute inset-y-0 right-0 flex items-center bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 focus:outline-none"
+                >
+                    Send
                 </button>
             </div>
-        );
-    }
-}
+        </form>
+    );
+};
 
-class MessagingPanel extends Component<any, any> {
-    render() {
-        return (
-            /* Messaging Panel Component*/
-            <form className="mt-2">
-                <label htmlFor="chat-input" className="sr-only">Enter your prompt</label>
-                <div className="relative">
-                    <button
-                        type="button"
-                        className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-500"
-                    >
-                        <svg
-                            aria-hidden="true"
-                            className="h-5 w-5"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                            strokeWidth="2"
-                            stroke="currentColor"
-                            fill="none"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        >
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                            <path
-                                d="M9 2m0 3a3 3 0 0 1 3 -3h0a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h0a3 3 0 0 1 -3 -3z"
-                            ></path>
-                            <path d="M5 10a7 7 0 0 0 14 0"></path>
-                            <path d="M8 21l8 0"></path>
-                            <path d="M12 17l0 4"></path>
-                        </svg>
-                        <span className="sr-only">Use voice input</span>
-                    </button>
-                    <textarea
-                        id="chat-input"
-                        className="block w-full resize-none rounded-xl border-none bg-slate-200 p-4 pl-16 pr-20 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-400 dark:focus:ring-blue-500 sm:text-base"
-                        placeholder="Enter your prompt"
-                        rows="1"
-                        required
-                    ></textarea>
-                    <button
-                        type="submit"
-                        className="absolute bottom-2 right-2.5 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 sm:text-base"
-                    >
-                        Send <span className="sr-only">Send message</span>
-                    </button>
-                </div>
-            </form>
-        );
-    }
-}
-
-
-export default App
+export default App;

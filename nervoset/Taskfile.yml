@@ -89,8 +89,23 @@ tasks:
     cmds:
       - echo {{.IMAGE_NAME}}
 
+
+  nervo_web_build:
+    vars:
+      NERVO_WASM_DIR: 'app/nervo_wasm'
+      NERVO_WEB_DIR: 'nervo-web'
+    cmds:
+      - cd {{.NERVO_WASM_DIR}} && wasm-pack build
+      - rm -rf {{.NERVO_WEB_DIR}}/pkg
+      - mkdir -p {{.NERVO_WEB_DIR}}/pkg
+      - cp -r {{.NERVO_WASM_DIR}}/pkg {{.NERVO_WEB_DIR}}
+
+  nervo_web_run:
+    cmds:
+      - task: nervo_web_build
+      - cd nervo-web && npm run dev
+
   test:
     cmds:
       - task: common:base_build
       - docker run --rm {{.BASE_IMAGE}} cargo test --release
-
