@@ -89,7 +89,6 @@ tasks:
     cmds:
       - echo {{.IMAGE_NAME}}
 
-
   nervo_web_build:
     vars:
       NERVO_WASM_DIR: 'app/nervo_wasm'

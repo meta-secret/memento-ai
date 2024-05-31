@@ -1,6 +1,6 @@
 import React, {useState, useEffect, ChangeEvent, FormEvent, Component} from 'react';
 import './App.css';
-import {send_message, get_chat, configure} from 'nervo-wasm';
+import {get_chat, configure} from 'nervo-wasm';
 
 interface ChatMessage {
     role: string;
@@ -39,12 +39,10 @@ function App() {
                 if (message.role === "User") {
                     console.log("User message")
                     return <RequestContent key={index} text={message.content}/>;
-                } else if (message.role === "Assistant") {
+                } else { //"Assistant"
                     console.log("assistant message")
                     return <ReplyContent key={index} text={message.content}/>;
                 }
-                console.log("end async function")
-                return null;
             });
 
             console.log("set conversation " + conversationElements.length)
@@ -128,10 +126,6 @@ const ReplyContent: React.FC<ReplyContentProps> = ({text}) => {
     );
 };
 
-interface RequestContentProps {
-    text?: string
-}
-
 class RequestContent extends Component<any, any> {
     render() {
         return (
@@ -211,10 +205,10 @@ const LikeDislike: React.FC = () => {
 };
 
 interface MessagingPanelProps {
-    sendMessage: (messageText: string) => void;
+    //sendMessage: (messageText: string) => void;
 }
 
-const MessagingPanel: React.FC<MessagingPanelProps> = ({sendMessage}) => {
+const MessagingPanel: React.FC<MessagingPanelProps> = (/*{sendMessage}*/) => {
     const [messageText, setMessageText] = useState('');
 
     const handleMessageChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -224,7 +218,7 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({sendMessage}) => {
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (messageText.trim() !== '') {
-            sendMessage(messageText);
+            //sendMessage(messageText);
             setMessageText('');
         }
     };
