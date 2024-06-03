@@ -49,6 +49,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      - name: Sccache Action
+        uses: Mozilla-Actions/sccache-action@v0.0.4
+        with:
+          version: "v0.7.7"
+
+      - name: Set Rust caching env vars
+        run: |
+          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+
       - name: Build nervo-web
         working-directory: nervoset
         run: |

@@ -101,7 +101,7 @@ tasks:
 
       - mkdir -p {{.NERVO_WEB_DIR}}/pkg
       - cp -r {{.NERVO_WASM_DIR}}/pkg {{.NERVO_WEB_DIR}}
-      - cd {{.NERVO_WEB_DIR}} && npm run build
+      - cd {{.NERVO_WEB_DIR}} && npm install && npm run build
 
   nervo_web_run:
     cmds:
