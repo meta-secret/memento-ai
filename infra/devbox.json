@@ -2,7 +2,6 @@
   "$schema": "https://raw.githubusercontent.com/jetpack-io/devbox/0.10.3/.schema/devbox.schema.json",
   "packages": [
     "k3d@5.6.0",
-    "k9s@0.32.4",
     "kubernetes-helm@3.14.3",
     "kubectl@1.29.3",
     "go-task@3.37.2",
@@ -10,11 +9,8 @@
     "age@1.1.1",
     "gnupg@2.4.5",
     "jq@1.7.1",
-    "htop@3.3.0",
     "coreutils@9.4",
-    "gawk@5.2.2",
-    "bash-completion@2.13.0",
-    "lazydocker@0.23.1"
+    "gawk@5.2.2"
   ],
   "shell": {
     "init_hook": [],
