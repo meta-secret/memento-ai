@@ -3,8 +3,8 @@ version: '3'
 set: [pipefail]
 
 vars:
-  SENTINEL_SK_FILE: "tmp/void_sentinel_sk.txt"
   LOCAL_TMP_DIR: "tmp"
+  SENTINEL_SK_FILE: "{{.LOCAL_TMP_DIR}}/void_sentinel_sk.txt"
 
   PK_FILE: "vault/nervoset-pk.txt"
   SK_ENC_FILE: "vault/nervoset-sk.enc.txt"
@@ -35,6 +35,7 @@ tasks:
   #    export SENTINEL_MASTER_PASSWORD=$(cat tmp/master_pass.txt)
   gpg_decrypt_sentinel_key:
     cmds:
+      - mkdir -p {{.LOCAL_TMP_DIR}}
       - task: genesis
       #echo "your_passphrase" | gpg --decrypt --batch --yes --passphrase-fd 0 --output decrypted_file.txt encrypted_file.gpg
       - |-
