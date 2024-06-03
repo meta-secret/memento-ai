@@ -52,7 +52,7 @@ jobs:
       - name: Build nervo-web
         working-directory: nervoset
         run: |
-          task nervo_web_build
+          devbox run task nervo_web_build
 
       - name: Set cloudflare credentials
         working-directory: infra
