@@ -10,7 +10,7 @@ vars:
 
   APP_VERSION: '0.1'
 
-  ENV: 'dev'
+  INFRA: 'dev'
 
 includes:
   common: .task/common.yml
@@ -22,7 +22,7 @@ includes:
       K8S_APP_NAME: 'probiot-t1000'
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   jarvis:
     taskfile: .task/docker.yml
@@ -31,7 +31,7 @@ includes:
       K8S_APP_NAME: "r2d2"
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   groot:
     taskfile: .task/docker.yml
@@ -40,7 +40,7 @@ includes:
       K8S_APP_NAME: 'groot'
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   walle:
     taskfile: .task/docker.yml
@@ -49,7 +49,7 @@ includes:
       K8S_APP_NAME: "walle"
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   nervo_server:
     taskfile: .task/docker.yml
@@ -60,7 +60,7 @@ includes:
       HOST_PORT: '3000'
       DOCKER_PORT: '3000'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   k8s:
     taskfile: k8s/Taskfile.yml
@@ -85,7 +85,7 @@ tasks:
     vars:
       PROD_IMAGE_NAME: '{{.REGISTRY}}/{{.REPOSITORY}}:{{.K8S_APP_NAME}}_v{{.APP_VERSION}}'
       DEV_IMAGE_NAME: '{{.REGISTRY}}/{{.REPOSITORY}}:{{.K8S_APP_NAME}}_$(whoami)_dev_v{{.APP_VERSION}}'
-      IMAGE_NAME: '{{if eq .ENV "prod"}}{{.PROD_IMAGE_NAME}}{{else}}{{.DEV_IMAGE_NAME}}{{end}}'
+      IMAGE_NAME: '{{if eq .INFRA "prod"}}{{.PROD_IMAGE_NAME}}{{else}}{{.DEV_IMAGE_NAME}}{{end}}'
     cmds:
       - echo {{.IMAGE_NAME}}
 
@@ -95,9 +95,13 @@ tasks:
       NERVO_WEB_DIR: 'nervo-web'
     cmds:
       - cd {{.NERVO_WASM_DIR}} && wasm-pack build
+
       - rm -rf {{.NERVO_WEB_DIR}}/pkg
+      - rm -rf {{.NERVO_WEB_DIR}}/dist
+
       - mkdir -p {{.NERVO_WEB_DIR}}/pkg
       - cp -r {{.NERVO_WASM_DIR}}/pkg {{.NERVO_WEB_DIR}}
+      - cd {{.NERVO_WEB_DIR}} && npm run build
 
   nervo_web_run:
     cmds:

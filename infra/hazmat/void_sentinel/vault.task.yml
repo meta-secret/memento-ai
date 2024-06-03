@@ -100,6 +100,20 @@ tasks:
           BASE_PATH: github
           KEY_NAME: token
 
+  get_cloudflare_api_token:
+    cmds:
+      - task: decrypt
+        vars:
+          BASE_PATH: cloudflare
+          KEY_NAME: api_token
+
+  get_cloudflare_account_id:
+    cmds:
+      - task: decrypt
+        vars:
+          BASE_PATH: cloudflare
+          KEY_NAME: account_id
+
   get_probiot_t1000_config:
     cmds:
       - task: decrypt

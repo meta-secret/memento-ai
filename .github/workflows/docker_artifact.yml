@@ -1,9 +1,14 @@
-name: Docker
+name: Docker Artifacts Deployment
 
 on:
+  workflow_dispatch:
+
   push:
     branches:
       - main
+    paths:
+      - '.github/workflows/docker_artifact.yml'
+      - 'nervoset/app/**'
 
 env:
   CARGO_TERM_COLOR: always
@@ -13,7 +18,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deployment:
+  docker_deployment:
     runs-on: ubuntu-latest
 
     steps:
@@ -28,18 +33,6 @@ jobs:
           project-path: 'infra'
           enable-cache: 'true'
 
-      - name: Run Vault
-        working-directory: infra
-        env:
-          NERVOSET_VOID_SENTINEL: ${{ secrets.NERVOSET_VOID_SENTINEL }}
-        run: |
-          devbox run 'cd hazmat && task vault_full_run'
-
-      # Not working for some reason
-      #- name: Login to Docker Hub
-      #  working-directory: infra
-      #  run: devbox run 'task kube:docker_login'
-
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -49,6 +42,7 @@ jobs:
       - name: Build and push docker image
         working-directory: nervoset
         run: |
-          devbox run 'task docker_probiot_t1000_push'
-          devbox run 'task docker_r2d2_push'
-          devbox run 'task docker_groot_push'
+          devbox run 'task groot:push INFRA=prod'
+          devbox run 'task probiot:push INFRA=prod'
+          devbox run 'task jarvis:push INFRA=prod'
+          devbox run 'task nervo_server:push INFRA=prod'

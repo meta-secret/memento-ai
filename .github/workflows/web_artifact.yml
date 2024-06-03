@@ -1,0 +1,70 @@
+name: Web Artifacts Deployment
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/web_artifact.yml'
+      - 'nervoset/nervo-web/**'
+      - 'nervoset/app/nervo_wasm/**'
+
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Deploy nervo-web module on cdn (cloudflare pages)
+  web_deployment:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.8.0
+        with:
+          project-path: 'nervoset'
+          enable-cache: 'true'
+
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: |
+          echo "::set-output name=dir::$(npm config get cache)"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        id: npm-cache # use this to check for `cache-hit` ==> if: steps.npm-cache.outputs.cache-hit != 'true'
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Build nervo-web
+        working-directory: nervoset
+        run: |
+          task nervo_web_build
+
+      - name: Set cloudflare credentials
+        working-directory: infra
+        run: |
+          echo "CLOUD_FLARE_API_TOKEN=$(task hazmat:void_sentinel:vault:get_cloudflare_api_token)" >> $GITHUB_ENV
+          echo "CLOUD_FLARE_ACCOUNT_ID=$(task hazmat:void_sentinel:vault:get_cloudflare_account_id)" >> $GITHUB_ENV
+
+      - name: Deploy nervo-web on cloudflare pages
+        uses: cloudflare/pages-action@1
+        with:
+          apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
+          accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
+          projectName: nervo-web
+          directory: nervoset/nervo-web/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
