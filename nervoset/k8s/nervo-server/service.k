@@ -7,13 +7,13 @@ metadata = {
 }
 spec = {
     selector = {
-        "app.kubernetes.io/name" = common.projectName
+        app = common.projectName
     }
     ports = [
         {
             name = "${common.projectName}-service-port"
             $protocol = "TCP"
-            port = 3001
+            port = 3000
             targetPort = 3000
         }
     ]

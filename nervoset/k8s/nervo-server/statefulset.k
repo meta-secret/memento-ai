@@ -7,7 +7,7 @@ kind = "StatefulSet"
 metadata = {
     name = common.projectName
     labels = {
-        "app.kubernetes.io/name" = common.projectName
+        app = common.projectName
     }
 }
 

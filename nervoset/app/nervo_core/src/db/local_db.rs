@@ -7,14 +7,14 @@ use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
-use tracing::{error, info};
+use tracing::{error};
 
 pub struct LocalDb {
     db_params: DatabaseParams,
 }
 
 impl LocalDb {
-    pub async fn try_init(db_params: DatabaseParams) -> anyhow::Result<Self> {
+    pub fn try_init(db_params: DatabaseParams) -> anyhow::Result<Self> {
         Ok(Self { db_params })
     }
 }

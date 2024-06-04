@@ -1,4 +1,3 @@
-use crate::models::nervo_message_model::TelegramMessage;
 use anyhow::bail;
 use anyhow::Result;
 use async_openai::config::OpenAIConfig;
@@ -15,7 +14,6 @@ use async_openai::types::{
 };
 use async_openai::Client;
 use serde_derive::{Deserialize, Serialize};
-use teloxide::types::ChatId;
 use tracing::error;
 
 #[derive(Clone, Debug, Deserialize)]

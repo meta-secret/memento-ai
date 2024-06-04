@@ -48,3 +48,20 @@ impl NervoConfig {
         Ok(cfg)
     }
 }
+
+impl TryFrom<NervoConfig> for AppState {
+    type Error = anyhow::Error;
+
+    fn try_from(nervo_config: NervoConfig) -> Result<Self, Self::Error> {
+        let nervo_llm = NervoLlm::from(nervo_config.llm.clone());
+        let nervo_ai_db = NervoAiDb::try_from(&nervo_config.qdrant)?;
+        let local_db = LocalDb::try_init(nervo_config.database.clone())?;
+
+        Ok(Self {
+            nervo_llm,
+            nervo_ai_db,
+            local_db,
+            nervo_config,
+        })
+    }
+}

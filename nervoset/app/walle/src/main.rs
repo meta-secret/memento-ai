@@ -1,11 +1,8 @@
-use nervo_bot_core::ai::ai_db::NervoAiDb;
-use nervo_bot_core::ai::nervo_llm::NervoLlm;
 use nervo_bot_core::common::{AppState, NervoConfig};
 use nervo_bot_core::telegram::wall_e;
 
 use std::sync::Arc;
 
-use nervo_bot_core::db::local_db::LocalDb;
 use tracing::{debug_span, Instrument, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -41,20 +38,9 @@ pub async fn start_walle() -> anyhow::Result<()> {
 
     let nervo_config = NervoConfig::load()?;
 
-    let nervo_llm = NervoLlm::from(nervo_config.llm.clone());
-
-    let nervo_ai_db = NervoAiDb::try_from(&nervo_config.qdrant)?;
-
-    let local_db = LocalDb::try_init(nervo_config.database.clone()).await?;
-
     let bot_token = nervo_config.telegram.token.clone();
 
-    let app_state = Arc::from(AppState {
-        nervo_llm,
-        nervo_ai_db,
-        local_db,
-        nervo_config,
-    });
+    let app_state = Arc::from(AppState::try_from(nervo_config)?);
 
     wall_e::start(bot_token, app_state)
         .instrument(debug_span!("walle"))

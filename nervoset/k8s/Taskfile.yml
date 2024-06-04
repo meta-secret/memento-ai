@@ -10,7 +10,7 @@ includes:
       K8S_APP_NAME: 'probiot-t1000'
       CONFIGS: pvc.k statefulset.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   groot:
     taskfile: app.task.yml
@@ -19,7 +19,7 @@ includes:
       K8S_APP_NAME: 'groot'
       CONFIGS: pvc.k statefulset.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   r2d2:
     taskfile: app.task.yml
@@ -28,16 +28,16 @@ includes:
       K8S_APP_NAME: 'r2d2'
       CONFIGS: pvc.k statefulset.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   nervo_server:
     taskfile: app.task.yml
     dir: nervo-server
     vars:
       K8S_APP_NAME: "nervo-server"
-      CONFIGS: pvc.k statefulset.k service.k
+      CONFIGS: pvc.k statefulset.k service.k ingress.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} ENV={{.ENV}}
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
 tasks:
   default:
