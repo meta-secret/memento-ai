@@ -18,7 +18,7 @@ pub async fn send_message(
     info!("table name {:?}", &table_name);
     state
         .local_db
-        .save_to_local_db(msg_request.llm_message.clone(), &table_name, true)
+        .save_to_local_db(msg_request.llm_message.clone(), &table_name, false)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

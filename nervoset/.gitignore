@@ -23,7 +23,3 @@ k8s/r2d/build
 
 k8s/nervo-server/.kclvm
 k8s/nervo-server/build
-
-nervo-web/pkg/
-
-app/groot/resources/message_counts.json

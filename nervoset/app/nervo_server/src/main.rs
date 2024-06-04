@@ -31,13 +31,17 @@ async fn main() -> anyhow::Result<()> {
     };
 
     info!("Creating router...");
+    let cors = CorsLayer::permissive();
+
+    info!("Creating router...");
     let app = Router::new()
         .route("/chat/:chat_id", get(chat))
         .route("/send_message", post(send_message))
         .with_state(app_state)
-        .layer(CorsLayer::permissive())
+        .layer(cors)
         .layer(TraceLayer::new_for_http())
         .fallback(not_found_handler);
+
 
     let port = 3000;
     info!("Run axum server, on port: {}", port);
