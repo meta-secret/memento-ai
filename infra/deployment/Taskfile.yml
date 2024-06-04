@@ -5,14 +5,16 @@ includes:
     taskfile: k3d/Taskfile.yml
     dir: k3d
     vars:
-      #CLUSTER_NAME: '{{.CLUSTER_NAME | default "nervoset-dev"}}'
       K3D_CONFIG: "k3d.dev.yaml"
+      K3D_HTTP_PORT:
+        sh: shuf -i 8000-9000 -n 1
+      K3D_HTTPS_PORT:
+        sh: shuf -i 9000-10000 -n 1
 
   k3d_prod:
     taskfile: k3d/Taskfile.yml
     dir: k3d
     vars:
-      #CLUSTER_NAME: '{{.CLUSTER_NAME | default "nervoset-prod"}}'
       K3D_CONFIG: "k3d.prod.yaml"
 
   docker_registry:

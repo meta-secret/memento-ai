@@ -15,8 +15,6 @@ agents: 3
 #  hostIP: "99.189.238.139" # where the Kubernetes API will be listening on
 #  hostPort: "6445" # where the Kubernetes API listening port will be mapped to on your host system
 
-network: k3d-nervoset
-
 volumes: # repeatable flags are represented as YAML lists
   - volume: ${HOME}/.nervoset/data:/app/nervoset/data # same as `--volume '/my/host/path:/path/in/node@server:0;agent:*'`
     nodeFilters:
@@ -24,10 +22,10 @@ volumes: # repeatable flags are represented as YAML lists
       - agent:*
 
 ports:
-  - port: 8080:80
+  - port: ${K3D_HTTP_PORT}:80
     nodeFilters:
       - loadbalancer
-  - port: 443:443
+  - port: ${K3D_HTTPS_PORT}:443
     nodeFilters:
       - loadbalancer
 

@@ -8,6 +8,11 @@ tasks:
       vars:
         - CLUSTER_NAME
         - K3D_CONFIG
+        - K3D_HTTP_PORT
+        - K3D_HTTPS_PORT
+    env:
+      K3D_HTTP_PORT: "{{.K3D_HTTP_PORT}}"
+      K3D_HTTPS_PORT: "{{.K3D_HTTPS_PORT}}"
     cmds:
       - k3d cluster create {{ .CLUSTER_NAME }} --config {{.K3D_CONFIG}} || true
 
