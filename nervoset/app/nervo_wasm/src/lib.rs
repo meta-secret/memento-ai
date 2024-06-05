@@ -2,91 +2,116 @@ mod utils;
 
 use wasm_bindgen::prelude::*;
 use log::{info, Level};
-use reqwest::{Client, Error, Response, StatusCode};
+use reqwest::{Client};
 
-
-const API_URL: &str = "http://nervoset.metaelon.space";
 
 #[wasm_bindgen]
-pub fn configure() {
-    utils::set_panic_hook();
+#[derive(Copy, Clone, Debug)]
+pub enum ApiUrl {
+    Dev, Prod
 }
 
-#[wasm_bindgen]
-pub async fn get_chat(chat_id: String) -> Result<String, JsValue> {
-    console_log::init_with_level(Level::Debug).expect("TODO: panic message");
-    info!("LIB: get_chat");
-    
-    let url = format!("{}:3000/chat/{}", API_URL, chat_id);
-    info!("LIB: url {:?}", url);
-    
-    fetch_get(&url).await
-}
-
-#[wasm_bindgen]
-pub async fn send_message(chat_id: String, user_id: u32, role: String, content: String) -> Result<String, JsValue> {
-    let json = format!(
-        "{{\"chat_id\": \"{}\", \"llm_message\": {{\"sender_id\": {}, \"role\": \"{}\", \"content\": \"{}\"}}}}",
-        chat_id, user_id, role, content
-    );
-    info!("LIB: json");
-
-    let url = format!("{}:3000/send_message", API_URL);
-    info!("LIB: Send msg url {:?} with json: {}", url, json);
-    
-    fetch_post(&url, json).await
-}
-
-async fn fetch_get(url: &str) -> Result<String, JsValue> {
-    info!("LIB: FETCH GET {:?}", url);
-    let client = Client::new();
-    info!("LIB: FETCH GET Client");
-    let response = match client.get(url)
-        // .fetch_mode_no_cors()
-        // .header("Access-Control-Allow-Origin", API_URL)
-        .send()
-        .await {
-        Ok(response) => {
-            info!("LIB: FETCH GET response {:?}", response);
-            response
-        },
-        Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
-    };
-
-    if response.status().is_success() {
-        info!("LIB: FETCH GET response SUCCESS");
-        match response.text().await {
-            Ok(body) => Ok(body),
-            Err(error) => Err(JsValue::from_str(&format!("Failed to read response body: {}", error))),
+impl ApiUrl {
+    pub fn get_url(&self) -> &str {
+        match self {
+            ApiUrl::Dev => "http://nervoset.metaelon.space",
+            ApiUrl::Prod => "https://nervoset.metaelon.space",
         }
-    } else {
-        Err(JsValue::from_str(&format!("Request failed with status code: {}", response.status())))
     }
 }
 
-async fn fetch_post(url: &str, json: String) -> Result<String, JsValue> {
-    let client = Client::new();
+#[wasm_bindgen]
+pub struct NervoClient {
+    pub api_url: ApiUrl
+}
 
-    let response = match client.post(url)
-        .header("Content-Type", "application/json")
-        .body(json)
-        .send()
-        .await {
-        Ok(response) => {
-            info!("LIB: FETCH POST response {:?}", response);
-            response
-        },
-        Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
-    };
-
-    if response.status().is_success() {
-        info!("LIB: FETCH POST response SUCCESS");
-        match response.text().await {
-            Ok(body) => Ok(body),
-            Err(error) => Err(JsValue::from_str(&format!("Failed to read response body: {}", error))),
+#[wasm_bindgen]
+impl NervoClient {
+    pub fn new(api_url: ApiUrl) -> Self {
+        NervoClient {
+            api_url
         }
-    } else {
-        Err(JsValue::from_str(&format!("Request failed, with status code: {}", response.status())))
+    }
+    
+    pub fn configure(&self) {
+        utils::set_panic_hook();
+    }
+
+    #[wasm_bindgen]
+    pub async fn get_chat(&self, chat_id: String) -> Result<String, JsValue> {
+        console_log::init_with_level(Level::Debug).expect("TODO: panic message");
+        info!("LIB: get_chat");
+
+        let url = format!("{}:3000/chat/{}", self.api_url.get_url(), chat_id);
+        info!("LIB: url {:?}", url);
+
+        self.fetch_get(&url).await
+    }
+    
+    pub async fn send_message(&self, chat_id: String, user_id: u32, role: String, content: String) -> Result<String, JsValue> {
+        let json = format!(
+            "{{\"chat_id\": \"{}\", \"llm_message\": {{\"sender_id\": {}, \"role\": \"{}\", \"content\": \"{}\"}}}}",
+            chat_id, user_id, role, content
+        );
+        info!("LIB: json");
+
+        let url = format!("{}:3000/send_message", self.api_url.get_url());
+        info!("LIB: Send msg url {:?} with json: {}", url, json);
+
+        self.fetch_post(&url, json).await
+    }
+
+    async fn fetch_get(&self, url: &str) -> Result<String, JsValue> {
+        info!("LIB: FETCH GET {:?}", url);
+        let client = Client::new();
+        info!("LIB: FETCH GET Client");
+        let response = match client.get(url)
+            // .fetch_mode_no_cors()
+            // .header("Access-Control-Allow-Origin", API_URL)
+            .send()
+            .await {
+            Ok(response) => {
+                info!("LIB: FETCH GET response {:?}", response);
+                response
+            },
+            Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
+        };
+
+        if response.status().is_success() {
+            info!("LIB: FETCH GET response SUCCESS");
+            match response.text().await {
+                Ok(body) => Ok(body),
+                Err(error) => Err(JsValue::from_str(&format!("Failed to read response body: {}", error))),
+            }
+        } else {
+            Err(JsValue::from_str(&format!("Request failed with status code: {}", response.status())))
+        }
+    }
+
+    async fn fetch_post(&self, url: &str, json: String) -> Result<String, JsValue> {
+        let client = Client::new();
+
+        let response = match client.post(url)
+            .header("Content-Type", "application/json")
+            .body(json)
+            .send()
+            .await {
+            Ok(response) => {
+                info!("LIB: FETCH POST response {:?}", response);
+                response
+            },
+            Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
+        };
+
+        if response.status().is_success() {
+            info!("LIB: FETCH POST response SUCCESS");
+            match response.text().await {
+                Ok(body) => Ok(body),
+                Err(error) => Err(JsValue::from_str(&format!("Failed to read response body: {}", error))),
+            }
+        } else {
+            Err(JsValue::from_str(&format!("Request failed, with status code: {}", response.status())))
+        }
     }
 }
 

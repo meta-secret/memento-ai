@@ -1,6 +1,6 @@
-import React, { useState, useEffect, ChangeEvent, FormEvent, Component } from 'react';
+import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import './App.css';
-import { get_chat, send_message, configure } from 'nervo-wasm';
+import { ApiUrl, NervoClient } from 'nervo-wasm';
 
 interface ChatMessage {
     role: string;
@@ -20,15 +20,17 @@ function App() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | boolean>(false);
 
+    const nervoClient = NervoClient.new(ApiUrl.Dev);
+    nervoClient.configure();
+
     useEffect(() => {
-        configure();
         fetchChat().catch(console.error);
     }, []);
 
     async function fetchChat() {
         try {
             console.log("WEB: 3. Fetch data");
-            let chatString = await get_chat(chatId);
+            let chatString = await nervoClient.get_chat(chatId);
             console.log("WEB: After get chat");
             console.log("WEB: Chat messages: ", chatString);
             let chat: Chat = JSON.parse(chatString);
@@ -54,7 +56,7 @@ function App() {
     const handleSendMessage = async (messageText: string) => {
         try {
             console.log("WEB: Sending message:", messageText);
-            let responseString = await send_message(chatId, userId, "user", messageText);
+            let responseString = await nervoClient.send_message(chatId, userId, "user", messageText);
             console.log("WEB: Received response:", responseString);
             let responseMessage: ChatMessage = JSON.parse(responseString);
 
