@@ -28,6 +28,11 @@ tasks:
   auth:
     cmds:
       - ./hash_auth.sh
+      - task: gpg_decrypt_sentinel_key_with_master_password_file
+
+  clean_up:
+    cmds:
+      - rm -rf {{.LOCAL_TMP_DIR}}/**
 
   # How to set the master password locally:
   # 1. execute task auth

@@ -52,6 +52,8 @@ tasks:
       # deploy qdrant
       - task: vector_db:qdrant_deploy
 
+      - task -t ../Taskfile.yml hazmat:void_sentinel:clean_up
+
   infra_dev_delete:
     vars:
       K8S_CLUSTER_NAME:
