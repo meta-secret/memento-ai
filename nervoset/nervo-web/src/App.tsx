@@ -20,7 +20,14 @@ function App() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | boolean>(false);
 
-    const nervoClient = NervoClient.new(ApiUrl.Dev);
+    console.log("Running mode:" + import.meta.env.MODE);
+
+    let apiUrl = ApiUrl.Prod;
+    if(import.meta.env.DEV) {
+        apiUrl = ApiUrl.Dev;
+    }
+
+    const nervoClient = NervoClient.new(apiUrl);
     nervoClient.configure();
 
     useEffect(() => {
