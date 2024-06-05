@@ -32,7 +32,7 @@ tasks:
 
   clean_up:
     cmds:
-      - rm -rf {{.LOCAL_TMP_DIR}}/**
+      - "rm -rf {{.LOCAL_TMP_DIR}}/**"
 
   # How to set the master password locally:
   # 1. execute task auth

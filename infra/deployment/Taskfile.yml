@@ -32,7 +32,7 @@ tasks:
 
   infra_prod:
     vars:
-      K3D_INFRA: k3d_prod
+      K3D_INFRA: 'k3d_prod'
       K8S_CLUSTER_NAME: nervoset
     cmds:
       - task: infra
@@ -41,7 +41,7 @@ tasks:
 
   infra_dev:
     vars:
-      K3D_INFRA: k3d_dev
+      K3D_INFRA: 'k3d_dev'
       K8S_CLUSTER_NAME:
         sh: echo $(whoami)-nervoset-dev
     cmds:
@@ -60,7 +60,7 @@ tasks:
       - task: docker_registry:docker_login
 
       # deploy k8s cluster with k3d
-      - task: {{.K3D_INFRA}}:k8s_deploy
+      - task: "{{.K3D_INFRA}}:k8s_deploy"
         vars:
           CLUSTER_NAME: '{{.K8S_CLUSTER_NAME}}'
 
