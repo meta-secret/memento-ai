@@ -14,8 +14,8 @@ pub enum ApiUrl {
 impl ApiUrl {
     pub fn get_url(&self) -> &str {
         match self {
-            ApiUrl::Dev => "http://nervoset.metaelon.space",
-            ApiUrl::Prod => "https://nervoset.metaelon.space",
+            ApiUrl::Dev => "http://nervoset.metaelon.space:3000",
+            ApiUrl::Prod => "https://prod.metaelon.space",
         }
     }
 }
@@ -42,7 +42,7 @@ impl NervoClient {
         console_log::init_with_level(Level::Debug).expect("TODO: panic message");
         info!("LIB: get_chat");
 
-        let url = format!("{}:3000/chat/{}", self.api_url.get_url(), chat_id);
+        let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
         info!("LIB: url {:?}", url);
 
         self.fetch_get(&url).await
@@ -55,7 +55,7 @@ impl NervoClient {
         );
         info!("LIB: json");
 
-        let url = format!("{}:3000/send_message", self.api_url.get_url());
+        let url = format!("{}/send_message", self.api_url.get_url());
         info!("LIB: Send msg url {:?} with json: {}", url, json);
 
         self.fetch_post(&url, json).await
