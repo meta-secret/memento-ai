@@ -57,7 +57,7 @@ function App() {
                 if (message.role === 'user') {
                     return <RequestContent key={index} text={message.content} role={message.role} />;
                 } else {
-                    return <ReplyContent key={index} text={message.content} />;
+                    return <ReplyContent key={index} text={message.content} role={message.role} />;
                 }
             });
 
@@ -87,7 +87,7 @@ function App() {
 
             setConversation(prevConversation => [
                 ...prevConversation,
-                <ReplyContent key={prevConversation.length + 1} text={responseMessage.content} />
+                <ReplyContent key={prevConversation.length + 1} text={responseMessage.content} role={responseMessage.role} />
             ]);
         } catch (error) {
             console.error("WEB: Failed to send message: ", error);
@@ -120,9 +120,11 @@ function App() {
 
 interface ReplyContentProps {
     text: string;
+    role: string;
 }
 
-const ReplyContent: React.FC<ReplyContentProps> = ({ text }) => {
+const ReplyContent: React.FC<ReplyContentProps> = ({ text, role }) => {
+    console.log(`ROLE: ${role}`)
     return (
         <div className="flex bg-slate-100 px-4 py-8 dark:bg-slate-900 sm:px-6">
             <img
@@ -141,6 +143,7 @@ const ReplyContent: React.FC<ReplyContentProps> = ({ text }) => {
 
 interface RequestContentProps {
     text?: string;
+    role: string;
 }
 
 class RequestContent extends Component<RequestContentProps, any> {

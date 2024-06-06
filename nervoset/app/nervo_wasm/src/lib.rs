@@ -14,7 +14,7 @@ pub enum ApiUrl {
 impl ApiUrl {
     pub fn get_url(&self) -> &str {
         match self {
-            ApiUrl::Dev => "http://nervoset.metaelon.space:3000",
+            ApiUrl::Dev => "http://nervoset.metaelon.space:8296",
             ApiUrl::Prod => "https://prod.metaelon.space",
         }
     }
