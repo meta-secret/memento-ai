@@ -32,6 +32,13 @@ pub async fn send_message(
         )
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    info!("REPLY: {:?}", reply);
+    
+    state
+        .local_db
+        .save_to_local_db(reply.clone(), &table_name, false)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     info!("reply {:?}", reply);
     Ok(Json(reply))
 }

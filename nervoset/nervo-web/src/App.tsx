@@ -1,6 +1,6 @@
-import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
+import React, { useState, useEffect, useRef, ChangeEvent, FormEvent, Component } from 'react';
 import './App.css';
-import { ApiUrl, NervoClient } from 'nervo-wasm';
+import { ApiUrl, NervoClient } from "nervo-wasm";
 
 interface ChatMessage {
     role: string;
@@ -12,6 +12,7 @@ interface Chat {
     messages: ChatMessage[];
 }
 
+// TODO: Delete
 const chatId = "9";
 const userId = 111;
 
@@ -19,11 +20,11 @@ function App() {
     const [conversation, setConversation] = useState<JSX.Element[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | boolean>(false);
+    const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     console.log("Running mode:" + import.meta.env.MODE);
-
     let apiUrl = ApiUrl.Prod;
-    if(import.meta.env.DEV) {
+    if (import.meta.env.DEV) {
         apiUrl = ApiUrl.Dev;
     }
 
@@ -33,6 +34,14 @@ function App() {
     useEffect(() => {
         fetchChat().catch(console.error);
     }, []);
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [conversation]);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
     async function fetchChat() {
         try {
@@ -45,7 +54,11 @@ function App() {
 
             const conversationElements = chat.messages.map((message, index) => {
                 console.log("WEB: Handle message!");
-                return <RequestContent key={index} text={message.content} role={message.role} />;
+                if (message.role === 'user') {
+                    return <RequestContent key={index} text={message.content} role={message.role} />;
+                } else {
+                    return <ReplyContent key={index} text={message.content} />;
+                }
             });
 
             console.log("WEB: Set conversation, length: " + conversationElements.length);
@@ -61,17 +74,20 @@ function App() {
     }
 
     const handleSendMessage = async (messageText: string) => {
+        setConversation(prevConversation => [
+            ...prevConversation,
+            <RequestContent key={prevConversation.length} text={messageText} role="user" />
+        ]);
+
         try {
             console.log("WEB: Sending message:", messageText);
             let responseString = await nervoClient.send_message(chatId, userId, "user", messageText);
             console.log("WEB: Received response:", responseString);
             let responseMessage: ChatMessage = JSON.parse(responseString);
 
-            // Update conversation
             setConversation(prevConversation => [
                 ...prevConversation,
-                <RequestContent key={prevConversation.length} text={messageText} role="User" />,
-                <RequestContent key={prevConversation.length + 1} text={responseMessage.content} role="Assistant" />
+                <ReplyContent key={prevConversation.length + 1} text={responseMessage.content} />
             ]);
         } catch (error) {
             console.error("WEB: Failed to send message: ", error);
@@ -84,7 +100,7 @@ function App() {
     }
 
     if (error) {
-        console.log("WEB: Error!!!!", error);
+        console.log("Error!!!!", error);
         return <div>{error}</div>;
     }
 
@@ -94,31 +110,55 @@ function App() {
                 className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-slate-800 dark:text-slate-300 sm:text-base sm:leading-7"
             >
                 {conversation}
+                <div ref={messagesEndRef} />
             </div>
+
             <MessagingPanel sendMessage={handleSendMessage} />
         </div>
     );
 }
 
-interface RequestContentProps {
+interface ReplyContentProps {
     text: string;
-    role: string;
 }
 
-const RequestContent: React.FC<RequestContentProps> = ({ text, role }) => {
-    const isUser = role === "User";
+const ReplyContent: React.FC<ReplyContentProps> = ({ text }) => {
     return (
-        <div className={`flex ${isUser ? 'flex-row' : 'flex-row-reverse'} px-4 py-8 sm:px-6`}>
+        <div className="flex bg-slate-100 px-4 py-8 dark:bg-slate-900 sm:px-6">
             <img
                 className="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
-                src={isUser ? "https://dummyimage.com/256x256/363536/ffffff&text=U" : "https://dummyimage.com/256x256/354ea1/ffffff&text=G"}
+                src="https://dummyimage.com/256x256/354ea1/ffffff&text=G"
+                alt="Assistant Avatar"
             />
-            <div className="flex max-w-3xl items-center">
-                <p>{text}</p>
+            <div className="flex w-full flex-col items-start lg:flex-row lg:justify-between">
+                <p className="max-w-3xl">
+                    {text}
+                </p>
             </div>
         </div>
     );
 };
+
+interface RequestContentProps {
+    text?: string;
+}
+
+class RequestContent extends Component<RequestContentProps, any> {
+    render() {
+        return (
+            <div className="flex flex-row px-4 py-8 sm:px-6">
+                <img
+                    className="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
+                    src="https://dummyimage.com/256x256/363536/ffffff&text=U"
+                    alt="User Avatar"
+                />
+                <div className="flex max-w-3xl items-center">
+                    <p>{this.props.text}</p>
+                </div>
+            </div>
+        );
+    }
+}
 
 interface MessagingPanelProps {
     sendMessage: (messageText: string) => void;
