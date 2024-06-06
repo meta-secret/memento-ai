@@ -13,7 +13,8 @@
     "coreutils@9.4",
     "nodejs@22.0.0",
     "kcl-cli@0.8.9",
-    "wasm-pack@0.12.1"
+    "wasm-pack@0.12.1",
+    "jdk@22.0.0"
   ],
   "shell": {
     "init_hook": [

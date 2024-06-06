@@ -10,7 +10,8 @@
     "gnupg@2.4.5",
     "jq@1.7.1",
     "coreutils@9.4",
-    "gawk@5.2.2"
+    "gawk@5.2.2",
+    "jdk@22.0.0"
   ],
   "shell": {
     "init_hook": [],

@@ -10,13 +10,14 @@ vars:
 
   APP_VERSION: '0.1'
 
-  INFRA: 'dev'
-
 includes:
   common: .task/common.yml
 
   probiot:
     taskfile: .task/docker.yml
+    requires:
+      vars:
+        - INFRA #'dev' or 'prod'
     vars:
       APP_NAME: 'probiot_t1000'
       K8S_APP_NAME: 'probiot-t1000'
@@ -26,6 +27,9 @@ includes:
 
   jarvis:
     taskfile: .task/docker.yml
+    requires:
+      vars:
+        - INFRA #'dev' or 'prod'
     vars:
       APP_NAME: 'r2d2'
       K8S_APP_NAME: "r2d2"
@@ -35,6 +39,9 @@ includes:
 
   groot:
     taskfile: .task/docker.yml
+    requires:
+      vars:
+        - INFRA #'dev' or 'prod'
     vars:
       APP_NAME: 'groot'
       K8S_APP_NAME: 'groot'
@@ -44,6 +51,9 @@ includes:
 
   walle:
     taskfile: .task/docker.yml
+    requires:
+      vars:
+        - INFRA #'dev' or 'prod'
     vars:
       APP_NAME: 'walle'
       K8S_APP_NAME: "walle"
@@ -53,6 +63,9 @@ includes:
 
   nervo_server:
     taskfile: .task/docker.yml
+    requires:
+      vars:
+        - INFRA #'dev' or 'prod'
     vars:
       APP_NAME: 'nervo_server'
       K8S_APP_NAME: "nervo-server"
@@ -82,12 +95,16 @@ tasks:
         - REPOSITORY
         - K8S_APP_NAME
         - APP_VERSION
-    vars:
-      PROD_IMAGE_NAME: '{{.REGISTRY}}/{{.REPOSITORY}}:{{.K8S_APP_NAME}}_v{{.APP_VERSION}}'
-      DEV_IMAGE_NAME: '{{.REGISTRY}}/{{.REPOSITORY}}:{{.K8S_APP_NAME}}_$(whoami)_dev_v{{.APP_VERSION}}'
-      IMAGE_NAME: '{{if eq .INFRA "prod"}}{{.PROD_IMAGE_NAME}}{{else}}{{.DEV_IMAGE_NAME}}{{end}}'
+        - INFRA
     cmds:
-      - echo {{.IMAGE_NAME}}
+      - |
+        ./gradlew \
+            -Pinfra={{.INFRA}} \
+            -Pregistry={{.REGISTRY}} \
+            -Prepository={{.REPOSITORY}} \
+            -Pk8sAppName={{.K8S_APP_NAME}} \
+            -PappVersion={{.APP_VERSION}} \
+            imgName -q
 
   nervo_web_build:
     vars:
