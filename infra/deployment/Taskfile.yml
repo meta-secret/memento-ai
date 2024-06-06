@@ -15,9 +15,9 @@ includes:
     vars:
       K3D_CONFIG: "k3d.dev.yaml"
       K3D_HTTP_PORT:
-        sh: shuf -i 8000-9000 -n 1
+        sh: shuf -i 8000-9000 -n 1 # random port between 8000 and 9000
       K3D_HTTPS_PORT:
-        sh: shuf -i 9000-10000 -n 1
+        sh: shuf -i 9000-10000 -n 1 # random port between 9000 and 10000
 
   docker_registry:
     taskfile: docker-registry/Taskfile.yml
@@ -30,37 +30,37 @@ tasks:
     cmds:
       - task --list-all
 
-  infra_prod:
-    vars:
-      K3D_INFRA: 'k3d_prod'
-      K8S_CLUSTER_NAME: nervoset
-    cmds:
-      - task: infra
-        vars:
-          K8S_CLUSTER_NAME: '{{.K8S_CLUSTER_NAME}}'
-
   infra_dev:
     vars:
-      K3D_INFRA: 'k3d_dev'
-      K8S_CLUSTER_NAME:
-        sh: echo $(whoami)-nervoset-dev
+      INFRA: 'dev'
     cmds:
       - task: infra
         vars:
-          K8S_CLUSTER_NAME: '{{.K8S_CLUSTER_NAME}}'
+          INFRA: "{{.INFRA}}"
+
+  infra_prod:
+    vars:
+      INFRA: 'prod'
+    cmds:
+      - task: infra
+        vars:
+          INFRA: "{{.INFRA}}"
 
   # k3d installation has to be done outside of this task
   infra:
     requires:
       vars:
-        - K8S_CLUSTER_NAME
+        - INFRA
+    vars:
+      K8S_CLUSTER_NAME:
+        sh: "echo $(whoami)-nervoset-{{.INFRA}}"
     cmds:
       - task -t ../Taskfile.yml auth
 
       - task: docker_registry:docker_login
 
       # deploy k8s cluster with k3d
-      - task: "{{.K3D_INFRA}}:k8s_deploy"
+      - task: "k3d_{{.INFRA}}:k8s_deploy"
         vars:
           CLUSTER_NAME: '{{.K8S_CLUSTER_NAME}}'
 
@@ -74,15 +74,6 @@ tasks:
       - task: vector_db:qdrant_deploy
 
       - task -t ../Taskfile.yml hazmat:void_sentinel:clean_up
-
-  infra_dev_delete:
-    vars:
-      K8S_CLUSTER_NAME:
-        sh: echo $(whoami)-nervoset-dev
-    cmds:
-      - task: k3d_dev:k8s_delete
-        vars:
-          CLUSTER_NAME: '{{.K8S_CLUSTER_NAME}}'
 
   k3d_within_docker:
     cmds:
