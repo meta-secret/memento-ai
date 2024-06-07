@@ -7,16 +7,32 @@ use reqwest::{Client};
 
 #[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
-pub enum ApiUrl {
-    Dev, Prod
+pub struct ApiUrl {
+    url: &'static str,
+    port: u32 
 }
 
+#[wasm_bindgen]
 impl ApiUrl {
-    pub fn get_url(&self) -> &str {
-        match self {
-            ApiUrl::Dev => "http://nervoset.metaelon.space:8296",
-            ApiUrl::Prod => "https://prod.metaelon.space",
+    pub fn dev(port: u32) -> Self {
+        ApiUrl {
+            url: "http://nervoset.metaelon.space",
+            port
         }
+    }
+    
+    pub fn prod() -> Self {
+        ApiUrl {
+            url: "https://prod.metaelon.space",
+            port: 443
+        }
+    }
+}
+
+#[wasm_bindgen]
+impl ApiUrl {
+    pub fn get_url(&self) -> String {
+        format!("{}:{}", self.url, self.port)
     }
 }
 

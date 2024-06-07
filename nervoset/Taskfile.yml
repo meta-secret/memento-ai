@@ -121,9 +121,12 @@ tasks:
       - cd {{.NERVO_WEB_DIR}} && npm install && npm run build
 
   nervo_web_run:
+    requires:
+      vars:
+        - SERVER_PORT
     cmds:
       - task: nervo_web_build
-      - cd nervo-web && npm run dev
+      - "cd nervo-web && VITE_SERVER_PORT={{.SERVER_PORT}} npm run dev"
 
   test:
     cmds:

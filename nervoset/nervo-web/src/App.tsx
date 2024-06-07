@@ -23,9 +23,11 @@ function App() {
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     console.log("Running mode:" + import.meta.env.MODE);
-    let apiUrl = ApiUrl.Prod;
+    let apiUrl = ApiUrl.prod();
     if (import.meta.env.DEV) {
-        apiUrl = ApiUrl.Dev;
+        let serverPort: number = import.meta.env.VITE_SERVER_PORT;
+        console.log("port: " + serverPort);
+        apiUrl = ApiUrl.dev(serverPort);
     }
 
     const nervoClient = NervoClient.new(apiUrl);
