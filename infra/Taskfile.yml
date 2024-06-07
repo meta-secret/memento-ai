@@ -2,6 +2,11 @@ version: '3'
 
 set: [pipefail]
 
+vars:
+  REGISTRY: 'cypherkitty'
+  REPOSITORY: 'nervoset'
+  APP_VERSION: '0.1'
+
 includes:
   hazmat:
     taskfile: hazmat/Taskfile.yml
@@ -9,6 +14,13 @@ includes:
   deployment:
     taskfile: deployment/Taskfile.yml
     dir: deployment
+  k8s:
+    taskfile: k8s/Taskfile.yml
+    dir: k8s
+    vars:
+      REGISTRY: '{{.REGISTRY}}'
+      REPOSITORY: '{{.REPOSITORY}}'
+      VERSION: '{{.APP_VERSION}}'
 
 tasks:
   default:

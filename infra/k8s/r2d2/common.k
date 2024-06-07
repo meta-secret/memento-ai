@@ -7,6 +7,6 @@ schema Labels:
     location: str
 
 
-projectName = "groot"
+projectName = "r2d2"
 volumeName = "${projectName}-vol"
 appPath = "/app/nervoset"

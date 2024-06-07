@@ -24,7 +24,7 @@ tasks:
 
   deliver_config:
     cmds:
-      - task -t ../../../infra/Taskfile.yml hazmat:void_sentinel:vault:get_{{.K8S_APP_NAME}}_config > {{.BUILD_DIR}}/config.yaml
+      - task -t ../Taskfile.yml hazmat:void_sentinel:vault:get_{{.K8S_APP_NAME}}_config > {{.BUILD_DIR}}/config.yaml
 
   generate_config_maps:
     cmds:

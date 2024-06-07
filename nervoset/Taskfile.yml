@@ -13,7 +13,7 @@ vars:
 includes:
   common: .task/common.yml
 
-  probiot:
+  docker_probiot:
     taskfile: .task/docker.yml
     requires:
       vars:
@@ -25,7 +25,7 @@ includes:
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
-  jarvis:
+  docker_jarvis:
     taskfile: .task/docker.yml
     requires:
       vars:
@@ -37,7 +37,7 @@ includes:
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
-  groot:
+  docker_groot:
     taskfile: .task/docker.yml
     requires:
       vars:
@@ -49,7 +49,7 @@ includes:
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
-  walle:
+  docker_walle:
     taskfile: .task/docker.yml
     requires:
       vars:
@@ -61,7 +61,7 @@ includes:
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
-  nervo_server:
+  docker_nervo_server:
     taskfile: .task/docker.yml
     requires:
       vars:
@@ -74,14 +74,6 @@ includes:
       DOCKER_PORT: '3000'
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
-
-  k8s:
-    taskfile: k8s/Taskfile.yml
-    dir: k8s
-    vars:
-      REGISTRY: '{{.REGISTRY}}'
-      REPOSITORY: '{{.REPOSITORY}}'
-      VERSION: '{{.APP_VERSION}}'
 
 tasks:
   default:
