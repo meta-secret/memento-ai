@@ -80,6 +80,24 @@ tasks:
     cmds:
       - task --list-all
 
+  img_name:
+    requires:
+      vars:
+        - REGISTRY
+        - REPOSITORY
+        - K8S_APP_NAME
+        - APP_VERSION
+        - INFRA
+    cmds:
+      - |
+        cd ../infra && ./gradlew \
+            -Pinfra={{.INFRA}} \
+            -Pregistry={{.REGISTRY}} \
+            -Prepository={{.REPOSITORY}} \
+            -Pk8sAppName={{.K8S_APP_NAME}} \
+            -PappVersion={{.APP_VERSION}} \
+            imgName -q
+
   nervo_web_build:
     vars:
       NERVO_WASM_DIR: 'app/nervo_wasm'
