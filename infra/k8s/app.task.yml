@@ -24,7 +24,7 @@ tasks:
 
   deliver_config:
     cmds:
-      - task -t ../Taskfile.yml hazmat:void_sentinel:vault:get_{{.K8S_APP_NAME}}_config > {{.BUILD_DIR}}/config.yaml
+      - task -t ../../Taskfile.yml hazmat:void_sentinel:vault:get_{{.K8S_APP_NAME}}_config > {{.BUILD_DIR}}/config.yaml
 
   generate_config_maps:
     cmds:
@@ -41,7 +41,7 @@ tasks:
   generate_manifests:
     requires:
       vars:
-        - IMAGE_NAME #cypherkitty/nervoset:probiot_t1000_v0.1
+        - IMAGE_NAME
     cmds:
       - mkdir -p {{.BUILD_DIR}}
       - for: { var: CONFIGS }

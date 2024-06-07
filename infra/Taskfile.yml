@@ -31,6 +31,24 @@ tasks:
     cmds:
       - task hazmat:void_sentinel:auth
 
+  img_name:
+    requires:
+      vars:
+        - REGISTRY
+        - REPOSITORY
+        - K8S_APP_NAME
+        - APP_VERSION
+        - INFRA
+    cmds:
+      - |
+        ./gradlew \
+            -Pinfra={{.INFRA}} \
+            -Pregistry={{.REGISTRY}} \
+            -Prepository={{.REPOSITORY}} \
+            -Pk8sAppName={{.K8S_APP_NAME}} \
+            -PappVersion={{.APP_VERSION}} \
+            imgName -q
+
   completions:
     cmds:
       - alias k=kubectl
