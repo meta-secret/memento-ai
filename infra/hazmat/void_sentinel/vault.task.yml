@@ -115,27 +115,51 @@ tasks:
           KEY_NAME: account_id
 
   get_probiot_t1000_config:
+    requires:
+      vars:
+        - INFRA
+    vars:
+      USER:
+        sh: echo ${USER}
     cmds:
       - task: decrypt
         vars:
-          BASE_PATH: nervobot
+          BASE_PATH: nervobot/{{.INFRA}}/{{.USER}}
           KEY_NAME: probiot_t1000.config.yaml
 
   get_groot_config:
+    requires:
+      vars:
+        - INFRA
+    vars:
+      USER:
+        sh: echo ${USER}
     cmds:
       - task: decrypt
         vars:
-          BASE_PATH: nervobot
+          BASE_PATH: nervobot/{{.INFRA}}/{{.USER}}
           KEY_NAME: groot.config.yaml
 
   get_r2d2_config:
+    requires:
+      vars:
+        - INFRA
+    vars:
+      USER:
+        sh: echo ${USER}
     cmds:
       - task: decrypt
         vars:
-          BASE_PATH: nervobot
+          BASE_PATH: nervobot/{{.INFRA}}/{{.USER}}
           KEY_NAME: r2d2.config.yaml
 
   get_nervo-server_config:
+    requires:
+      vars:
+        - INFRA
+    vars:
+      USER:
+        sh: echo ${USER}
     cmds:
       - task: decrypt
         vars:

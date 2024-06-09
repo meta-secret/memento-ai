@@ -21,6 +21,7 @@ includes:
       REGISTRY: '{{.REGISTRY}}'
       REPOSITORY: '{{.REPOSITORY}}'
       VERSION: '{{.APP_VERSION}}'
+      INFRA: '{{.INFRA}}'
 
 tasks:
   default:
