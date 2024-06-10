@@ -47,15 +47,10 @@ function App() {
 
     async function fetchChat() {
         try {
-            console.log("WEB: 3. Fetch data");
             let chatString = await nervoClient.get_chat(chatId);
-            console.log("WEB: After get chat");
-            console.log("WEB: Chat messages: ", chatString);
             let chat: Chat = JSON.parse(chatString);
-            console.log("WEB: Messages parse done");
 
             const conversationElements = chat.messages.map((message, index) => {
-                console.log("WEB: Handle message!");
                 if (message.role === 'user') {
                     return <RequestContent key={index} text={message.content} role={message.role} />;
                 } else {
@@ -63,14 +58,12 @@ function App() {
                 }
             });
 
-            console.log("WEB: Set conversation, length: " + conversationElements.length);
             setConversation(conversationElements);
 
         } catch (error) {
             console.error("WEB: Failed to fetch chat: ", error);
             setError("WEB: Failed to fetch chat");
         } finally {
-            console.log("WEB: Finally!!!!");
             setLoading(false);
         }
     }
@@ -82,9 +75,7 @@ function App() {
         ]);
 
         try {
-            console.log("WEB: Sending message:", messageText);
             let responseString = await nervoClient.send_message(chatId, userId, "user", messageText);
-            console.log("WEB: Received response:", responseString);
             let responseMessage: ChatMessage = JSON.parse(responseString);
 
             setConversation(prevConversation => [
@@ -188,20 +179,45 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
         <form className="mt-2" onSubmit={handleSubmit}>
             <label htmlFor="chat-input" className="sr-only">Enter your prompt</label>
             <div className="relative">
+                <button
+                    type="button"
+                    className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-500"
+                >
+                    <svg
+                        aria-hidden="true"
+                        className="h-5 w-5"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                        strokeWidth="2"
+                        stroke="currentColor"
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    >
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path
+                            d="M9 2m0 3a3 3 0 0 1 3 -3h0a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h0a3 3 0 0 1 -3 -3z"
+                        ></path>
+                        <path d="M5 10a7 7 0 0 0 14 0"></path>
+                        <path d="M8 21l8 0"></path>
+                        <path d="M12 17l0 4"></path>
+                    </svg>
+                    <span className="sr-only">Use voice input</span>
+                </button>
                 <textarea
                     id="chat-input"
                     name="chat-input"
                     rows={1}
-                    className="w-full resize-none border-0 bg-transparent p-0 text-white placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
-                    placeholder="Enter your prompt..."
+                    className="block w-full resize-none rounded-xl border-none bg-slate-200 p-4 pl-16 pr-20 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-400 dark:focus:ring-blue-500 sm:text-base"
+                    placeholder="Enter your prompt"
                     value={messageText}
                     onChange={handleMessageChange}
                 />
                 <button
                     type="submit"
-                    className="absolute inset-y-0 right-0 flex items-center bg-blue-500 text-white px-3 py-1 rounded-lg hover:bg-blue-600 focus:outline-none"
+                    className="absolute bottom-2 right-2.5 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 sm:text-base"
                 >
-                    Send
+                    Send <span className="sr-only">Send message</span>
                 </button>
             </div>
         </form>
