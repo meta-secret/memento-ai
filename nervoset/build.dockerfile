@@ -30,7 +30,7 @@ ARG APP_NAME
 WORKDIR /app/nervoset
 
 # Install ca-certificates https://github.com/telegram-rs/telegram-bot/issues/236
-RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates
+RUN apt-get update && apt-get install -y ca-certificates curl iputils-ping && update-ca-certificates
 
 COPY --from=builder /app/nervoset/target/release/${APP_NAME} /app/nervoset/nervobot
 CMD ./nervobot
