@@ -14,7 +14,9 @@
     "jdk@22.0.0"
   ],
   "shell": {
-    "init_hook": [],
+    "init_hook": [
+      "alias k=kubectl"
+    ],
     "scripts": {
       "auth": "task auth"
     }

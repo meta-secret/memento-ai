@@ -121,10 +121,11 @@ tasks:
     vars:
       USER:
         sh: echo ${USER}
+      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
     cmds:
       - task: decrypt
         vars:
-          BASE_PATH: nervobot/{{.INFRA}}/{{.USER}}
+          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
           KEY_NAME: probiot-t1000.config.yaml
 
   get_groot_config:
@@ -134,10 +135,11 @@ tasks:
     vars:
       USER:
         sh: echo ${USER}
+      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
     cmds:
       - task: decrypt
         vars:
-          BASE_PATH: nervobot/{{.INFRA}}/{{.USER}}
+          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
           KEY_NAME: groot.config.yaml
 
   get_r2d2_config:
@@ -147,10 +149,11 @@ tasks:
     vars:
       USER:
         sh: echo ${USER}
+      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
     cmds:
       - task: decrypt
         vars:
-          BASE_PATH: nervobot/{{.INFRA}}/{{.USER}}
+          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
           KEY_NAME: r2d2.config.yaml
 
   get_nervo-server_config:
@@ -160,10 +163,11 @@ tasks:
     vars:
       USER:
         sh: echo ${USER}
+      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
     cmds:
       - task: decrypt
         vars:
-          BASE_PATH: nervobot/{{.INFRA}}/{{.USER}}
+          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
           KEY_NAME: nervo-server.config.yaml
 
   get_test:
