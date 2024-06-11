@@ -96,7 +96,8 @@ tasks:
             -Prepository={{.REPOSITORY}} \
             -Pk8sAppName={{.K8S_APP_NAME}} \
             -PappVersion={{.APP_VERSION}} \
-            imgName -q
+            --quiet \
+            imgName
 
   nervo_web_build:
     vars:
