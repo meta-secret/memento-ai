@@ -17,3 +17,5 @@ config/nervo_server/config.yaml
 
 # Ignore Gradle build output directory
 build
+
+k8s/nervo-server/.kclvm
