@@ -125,7 +125,7 @@ tasks:
       - task: decrypt
         vars:
           BASE_PATH: nervobot/{{.INFRA}}/{{.USER}}
-          KEY_NAME: probiot_t1000.config.yaml
+          KEY_NAME: probiot-t1000.config.yaml
 
   get_groot_config:
     requires:
@@ -163,7 +163,7 @@ tasks:
     cmds:
       - task: decrypt
         vars:
-          BASE_PATH: nervobot
+          BASE_PATH: nervobot/{{.INFRA}}/{{.USER}}
           KEY_NAME: nervo-server.config.yaml
 
   get_test:
