@@ -12,6 +12,10 @@ config/r2d2/config.yaml
 config/groot/config.yaml
 config/nervo_server/config.yaml
 
+app/groot/resources/white_listed_users.json
+app/groot/resources/black_listed_users.json
+app/groot/resources/message_counts.json
+
 # Ignore Gradle project-specific cache directory
 .gradle
 
@@ -20,6 +24,4 @@ build
 
 k8s/nervo-server/.kclvm
 
-app/groot/resources/white_listed_users.json
-app/groot/resources/black_listed_users.json
-app/groot/resources/message_counts.json
+
