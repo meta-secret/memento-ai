@@ -91,10 +91,10 @@ tasks:
       - |
         cd ../infra && ./gradlew \
             -Pinfra={{.INFRA}} \
-            -Pregistry={{.base_vars.REGISTRY}} \
-            -Prepository={{.base_vars.REPOSITORY}} \
+            -Pregistry={{.REGISTRY}} \
+            -Prepository={{.REPOSITORY}} \
             -Pk8sAppName={{.K8S_APP_NAME}} \
-            -PappVersion={{.base_vars.APP_VERSION}} \
+            -PappVersion={{.APP_VERSION}} \
             --quiet \
             imgName
 
