@@ -2,15 +2,9 @@ version: '3'
 
 set: [pipefail]
 
-vars:
-  REGISTRY: 'cypherkitty'
-  REPOSITORY: 'nervoset'
-
-  BASE_IMAGE: "nervoset/base:latest"
-
-  APP_VERSION: '0.1'
-
 includes:
+  base_vars: .task/base_vars.yml
+
   common: .task/common.yml
 
   docker_probiot:
@@ -23,7 +17,7 @@ includes:
       K8S_APP_NAME: 'probiot-t1000'
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} APP_NAME={{.APP_NAME}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
   docker_jarvis:
     taskfile: .task/docker.yml
@@ -35,7 +29,7 @@ includes:
       K8S_APP_NAME: "r2d2"
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
   docker_groot:
     taskfile: .task/docker.yml
@@ -47,7 +41,7 @@ includes:
       K8S_APP_NAME: 'groot'
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
   docker_walle:
     taskfile: .task/docker.yml
@@ -59,7 +53,7 @@ includes:
       K8S_APP_NAME: "walle"
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
   docker_nervo_server:
     taskfile: .task/docker.yml
@@ -73,7 +67,7 @@ includes:
       HOST_PORT: '3000'
       DOCKER_PORT: '3000'
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
 tasks:
   default:
@@ -83,19 +77,16 @@ tasks:
   img_name:
     requires:
       vars:
-        - REGISTRY
-        - REPOSITORY
         - K8S_APP_NAME
-        - APP_VERSION
         - INFRA
     cmds:
       - |
         cd ../infra && ./gradlew \
             -Pinfra={{.INFRA}} \
-            -Pregistry={{.REGISTRY}} \
-            -Prepository={{.REPOSITORY}} \
+            -Pregistry={{.base_vars.REGISTRY}} \
+            -Prepository={{.base_vars.REPOSITORY}} \
             -Pk8sAppName={{.K8S_APP_NAME}} \
-            -PappVersion={{.APP_VERSION}} \
+            -PappVersion={{.base_vars.APP_VERSION}} \
             --quiet \
             imgName
 

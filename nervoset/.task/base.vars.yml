@@ -1,0 +1,9 @@
+schema: '3'
+
+vars:
+  REGISTRY: 'cypherkitty'
+  REPOSITORY: 'nervoset'
+
+  BASE_IMAGE: "nervoset/base:latest"
+
+  APP_VERSION: '0.1'

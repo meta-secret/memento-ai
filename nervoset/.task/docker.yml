@@ -2,13 +2,6 @@ version: '3'
 
 set: [pipefail]
 
-requires:
-  vars:
-    - REGISTRY
-    - REPOSITORY
-    - APP_NAME
-    - VERSION
-
 includes:
   common: common.yml
 
