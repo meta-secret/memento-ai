@@ -1,2 +1,2 @@
-# nervo_bot
-Nervo Bot of the world
+# nervo_soft
+Nervo Soft of the world
