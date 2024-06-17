@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, ChangeEvent, FormEvent, Component } from 'react';
 import './App.css';
 import { ApiUrl, NervoClient } from "nervo-wasm";
+import Cookies from 'js-cookie';
 
 interface ChatMessage {
     role: string;
@@ -12,15 +13,13 @@ interface Chat {
     messages: ChatMessage[];
 }
 
-// TODO: Delete
-const chatId = "9";
-const userId = 111;
-
 function App() {
     const [conversation, setConversation] = useState<JSX.Element[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | boolean>(false);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
+    const userId = getUserId();
+    const chatId = getChatId();
 
     console.log("Running mode:" + import.meta.env.MODE);
     let apiUrl = ApiUrl.prod();
@@ -44,6 +43,25 @@ function App() {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
+
+    function getUserId() {
+        let userId = Cookies.get('userId');
+        if (!userId) {
+            userId = Math.floor(Math.random() * 0xFFFFFFFF).toString();
+            Cookies.set('userId', userId);
+        }
+        return userId;
+    }
+
+    function getChatId() {
+        let chatId = Cookies.get('chatId');
+        if (!chatId) {
+            chatId = Math.floor(Math.random() * 0xFFFFFFFF).toString();
+            Cookies.set('chatId', chatId);
+        }
+        console.log("chatId from cookies:");
+        return chatId;
+    }
 
     async function fetchChat() {
         try {
@@ -75,7 +93,9 @@ function App() {
         ]);
 
         try {
-            let responseString = await nervoClient.send_message(chatId, userId, "user", messageText);
+            const numUserId = parseInt(userId, 10);
+            let resultUserId = numUserId >>> 0;
+            let responseString = await nervoClient.send_message(chatId, resultUserId, "user", messageText);
             let responseMessage: ChatMessage = JSON.parse(responseString);
 
             setConversation(prevConversation => [

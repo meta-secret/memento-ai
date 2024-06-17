@@ -14,7 +14,7 @@ pub async fn send_message(
     info!("Save message to DB");
     let user_id_number: u64 = msg_request.llm_message.sender_id;
     let chat_id_number: u64 = msg_request.chat_id.parse().expect("Failed to parse string");
-    let table_name = msg_request.chat_id;
+    let table_name = msg_request.chat_id; //let table_name = format!("user_{}_chat_{}", user_id_number, chat_id_number);
     info!("table name {:?}", &table_name);
     state
         .local_db

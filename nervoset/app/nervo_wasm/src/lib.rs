@@ -82,8 +82,6 @@ impl NervoClient {
         let client = Client::new();
         info!("LIB: FETCH GET Client");
         let response = match client.get(url)
-            // .fetch_mode_no_cors()
-            // .header("Access-Control-Allow-Origin", API_URL)
             .send()
             .await {
             Ok(response) => {

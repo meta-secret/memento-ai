@@ -12,6 +12,7 @@ pub async fn chat(
 ) -> Result<Json<LlmChat>, StatusCode> {
     // LLM interacting
     info!("Read messages from DB");
+    // let table_name = //format!("user_{}_chat_{}", chat_id, chat_id);
     let cached_messages: Vec<LlmMessage> = state
         .local_db
         .read_from_local_db(format!("{}", chat_id).as_str())
