@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, ChangeEvent, FormEvent, Component } from 'react';
-import './App.css';
 import { ApiUrl, NervoClient } from "nervo-wasm";
 import Cookies from 'js-cookie';
 
@@ -22,6 +21,7 @@ function App() {
     const chatId = getChatId();
 
     console.log("Running mode:" + import.meta.env.MODE);
+
     let apiUrl = ApiUrl.prod();
     if (import.meta.env.DEV) {
         let serverPort: number = import.meta.env.VITE_SERVER_PORT;
