@@ -79,5 +79,5 @@ jobs:
           apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
           accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
           projectName: nervo-web
-          directory: nervoset/nervo-web/dist
+          directory: nervoset/nervo-web/dist/app
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

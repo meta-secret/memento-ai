@@ -23,14 +23,7 @@ export default defineConfig({
   ],
 
   build: {
-    lib: {
-      entry: "./src/index.tsx",
-      name: "NervoChat",
-      formats: ["es"],
-      fileName: (format) => `NervoChat.${format}.js`,
-    },
-    target: "esnext",
-    outDir: 'dist/lib'
+    outDir: 'dist/app'
   }
 });
 

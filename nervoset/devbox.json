@@ -1,19 +1,27 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetpack-io/devbox/0.10.3/.schema/devbox.schema.json",
   "packages": [
+    "docker_25@25.0.3",
+
     "k3d@5.6.0",
     "kubernetes-helm@3.14.3",
     "kubectl@1.29.3",
+
     "go-task@3.37.0",
-    "docker_25@25.0.3",
+
+    "rustup@1.26.0",
+    "jdk@22.0.0",
+
     "age@1.1.1",
     "gnupg@2.4.5",
+
     "git@2.44.0",
-    "rustup@1.26.0",
     "coreutils@9.4",
+
     "nodejs@22.0.0",
-    "wasm-pack@0.12.1",
-    "jdk@22.0.0"
+    "typescript@5.4.5",
+
+    "wasm-pack@0.12.1"
   ],
   "shell": {
     "init_hook": [

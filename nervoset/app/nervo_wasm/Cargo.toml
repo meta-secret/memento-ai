@@ -1,7 +1,10 @@
 [package]
 name = "nervo-wasm"
 version = "0.1.0"
-authors = ["Big_DK <dmitry@meta-secret.org>"]
+authors = [
+    "Big_DK <dmitry@meta-secret.org>",
+    "CypherKitty <bynull@meta-secret.org>"
+]
 edition = "2018"
 
 [lib]

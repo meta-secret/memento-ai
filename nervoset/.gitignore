@@ -25,5 +25,6 @@ app/groot/resources/restricted_words.json
 build
 
 k8s/nervo-server/.kclvm
+nervo-web/package-lock.json
 
 
