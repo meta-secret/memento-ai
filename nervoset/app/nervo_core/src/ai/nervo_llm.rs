@@ -1,6 +1,11 @@
 use anyhow::bail;
 use anyhow::Result;
+use async_openai::Client;
 use async_openai::config::OpenAIConfig;
+use async_openai::types::{
+    ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
+    ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent, Role,
+};
 use async_openai::types::ChatCompletionRequestUserMessage;
 use async_openai::types::CreateChatCompletionRequestArgs;
 use async_openai::types::CreateEmbeddingRequestArgs;
@@ -8,13 +13,7 @@ use async_openai::types::CreateEmbeddingResponse;
 use async_openai::types::CreateModerationRequest;
 use async_openai::types::CreateTranscriptionRequest;
 use async_openai::types::ModerationInput;
-use async_openai::types::{
-    ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
-    ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent, Role,
-};
-use async_openai::Client;
 use serde_derive::{Deserialize, Serialize};
-use tracing::error;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct NervoLlmConfig {
@@ -56,100 +55,68 @@ impl NervoLlm {
 }
 
 impl NervoLlm {
-    pub async fn embedding(&self, text: &str) -> anyhow::Result<CreateEmbeddingResponse> {
-        let embedding = CreateEmbeddingRequestArgs::default()
-            .model(self.llm_config.embedding_model_name.clone())
-            .input(text)
-            .build()?;
-        let response = self.client.embeddings().create(embedding).await?;
+    pub async fn embedding(&self, text: &str) -> Result<CreateEmbeddingResponse> {
+        let response = {
+            let embedding = CreateEmbeddingRequestArgs::default()
+                .model(self.llm_config.embedding_model_name.clone())
+                .input(text)
+                .build()?;
+            
+            self.client
+                .embeddings()
+                .create(embedding)
+                .await?
+        };
+        
         Ok(response)
     }
 }
 
 impl NervoLlm {
-    pub async fn send_msg_batch(
-        &self,
-        chat: LlmChat,
-        sender_id: u64,
-    ) -> anyhow::Result<LlmMessage> {
+    pub async fn send_msg_batch(&self, chat: LlmChat) -> Result<LlmMessageContent> {
         let mut messages = vec![];
         for msg in chat.messages {
-            match msg.role {
-                Role::System => {
-                    let message = ChatCompletionRequestSystemMessage {
-                        content: msg.content.clone(),
-                        role: msg.role,
-                        name: Some(msg.sender_id.to_string()),
-                    };
-                    messages.push(ChatCompletionRequestMessage::from(message));
-                }
-                Role::User => {
-                    let message = ChatCompletionRequestUserMessage {
-                        content: ChatCompletionRequestUserMessageContent::Text(msg.content.clone()),
-                        role: msg.role,
-                        name: Some(msg.sender_id.to_string()),
-                    };
-                    messages.push(ChatCompletionRequestMessage::from(message));
-                }
-                Role::Assistant => {
-                    let message = ChatCompletionRequestAssistantMessage {
-                        content: Some(msg.content.clone()),
-                        role: msg.role,
-                        name: Some(msg.sender_id.to_string()),
-                        tool_calls: None,
-                        function_call: None,
-                    };
-
-                    messages.push(ChatCompletionRequestMessage::from(message));
-                }
-                Role::Tool => {
-                    bail!("Role::Tool is not supported")
-                }
-                Role::Function => {
-                    bail!("Role::Function is not supported")
-                }
-            }
+            let gpt_msg = ChatCompletionRequestMessage::try_from(msg)?;
+            messages.push(gpt_msg);
         }
 
         let request = CreateChatCompletionRequestArgs::default()
             .max_tokens(self.llm_config.max_tokens)
             .model(self.llm_config.model_name.clone())
-            .messages(messages)
             .temperature(self.llm_config.temperature)
+            .messages(messages)
             .build()?;
 
-        let chat_response = self.client.chat().create(request).await?;
-        let reply = chat_response.choices.first().unwrap();
+        let chat_response = self.client.chat()
+            .create(request)
+            .await?;
+        
+        let maybe_reply = chat_response
+            .choices
+            .first()
+            .and_then(|chat_choice| chat_choice.message.content.clone())
+            .map(|content| LlmMessageContent(content));
 
-        let response = LlmMessage {
-            sender_id,
-            role: Role::Assistant,
-            content: reply
-                .message
-                .content
-                .clone()
-                .unwrap_or(String::from("error")),
+        let Some(reply) = maybe_reply else {
+            bail!("No reply from LLM")
         };
 
-        Ok(response)
+        Ok(reply)
     }
 
     pub async fn send_msg(
         &self,
         message: LlmMessage,
         chat_id: u64,
-        sender_id: u64,
     ) -> Result<LlmMessage> {
-        self.send_msg_batch(
-            LlmChat {
-                chat_id,
-                messages: vec![message],
-            },
-            sender_id,
-        )
-        .await
+        let chat = LlmChat {
+            chat_id,
+            messages: vec![message],
+        };
+        let content = self.send_msg_batch(chat).await?;
+        Ok(LlmMessage::Assistant(content))
     }
-    pub async fn moderate(&self, text: &str) -> anyhow::Result<bool> {
+    pub async fn moderate(&self, text: &str) -> Result<bool> {
         let request = CreateModerationRequest {
             input: ModerationInput::from(text),
             model: None,
@@ -162,15 +129,9 @@ impl NervoLlm {
     pub async fn voice_transcription(
         &self,
         request: CreateTranscriptionRequest,
-    ) -> anyhow::Result<String> {
-        let response = self.client.audio().transcribe(request).await;
-        match response {
-            Ok(text) => Ok(text.text),
-            Err(err) => {
-                error!("RESPONSE: ERR {:?}", err);
-                return Err(err.into());
-            }
-        }
+    ) -> Result<String> {
+        let response = self.client.audio().transcribe(request).await?;
+        Ok(response.text)
     }
 }
 
@@ -181,8 +142,91 @@ pub struct LlmChat {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct LlmMessage {
+pub enum LlmMessage {
+    System(LlmMessageContent),
+    User(UserLlmMessage),
+    Assistant(LlmMessageContent),
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct UserLlmMessage {
     pub sender_id: u64,
-    pub role: Role,
-    pub content: String,
+    pub content: LlmMessageContent,
+}
+
+impl LlmMessage {
+    pub fn role(&self) -> String {
+        match self {
+            LlmMessage::System(_) => String::from("system"),
+            LlmMessage::User(_) => String::from("user"),
+            LlmMessage::Assistant(_) => String::from("assistant")
+        }
+    }
+    
+    pub fn content_text(&self) -> String {
+        match self {
+            LlmMessage::System(LlmMessageContent(content)) => content.clone(),
+            LlmMessage::User(UserLlmMessage {content: LlmMessageContent(text), ..}) => text.clone(),
+            LlmMessage::Assistant(LlmMessageContent(content)) => content.clone(),
+        }
+    }
+
+    pub fn content(&self) -> LlmMessageContent {
+        match self {
+            LlmMessage::System(content) => content.clone(),
+            LlmMessage::User(user) => user.content.clone(),
+            LlmMessage::Assistant(content) => content.clone(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct LlmMessageContent(pub String);
+
+impl LlmMessageContent {
+    pub fn text(&self) -> String {
+        self.0.clone()
+    }
+}
+
+impl From<&str> for LlmMessageContent {
+    fn from(content: &str) -> Self {
+        LlmMessageContent(content.to_string())
+    }
+}
+
+impl TryFrom<LlmMessage> for ChatCompletionRequestMessage {
+    type Error = anyhow::Error;
+
+    fn try_from(msg: LlmMessage) -> std::result::Result<Self, Self::Error> {
+        match msg {
+            LlmMessage::System(LlmMessageContent(content)) => {
+                let message = ChatCompletionRequestSystemMessage {
+                    content,
+                    role: Role::System,
+                    name: None,
+                };
+                Ok(ChatCompletionRequestMessage::from(message))
+            }
+            LlmMessage::User(UserLlmMessage{ sender_id, content }) => {
+                let message = ChatCompletionRequestUserMessage {
+                    content: ChatCompletionRequestUserMessageContent::Text(content.0),
+                    role: Role::User,
+                    name: Some(sender_id.to_string()),
+                };
+                Ok(ChatCompletionRequestMessage::from(message))
+            }
+            LlmMessage::Assistant(LlmMessageContent(content)) => {
+                let message = ChatCompletionRequestAssistantMessage {
+                    content: Some(content),
+                    role: Role::Assistant,
+                    name: None,
+                    tool_calls: None,
+                    function_call: None,
+                };
+
+                Ok(ChatCompletionRequestMessage::from(message))
+            }
+        }
+    }
 }

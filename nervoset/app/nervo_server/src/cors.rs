@@ -7,7 +7,7 @@ use axum::{
 use std::convert::Infallible;
 use tracing::info;
 
-pub(crate) async fn cors_middleware(req: Request<Body>, next: Next) -> Result<impl IntoResponse, Infallible> {
+pub async fn cors_middleware(req: Request<Body>, next: Next) -> Result<impl IntoResponse, Infallible> {
     info!("cors_middleware");
     let mut response = next.run(req).await;
 

@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use async_openai::types::Role;
 use qdrant_client::qdrant::value::Kind;
+use teloxide::{prelude::*, utils::command::BotCommands};
+use teloxide::Bot as TelegramBot;
 use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
-use teloxide::Bot as TelegramBot;
-use teloxide::{prelude::*, utils::command::BotCommands};
 
-use crate::ai::nervo_llm::{LlmChat, LlmMessage};
+use crate::ai::nervo_llm::{LlmChat, LlmMessage, LlmMessageContent, UserLlmMessage};
 use crate::common::AppState;
 use crate::telegram::bot_utils::{chat, MessageParser};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
@@ -108,7 +107,7 @@ async fn chat_initialization(
         msg.chat.id,
         "State:Chat. Welcome to conversational chat. Let's go!",
     )
-    .await?;
+        .await?;
     //dialogue.update(ChatState::Conversation).await?;
     Ok(())
 }
@@ -209,13 +208,10 @@ async fn endpoint(
                 .collect::<Vec<String>>();
 
             let mut messages = vec![];
-            let user = parser.parse_user().await?;
+            let UserId(user_id) = parser.parse_user().await?.id;
             for text in &result_strings {
-                let user_msg = LlmMessage {
-                    sender_id: user.id.0,
-                    role: Role::User,
-                    content: text.chars().take(1000).collect::<String>(),
-                };
+                let content = LlmMessageContent::from(text.chars().take(1000).collect::<String>().as_str());
+                let user_msg = LlmMessage::User(UserLlmMessage { sender_id: user_id, content });
                 messages.push(user_msg);
             }
 
@@ -225,29 +221,25 @@ async fn endpoint(
                 question
             );
 
-            let system_msg = LlmMessage {
-                sender_id: user.id.0,
-                role: Role::System,
-                content: enriched_question.clone(),
-            };
+            let system_msg = LlmMessage::System(LlmMessageContent::from(enriched_question.as_str()));
             messages.insert(0, system_msg);
+
+            let chat = LlmChat {
+                chat_id: msg.chat.id.0 as u64,
+                messages,
+            };
 
             let reply = app_state
                 .nervo_llm
-                .send_msg_batch(
-                    LlmChat {
-                        chat_id: msg.chat.id.0 as u64,
-                        messages,
-                    },
-                    user.id.0,
-                )
+                .send_msg_batch(chat)
                 .await?;
 
             //for embeddings in &result_strings {
             //    bot.send_message(msg.chat.id, embeddings).await?;
             //}
 
-            bot.send_message(msg.chat.id, format!("{}", reply.content))
+            bot
+                .send_message(msg.chat.id, reply.text())
                 .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
                 .await?;
 

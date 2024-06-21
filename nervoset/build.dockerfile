@@ -33,6 +33,7 @@ WORKDIR /app/nervoset
 RUN apt-get update && apt-get install -y ca-certificates curl iputils-ping && update-ca-certificates
 
 COPY --from=builder /app/nervoset/target/release/${APP_NAME} /app/nervoset/nervobot
+COPY --from=builder /app/nervoset/${APP_NAME}/resources/ /app/nervoset/resources
 CMD ./nervobot
 
 # install sqlite3
