@@ -9,7 +9,3 @@ tasks:
   default:
     cmds:
       - task --list-all
-
-  local_tmp_clean_up:
-    cmds:
-      - rm -rf {{.LOCAL_TMP_DIR}}/**

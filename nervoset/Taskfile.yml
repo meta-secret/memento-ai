@@ -2,17 +2,8 @@ version: '3'
 
 set: [pipefail]
 
-vars:
-  REGISTRY: 'cypherkitty'
-  REPOSITORY: 'nervoset'
-
-  BASE_IMAGE: "nervoset/base:latest"
-
-  APP_VERSION: '0.1'
-
 includes:
-#  base_vars: .task/base.vars.yml
-
+  base_vars: .task/base.vars.yml
   common: .task/common.yml
 
   docker_probiot:
@@ -124,3 +115,13 @@ tasks:
     cmds:
       - task: common:base_build
       - docker run --rm {{.BASE_IMAGE}} cargo test --release
+
+  docker_push:
+    requires:
+      vars:
+        - INFRA #'dev' or 'prod'
+    cmds:
+      - task: docker_groot:push
+      - task: docker_probiot:push
+      - task: docker_jarvis:push
+      - task: docker_nervo_server:push

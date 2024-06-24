@@ -42,7 +42,4 @@ jobs:
       - name: Build and push docker image
         working-directory: nervoset
         run: |
-          devbox run 'task docker_groot:push INFRA=prod'
-          devbox run 'task docker_probiot:push INFRA=prod'
-          devbox run 'task docker_jarvis:push INFRA=prod'
-          devbox run 'task docker_nervo_server:push INFRA=prod'
+          devbox run 'task docker_push INFRA=prod'

@@ -1,6 +1,7 @@
 name: Build and Test
 
 on:
+  workflow_dispatch:
   pull_request:
 
 env:
@@ -24,15 +25,16 @@ jobs:
     - name: Install Task
       uses: arduino/setup-task@v2
 
-    - name: Sccache Action
-      uses: Mozilla-Actions/sccache-action@v0.0.4
-      with:
-        version: "v0.7.7"
-
     - name: Set Rust caching env vars
       run: |
         echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+        echo "SCCACHE_VERSION=$(cat .github/workflows/sccache.version)" >> $GITHUB_ENV
+
+    - name: Sccache Action
+      uses: Mozilla-Actions/sccache-action@v0.0.4
+      with:
+        version: ${{ env.SCCACHE_VERSION }}
 
     - name: Run tests
       working-directory: nervoset/app

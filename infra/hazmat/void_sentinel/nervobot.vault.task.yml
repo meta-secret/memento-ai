@@ -1,0 +1,40 @@
+version: '3'
+
+set: [pipefail]
+
+includes:
+  crypto:
+    taskfile: crypto.task.yaml
+    internal: true
+
+tasks:
+  get_config:
+    requires:
+      vars:
+        - INFRA
+    vars:
+      USER:
+        sh: echo ${USER}
+      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
+    cmds:
+      - task: crypto:decrypt
+        vars:
+          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
+
+  edit_config:
+    requires:
+      vars:
+        - INFRA
+    vars:
+      USER:
+        sh: echo ${USER}
+      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
+    cmds:
+      - task: crypto:decrypt_and_save
+        vars:
+          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
+      - vim tmp/{{.KEY_NAME}}
+      - task: crypto:encrypt_file
+        vars:
+          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
+          PLAIN_TEXT_FILE: tmp/{{.KEY_NAME}}

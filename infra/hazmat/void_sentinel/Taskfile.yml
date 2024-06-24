@@ -2,17 +2,8 @@ version: '3'
 
 set: [pipefail]
 
-vars:
-  LOCAL_TMP_DIR: "tmp"
-  SENTINEL_SK_FILE: "{{.LOCAL_TMP_DIR}}/void_sentinel_sk.txt"
-
-  PK_FILE: "vault/nervoset-pk.txt"
-  SK_ENC_FILE: "vault/nervoset-sk.enc.txt"
-
-  SK_PLAINTEXT_FILE: "{{.LOCAL_TMP_DIR}}/nervoset-sk.txt"
-  MASTER_PASS_FILE: "{{.LOCAL_TMP_DIR}}/master_pass.txt"
-
 includes:
+  keys: keys.vars.task.yml
   vault:
     taskfile: vault.task.yml
 
@@ -32,7 +23,7 @@ tasks:
 
   clean_up:
     cmds:
-      - "rm -rf {{.LOCAL_TMP_DIR}}/**"
+      - "rm -ri {{.LOCAL_TMP_DIR}}/**"
 
   # How to set the master password locally:
   # 1. execute task auth

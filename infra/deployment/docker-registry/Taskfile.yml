@@ -3,7 +3,6 @@ version: '3'
 vars:
   BUILD_DIR: build
   PROJECT_DIR: ..
-  DOCKER_REGISTRY_URL: "https://index.docker.io/v1/"
 
 tasks:
   default:
@@ -19,7 +18,7 @@ tasks:
       DOCKER_REGISTRY_EMAIL:
         sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_email
     cmds:
-      - echo {{.DOCKER_REGISTRY_PASS}} | docker login --username={{.DOCKER_REGISTRY_USER}} --password-stdin ${DOCKER_REGISTRY_URL}
+      - echo {{.DOCKER_REGISTRY_PASS}} | docker login --username={{.DOCKER_REGISTRY_USER}} --password-stdin
     silent: true
 
 
@@ -35,7 +34,6 @@ tasks:
     cmds:
       - |-
         kubectl create secret docker-registry docker-registry-secret \
-        --docker-server={{.DOCKER_REGISTRY_URL}} \
         --docker-username={{.DOCKER_REGISTRY_USER}} \
         --docker-password={{.DOCKER_REGISTRY_PASS}} \
         --docker-email={{.DOCKER_REGISTRY_EMAIL}} \

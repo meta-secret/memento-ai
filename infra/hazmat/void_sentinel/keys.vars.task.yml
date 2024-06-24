@@ -1,0 +1,13 @@
+version: '3'
+
+set: [pipefail]
+
+vars:
+  LOCAL_TMP_DIR: "tmp"
+
+  PK_FILE: "vault/nervoset-pk.txt"
+  SK_ENC_FILE: "vault/nervoset-sk.enc.txt"
+
+  SENTINEL_SK_FILE: "{{.LOCAL_TMP_DIR}}/void_sentinel_sk.txt"
+  SK_PLAINTEXT_FILE: "{{.LOCAL_TMP_DIR}}/nervoset-sk.txt"
+  MASTER_PASS_FILE: "{{.LOCAL_TMP_DIR}}/master_pass.txt"

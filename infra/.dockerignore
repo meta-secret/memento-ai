@@ -1,0 +1,8 @@
+.devbox
+.gradle
+
+hazmat/void_sentinel/tmp
+
+k8s/*/.kclvm
+k8s/*/build
+k8s/*/kcl.mod.lock

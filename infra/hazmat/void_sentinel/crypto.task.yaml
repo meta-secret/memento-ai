@@ -1,0 +1,59 @@
+version: '3'
+
+set: [pipefail]
+
+includes:
+  keys: keys.vars.task.yml
+
+tasks:
+  encrypt:
+    requires:
+      vars:
+        - BASE_PATH
+        - KEY_NAME
+    cmds:
+      - mkdir -p vault/storage/{{.BASE_PATH}}
+      - |
+        echo "Enter the text you want to encrypt (end with CTRL+D):"
+        
+        stty -echo
+        read -r secret_text
+        stty echo
+        
+        echo "$secret_text" | age --encrypt --armor --recipients-file={{.PK_FILE}} --output=vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt
+        echo "Secret text has been encrypted and saved to vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt"
+    interactive: true
+    silent: true
+
+  decrypt:
+    requires:
+      vars:
+        - BASE_PATH
+        - KEY_NAME
+    cmds:
+      #- task: gpg_decrypt_sentinel_key
+      - age --decrypt --identity={{.SK_PLAINTEXT_FILE}} vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt
+
+  decrypt_and_save:
+    requires:
+      vars:
+        - BASE_PATH
+        - KEY_NAME
+    cmds:
+      #- task: gpg_decrypt_sentinel_key
+      - age --decrypt --identity={{.SK_PLAINTEXT_FILE}} vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt > tmp/{{.KEY_NAME}}
+
+  encrypt_file:
+    requires:
+      vars:
+        - BASE_PATH
+        - KEY_NAME
+        - PLAIN_TEXT_FILE
+    cmds:
+      - mkdir -p vault/storage/{{.BASE_PATH}}
+      - |
+        age --encrypt --armor --recipients-file={{.PK_FILE}} --output=vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt {{.PLAIN_TEXT_FILE}}
+        echo "The secret has been encrypted and saved to vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt"
+    interactive: true
+    silent: true
+

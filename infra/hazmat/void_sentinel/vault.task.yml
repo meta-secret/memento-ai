@@ -2,184 +2,106 @@ version: '3'
 
 set: [pipefail]
 
-requires:
-  vars:
-    - PK_FILE
-    - SK_PLAINTEXT_FILE
+includes:
+  crypto:
+    taskfile: crypto.task.yaml
+    internal: true
+
+  nervo-server:
+    taskfile: nervobot.vault.task.yml
+    vars:
+      KEY_NAME: nervo-server.config.yaml
+
+  probiot-t1000:
+    taskfile: nervobot.vault.task.yml
+    vars:
+      KEY_NAME: probiot-t1000.config.yaml
+
+  groot:
+    taskfile: nervobot.vault.task.yml
+    vars:
+      KEY_NAME: groot.config.yaml
+
+  r2d2:
+    taskfile: nervobot.vault.task.yml
+    vars:
+      KEY_NAME: r2d2.config.yaml
 
 tasks:
 
-  encrypt:
-    requires:
-      vars:
-        - BASE_PATH
-        - KEY_NAME
-    cmds:
-      - mkdir -p vault/storage/{{.BASE_PATH}}
-      - |
-        echo "Enter the text you want to encrypt (end with CTRL+D):"
-        
-        stty -echo
-        read -r secret_text
-        stty echo
-        
-        echo "$secret_text" | age --encrypt --armor --recipients-file={{.PK_FILE}} --output=vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt
-        echo "Secret text has been encrypted and saved to vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt"
-    interactive: true
-    silent: true
-
-  decrypt:
-    requires:
-      vars:
-        - BASE_PATH
-        - KEY_NAME
-    cmds:
-      #- task: gpg_decrypt_sentinel_key
-      - age --decrypt --identity={{.SK_PLAINTEXT_FILE}} vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt
-
-  encrypt_file:
-    requires:
-      vars:
-        - BASE_PATH
-        - KEY_NAME
-        - PLAIN_TEXT_FILE
-    cmds:
-      - mkdir -p vault/storage/{{.BASE_PATH}}
-      - |
-        age --encrypt --armor --recipients-file={{.PK_FILE}} --output=vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt {{.PLAIN_TEXT_FILE}}
-        echo "The secret has been encrypted and saved to vault/storage/{{.BASE_PATH}}/{{.KEY_NAME}}.enc.txt"
-    interactive: true
-    silent: true
-
   get_prod_host:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: prod
           KEY_NAME: host
 
   get_prod_user:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: prod
           KEY_NAME: user
 
   get_prod_pass:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: prod
           KEY_NAME: pass
 
   get_docker_email:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: docker
           KEY_NAME: email
 
   get_docker_user:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: docker
           KEY_NAME: user
 
   get_docker_pass:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: docker
           KEY_NAME: pass
 
   get_github_token:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: github
           KEY_NAME: token
 
   get_cloudflare_api_token:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: cloudflare
           KEY_NAME: api_token
 
   get_cloudflare_account_id:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: cloudflare
           KEY_NAME: account_id
 
-  get_probiot_t1000_config:
-    requires:
-      vars:
-        - INFRA
-    vars:
-      USER:
-        sh: echo ${USER}
-      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
-    cmds:
-      - task: decrypt
-        vars:
-          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
-          KEY_NAME: probiot-t1000.config.yaml
-
-  get_groot_config:
-    requires:
-      vars:
-        - INFRA
-    vars:
-      USER:
-        sh: echo ${USER}
-      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
-    cmds:
-      - task: decrypt
-        vars:
-          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
-          KEY_NAME: groot.config.yaml
-
-  get_r2d2_config:
-    requires:
-      vars:
-        - INFRA
-    vars:
-      USER:
-        sh: echo ${USER}
-      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
-    cmds:
-      - task: decrypt
-        vars:
-          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
-          KEY_NAME: r2d2.config.yaml
-
-  get_nervo-server_config:
-    requires:
-      vars:
-        - INFRA
-    vars:
-      USER:
-        sh: echo ${USER}
-      BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
-    cmds:
-      - task: decrypt
-        vars:
-          BASE_PATH: "nervobot/{{.BASE_PATH_SUFFIX}}"
-          KEY_NAME: nervo-server.config.yaml
-
   get_test:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: test
           KEY_NAME: test
 
   get_test2:
     cmds:
-      - task: decrypt
+      - task: crypto:decrypt
         vars:
           BASE_PATH: test
           KEY_NAME: test2
