@@ -54,10 +54,10 @@ function App() {
     }
 
     function getChatId() {
-        let chatId = Cookies.get('chatId');
+        let chatId: number = Number(Cookies.get('chatId'));
         if (!chatId) {
-            chatId = Math.floor(Math.random() * 0xFFFFFFFF).toString();
-            Cookies.set('chatId', chatId);
+            chatId = Math.floor(Math.random() * 0xFFFFFFFF);
+            Cookies.set('chatId', chatId.toString());
         }
         console.log("chatId from cookies:");
         return chatId;
@@ -65,7 +65,7 @@ function App() {
 
     async function fetchChat() {
         try {
-            let chatString = await nervoClient.get_chat(chatId);
+            let chatString = await nervoClient.get_chat(BigInt(chatId));
             let chat: Chat = JSON.parse(chatString);
 
             const conversationElements = chat.messages.map((message, index) => {
@@ -93,9 +93,7 @@ function App() {
         ]);
 
         try {
-            const numUserId = parseInt(userId, 10);
-            let resultUserId = numUserId >>> 0;
-            let responseString = await nervoClient.send_message(chatId, resultUserId, "user", messageText);
+            let responseString = await nervoClient.send_message(BigInt(chatId), BigInt(userId), "User", messageText);
             let responseMessage: ChatMessage = JSON.parse(responseString);
 
             setConversation(prevConversation => [

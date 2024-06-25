@@ -54,7 +54,7 @@ impl NervoClient {
     }
 
     #[wasm_bindgen]
-    pub async fn get_chat(&self, chat_id: String) -> Result<String, JsValue> {
+    pub async fn get_chat(&self, chat_id: u64) -> Result<String, JsValue> {
         console_log::init_with_level(Level::Debug).expect("TODO: panic message");
         info!("LIB: get_chat");
 
@@ -64,9 +64,9 @@ impl NervoClient {
         self.fetch_get(&url).await
     }
     
-    pub async fn send_message(&self, chat_id: String, user_id: u32, role: String, content: String) -> Result<String, JsValue> {
+    pub async fn send_message(&self, chat_id: u64, user_id: u64, role: String, content: String) -> Result<String, JsValue> {
         let json = format!(
-            "{{\"chat_id\": \"{}\", \"llm_message\": {{\"sender_id\": {}, \"role\": \"{}\", \"content\": \"{}\"}}}}",
+            "{{\"chat_id\": {}, \"llm_message\": {{\"sender_id\": {}, \"role\": \"{}\", \"content\": \"{}\"}}}}",
             chat_id, user_id, role, content
         );
         info!("LIB: json");

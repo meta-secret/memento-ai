@@ -41,7 +41,7 @@ async fn happy_path_of_moderation(
     info!("table name {:?}", table_name);
 
     // Create question for LLM
-    let question_msg = msg_request.llm_message.clone();
+    let question_msg = LlmMessage::User(msg_request.llm_message.clone());
     let chat_id = msg_request.chat_id.to_string();
 
     app_state
