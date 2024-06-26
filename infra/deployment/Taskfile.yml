@@ -30,6 +30,7 @@ includes:
 
   vector_db:
     taskfile: db/vector_db/Taskfile.yml
+    dir: db/vector_db
 
 tasks:
   default:

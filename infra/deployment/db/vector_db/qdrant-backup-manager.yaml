@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qdrant-backup-manager
+  labels:
+    app: qdrant-backup-manager
+spec:
+  replicas: 1
+  serviceName: qdrant-backup-manager
+  selector:
+    matchLabels:
+      app: qdrant-backup-manager
+  template:
+    metadata:
+      labels:
+        app: qdrant-backup-manager
+    spec:
+      imagePullSecrets:
+        - name: docker-registry-secret
+      containers:
+        - name: qdrant-backup-manager
+          image: python:latest
+          imagePullPolicy: Always
+          command:
+           - "/bin/sh"
+           - "-c"
+           - | 
+             pip install -r /backup-tools/requirements.txt
+             echo start http server
+             mkdir -p /qdrant-backup
+             python -m http.server -d /qdrant-backup
+          volumeMounts:
+            - name: backup-tools
+              mountPath: /backup-tools
+      affinity: {}
+      volumes:
+      - name: backup-tools
+        configMap:
+          name: qdrant-backup-manager-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant-backup-manager-service
+spec:
+  selector:
+    app: qdrant-backup-manager
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000

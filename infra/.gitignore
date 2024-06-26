@@ -46,3 +46,5 @@ k8s/nervo-server/build
 # Ignore Gradle build output directory
 build
 k8s/groot/kcl.mod.lock
+
+deployment/db/vector_db/build
