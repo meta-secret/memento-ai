@@ -12,11 +12,11 @@ config/r2d2/config.yaml
 config/groot/config.yaml
 config/nervo_server/config.yaml
 
-# Groot resources files ignoring
-app/groot/resources/white_listed_users.json
-app/groot/resources/black_listed_users.json
-app/groot/resources/message_counts.json
-app/groot/resources/restricted_words.json
+# # Groot resources files ignoring
+# app/groot/resources/white_listed_users.json
+# app/groot/resources/black_listed_users.json
+# app/groot/resources/message_counts.json
+# app/groot/resources/restricted_words.json
 
 # Ignore Gradle project-specific cache directory
 .gradle
