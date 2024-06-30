@@ -11,12 +11,12 @@ tasks:
       - helm repo add qdrant https://qdrant.github.io/qdrant-helm || true
       - helm repo update
       - helm upgrade -i qdrant qdrant/qdrant
-      - kubectl wait --for=jsonpath='{.status.phase}'=Running pod/qdrant-0 --timeout=60s
+      - kubectl wait --for=jsonpath='{.status.phase}'=Running pod/qdrant-0 --timeout=180s
 
   qdrant_delete:
     cmds:
       - helm uninstall qdrant || true
-      - kubectl wait --for=delete pod/qdrant-0 --timeout=60s || true
+      - kubectl wait --for=delete pod/qdrant-0 --timeout=180s || true
       - kubectl delete pvc qdrant-storage-qdrant-0 || true
 
   qdrant_restore_from_backup:

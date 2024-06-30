@@ -54,6 +54,11 @@ tasks:
       - task: generate_config_maps
       - task: generate_manifests
 
+  redeploy:
+    cmds:
+      - task: delete
+      - task: apply
+
   apply:
     requires:
       vars:

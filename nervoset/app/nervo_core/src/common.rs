@@ -22,7 +22,6 @@ pub struct NervoConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TelegramBotParams {
-    pub bot_id: u64,
     pub token: String,
 }
 
