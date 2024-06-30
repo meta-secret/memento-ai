@@ -74,9 +74,7 @@ tasks:
       - task: docker_registry:setup_docker_registry
 
       # deploy qdrant
-      - task: vector_db:qdrant_deploy
-
-      - task -t ../Taskfile.yml hazmat:void_sentinel:clean_up
+      - task: db:vector_db:qdrant_deploy
 
   k3d_within_docker:
     cmds:

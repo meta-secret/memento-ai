@@ -37,4 +37,4 @@ COPY --from=builder /app/nervoset/${APP_NAME}/resources/ /app/nervoset/resources
 CMD ./nervobot
 
 # install sqlite3
-RUN apt-get install -y sqlite3 libsqlite3-dev
+RUN apt-get install -y sqlite3

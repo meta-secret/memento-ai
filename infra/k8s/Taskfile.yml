@@ -8,6 +8,7 @@ includes:
     dir: probiot_t1000
     vars:
       K8S_APP_NAME: 'probiot-t1000'
+      APP_NAME: 'probiot_t1000'
       CONFIGS: pvc.k statefulset.k
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
@@ -17,6 +18,7 @@ includes:
     dir: groot
     vars:
       K8S_APP_NAME: 'groot'
+      APP_NAME: 'groot'
       CONFIGS: pvc.k statefulset.k
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
@@ -26,6 +28,7 @@ includes:
     dir: r2d2
     vars:
       K8S_APP_NAME: 'r2d2'
+      APP_NAME: 'r2d2'
       CONFIGS: pvc.k statefulset.k
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
@@ -35,6 +38,7 @@ includes:
     dir: nervo-server
     vars:
       K8S_APP_NAME: "nervo-server"
+      APP_NAME: "nervo_server"
       CONFIGS: pvc.k statefulset.k service.k ingress.k
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
