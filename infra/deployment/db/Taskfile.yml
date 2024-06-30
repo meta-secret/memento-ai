@@ -1,0 +1,9 @@
+version: '3'
+
+includes:
+  vector_db:
+    taskfile: vector_db/Taskfile.yml
+    dir: vector_db
+  local_db:
+    taskfile: local_db/Taskfile.yml
+    dir: local_db

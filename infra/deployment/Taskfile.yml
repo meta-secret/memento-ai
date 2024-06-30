@@ -28,9 +28,7 @@ includes:
   docker_registry:
     taskfile: docker-registry/Taskfile.yml
 
-  vector_db:
-    taskfile: db/vector_db/Taskfile.yml
-    dir: db/vector_db
+  db: db/Taskfile.yml
 
 tasks:
   default:

@@ -1,0 +1,14 @@
+version: '3'
+
+tasks:
+  nervo_server_backup:
+    requires:
+      vars:
+       - INFRA
+       - APP_NAME
+       - USER
+    cmds:
+      - |
+        kubectl exec -ti \
+          nervo-server-0 -- \
+            sqlite3 data/nervo-server-bynull-{{.INFRA}}.db ".backup 'data/nervo-server.db.$(date +%s).backup'"
