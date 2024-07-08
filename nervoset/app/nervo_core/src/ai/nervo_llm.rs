@@ -61,19 +61,19 @@ impl NervoLlm {
                 .model(self.llm_config.embedding_model_name.clone())
                 .input(text)
                 .build()?;
-            
+
             self.client
                 .embeddings()
                 .create(embedding)
                 .await?
         };
-        
+
         Ok(response)
     }
 }
 
 impl NervoLlm {
-    pub async fn send_msg_batch(&self, chat: LlmChat) -> Result<LlmMessageContent> {
+    pub async fn send_msg_batch(&self, chat: LlmChat) -> Result<String> {
         let mut messages = vec![];
         for msg in chat.messages {
             let gpt_msg = ChatCompletionRequestMessage::try_from(msg)?;
@@ -90,7 +90,7 @@ impl NervoLlm {
         let chat_response = self.client.chat()
             .create(request)
             .await?;
-        
+
         let maybe_reply = chat_response
             .choices
             .first()
@@ -101,20 +101,20 @@ impl NervoLlm {
             bail!("No reply from LLM")
         };
 
-        Ok(reply)
+        Ok(reply.0)
     }
 
     pub async fn send_msg(
         &self,
         message: LlmMessage,
         chat_id: u64,
-    ) -> Result<LlmMessage> {
+    ) -> Result<String> {
         let chat = LlmChat {
             chat_id,
             messages: vec![message],
         };
-        let content = self.send_msg_batch(chat).await?;
-        Ok(LlmMessage::Assistant(content))
+        let llm_response_text = self.send_msg_batch(chat).await?;
+        Ok(llm_response_text)
     }
     pub async fn moderate(&self, text: &str) -> Result<bool> {
         let request = CreateModerationRequest {
@@ -142,7 +142,19 @@ pub struct LlmChat {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum LlmMessage {
+pub struct LlmMessage {
+    pub save_to_context: LlmSaveContext,
+    pub message_owner: LlmOwnerType,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum LlmSaveContext {
+    True,
+    False,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub enum LlmOwnerType {
     System(LlmMessageContent),
     User(UserLlmMessage),
     Assistant(LlmMessageContent),
@@ -156,26 +168,26 @@ pub struct UserLlmMessage {
 
 impl LlmMessage {
     pub fn role(&self) -> String {
-        match self {
-            LlmMessage::System(_) => String::from("system"),
-            LlmMessage::User(_) => String::from("user"),
-            LlmMessage::Assistant(_) => String::from("assistant")
+        match self.message_owner {
+            LlmOwnerType::System(_) => String::from("system"),
+            LlmOwnerType::User(_) => String::from("user"),
+            LlmOwnerType::Assistant(_) => String::from("assistant")
         }
     }
-    
+
     pub fn content_text(&self) -> String {
-        match self {
-            LlmMessage::System(LlmMessageContent(content)) => content.clone(),
-            LlmMessage::User(UserLlmMessage {content: LlmMessageContent(text), ..}) => text.clone(),
-            LlmMessage::Assistant(LlmMessageContent(content)) => content.clone(),
+        match &self.message_owner {
+            LlmOwnerType::System(LlmMessageContent(content)) => content.clone(),
+            LlmOwnerType::User(UserLlmMessage { content: LlmMessageContent(text), .. }) => text.clone(),
+            LlmOwnerType::Assistant(LlmMessageContent(content)) => content.clone(),
         }
     }
 
     pub fn content(&self) -> LlmMessageContent {
-        match self {
-            LlmMessage::System(content) => content.clone(),
-            LlmMessage::User(user) => user.content.clone(),
-            LlmMessage::Assistant(content) => content.clone(),
+        match &self.message_owner {
+            LlmOwnerType::System(content) => content.clone(),
+            LlmOwnerType::User(user) => user.content.clone(),
+            LlmOwnerType::Assistant(content) => content.clone(),
         }
     }
 }
@@ -199,8 +211,8 @@ impl TryFrom<LlmMessage> for ChatCompletionRequestMessage {
     type Error = anyhow::Error;
 
     fn try_from(msg: LlmMessage) -> std::result::Result<Self, Self::Error> {
-        match msg {
-            LlmMessage::System(LlmMessageContent(content)) => {
+        match msg.message_owner {
+            LlmOwnerType::System(LlmMessageContent(content)) => {
                 let message = ChatCompletionRequestSystemMessage {
                     content,
                     role: Role::System,
@@ -208,7 +220,7 @@ impl TryFrom<LlmMessage> for ChatCompletionRequestMessage {
                 };
                 Ok(ChatCompletionRequestMessage::from(message))
             }
-            LlmMessage::User(UserLlmMessage{ sender_id, content }) => {
+            LlmOwnerType::User(UserLlmMessage { sender_id, content }) => {
                 let message = ChatCompletionRequestUserMessage {
                     content: ChatCompletionRequestUserMessageContent::Text(content.0),
                     role: Role::User,
@@ -216,7 +228,7 @@ impl TryFrom<LlmMessage> for ChatCompletionRequestMessage {
                 };
                 Ok(ChatCompletionRequestMessage::from(message))
             }
-            LlmMessage::Assistant(LlmMessageContent(content)) => {
+            LlmOwnerType::Assistant(LlmMessageContent(content)) => {
                 let message = ChatCompletionRequestAssistantMessage {
                     content: Some(content),
                     role: Role::Assistant,

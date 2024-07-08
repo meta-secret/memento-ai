@@ -3,13 +3,29 @@ import { ApiUrl, NervoClient } from "nervo-wasm";
 import Cookies from 'js-cookie';
 
 interface ChatMessage {
-    role: string;
+    sender_id: number;
     content: string;
 }
 
+interface UserMessage {
+    save_to_context: boolean;
+    message_owner: {
+        User: ChatMessage;
+    };
+}
+
+interface AssistantMessage {
+    save_to_context: boolean;
+    message_owner: {
+        Assistant: string;
+    };
+}
+
+type Message = UserMessage | AssistantMessage;
+
 interface Chat {
     chat_id: number;
-    messages: ChatMessage[];
+    messages: Message[];
 }
 
 function App() {
@@ -19,9 +35,7 @@ function App() {
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const userId = getUserId();
     const chatId = getChatId();
-
-    console.log("Running mode:" + import.meta.env.MODE);
-
+    
     let apiUrl = ApiUrl.prod();
     if (import.meta.env.DEV) {
         let serverPort: number = import.meta.env.VITE_SERVER_PORT;
@@ -59,23 +73,25 @@ function App() {
             chatId = Math.floor(Math.random() * 0xFFFFFFFF);
             Cookies.set('chatId', chatId.toString());
         }
-        console.log("chatId from cookies:");
         return chatId;
     }
 
     async function fetchChat() {
         try {
             let chatString = await nervoClient.get_chat(BigInt(chatId));
+            console.log(`WEB: chatString ${chatString}`)
             let chat: Chat = JSON.parse(chatString);
 
             const conversationElements = chat.messages.map((message, index) => {
-                if (message.role === 'user') {
-                    return <RequestContent key={index} text={message.content} role={message.role} />;
+                if (isUserMessage(message)) {
+                    return <RequestContent key={index} text={message.message_owner.User.content} role={Roles.user} />;
+                } else if (isAssistantMessage(message)) {
+                    return <ReplyContent key={index} text={message.message_owner.Assistant} role={Roles.assistant} />;
                 } else {
-                    return <ReplyContent key={index} text={message.content} role={message.role} />;
+                    return <ReplyContent key={index} text="" role="" />;
                 }
             });
-
+            
             setConversation(conversationElements);
 
         } catch (error) {
@@ -89,17 +105,21 @@ function App() {
     const handleSendMessage = async (messageText: string) => {
         setConversation(prevConversation => [
             ...prevConversation,
-            <RequestContent key={prevConversation.length} text={messageText} role="user" />
+            <RequestContent key={prevConversation.length} text={messageText} role={Roles.user} />
         ]);
 
         try {
-            let responseString = await nervoClient.send_message(BigInt(chatId), BigInt(userId), "User", messageText);
-            let responseMessage: ChatMessage = JSON.parse(responseString);
+            let responseString = await nervoClient.send_message(BigInt(chatId), BigInt(userId), Roles.user, messageText);
+            console.log(`WEB: responseString ${responseString}`)
+            let responseMessage: Message = JSON.parse(responseString);
 
-            setConversation(prevConversation => [
-                ...prevConversation,
-                <ReplyContent key={prevConversation.length + 1} text={responseMessage.content} role={responseMessage.role} />
-            ]);
+            if (isAssistantMessage(responseMessage)) {
+                let msg = responseMessage.message_owner.Assistant;
+                setConversation(prevConversation => [
+                    ...prevConversation,
+                    <ReplyContent key={prevConversation.length} text={msg} role={Roles.assistant} />
+                ]);
+            }
         } catch (error) {
             console.error("WEB: Failed to send message: ", error);
             setError("Failed to send message");
@@ -135,7 +155,6 @@ interface ReplyContentProps {
 }
 
 const ReplyContent: React.FC<ReplyContentProps> = ({ text, role }) => {
-    console.log(`ROLE: ${role}`)
     return (
         <div className="flex bg-slate-100 px-4 py-8 dark:bg-slate-900 sm:px-6">
             <img
@@ -243,3 +262,16 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
 };
 
 export default App;
+
+enum Roles {
+    user = "user",
+    assistant = "assistant",
+}
+
+function isUserMessage(message: Message): message is UserMessage {
+    return message.message_owner && 'User' in message.message_owner;
+}
+
+function isAssistantMessage(message: Message): message is AssistantMessage {
+    return message.message_owner && 'Assistant' in message.message_owner;
+}

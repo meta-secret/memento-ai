@@ -12,7 +12,6 @@ pub async fn chat(
 ) -> Result<Json<LlmChat>, StatusCode> {
     // LLM interacting
     info!("Read messages from DB");
-    // let table_name = //format!("user_{}_chat_{}", chat_id, chat_id);
     let cached_messages: Vec<LlmMessage> = state
         .local_db
         .read_from_local_db(format!("{}", chat_id).as_str())
@@ -22,7 +21,7 @@ pub async fn chat(
             StatusCode::INTERNAL_SERVER_ERROR
         })?;
     info!("CACHED MESSAGES {:?}", &cached_messages);
-    let chat = LlmChat { chat_id,  messages: cached_messages};
+    let chat = LlmChat { chat_id, messages: cached_messages };
     info!("CHAT {:?}", &chat);
     Ok(Json(chat))
 }

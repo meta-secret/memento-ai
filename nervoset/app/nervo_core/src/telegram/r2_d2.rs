@@ -7,7 +7,8 @@ use teloxide::Bot as TelegramBot;
 use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
 
-use crate::ai::nervo_llm::{LlmChat, LlmMessage, LlmMessageContent, UserLlmMessage};
+use crate::ai::nervo_llm::{LlmChat, LlmMessage, LlmMessageContent, LlmSaveContext, UserLlmMessage};
+use crate::ai::nervo_llm::LlmOwnerType::{System, User};
 use crate::common::AppState;
 use crate::telegram::bot_utils::{chat, MessageParser};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
@@ -211,7 +212,11 @@ async fn endpoint(
             let UserId(user_id) = parser.parse_user().await?.id;
             for text in &result_strings {
                 let content = LlmMessageContent::from(text.chars().take(1000).collect::<String>().as_str());
-                let user_msg = LlmMessage::User(UserLlmMessage { sender_id: user_id, content });
+                let user_msg = LlmMessage{
+                    save_to_context: LlmSaveContext::True,
+                    message_owner: User(UserLlmMessage { sender_id: user_id, content }),
+                };
+
                 messages.push(user_msg);
             }
 
@@ -221,7 +226,10 @@ async fn endpoint(
                 question
             );
 
-            let system_msg = LlmMessage::System(LlmMessageContent::from(enriched_question.as_str()));
+            let system_msg = LlmMessage {
+                save_to_context: LlmSaveContext::True,
+                message_owner: System(LlmMessageContent::from(enriched_question.as_str())),
+            };
             messages.insert(0, system_msg);
 
             let chat = LlmChat {
@@ -239,7 +247,7 @@ async fn endpoint(
             //}
 
             bot
-                .send_message(msg.chat.id, reply.text())
+                .send_message(msg.chat.id, reply)
                 .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
                 .await?;
 

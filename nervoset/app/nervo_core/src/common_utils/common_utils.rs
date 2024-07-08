@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use anyhow::bail;
-use chrono::Utc;
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::chat::{ChatCompletionParameters, ChatMessage, ChatMessageContent};
 use qdrant_client::qdrant::value::Kind;
@@ -9,8 +8,9 @@ use tiktoken_rs::p50k_base;
 use tokio::fs;
 use tracing::{error, info};
 use crate::ai::nervo_llm::{LlmMessage, LlmMessageContent, UserLlmMessage};
+use crate::ai::nervo_llm::LlmOwnerType::{Assistant, User};
+use crate::ai::nervo_llm::LlmSaveContext::{False, True};
 use crate::common::AppState;
-use crate::models::nervo_message_model::TelegramMessage;
 use crate::models::qdrant_search_layers::{QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -19,37 +19,88 @@ pub struct SendMessageRequest {
     pub llm_message: UserLlmMessage,
 }
 
-pub async fn  llm_conversation(app_state: &Arc<AppState>, msg_request: SendMessageRequest, table_name: String) -> anyhow::Result<LlmMessage> {
+//Common entry point for WEB and TG
+pub async fn llm_conversation(
+    app_state: &Arc<AppState>,
+    msg_request: SendMessageRequest,
+    table_name: String
+) -> anyhow::Result<LlmMessage> {
     let content = msg_request.llm_message.content.0.as_str();
     let user_id = msg_request.llm_message.sender_id.to_string();
-    let initial_user_request = detecting_crap_request(&app_state, content, user_id.as_str()).await?;
+    info!("COMMON: content: {:?} and user_id: {:?}", &content, user_id);
+
+    // First, detect the request type. Will we use Qdrant or a simple LLM going forward?
+    let initial_user_request = detecting_crap_request(&app_state, &content, user_id.as_str()).await?;
+
+    // Prepare user message to save to DB
+    let mut llm_user_message = LlmMessage {
+        save_to_context: False,
+        message_owner: User(UserLlmMessage {
+            sender_id: user_id.parse().expect("Can't parse user id"),
+            content: LlmMessageContent(String::from(content)),
+        }),
+    };
+
+    // Prepare llm response to save to DB
+    let mut llm_response = LlmMessage {
+        save_to_context: False,
+        message_owner: Assistant(LlmMessageContent(String::new())),
+    };
 
     if initial_user_request == "SKIP" {
+        // Save to DB to restore chat history, not for history context
+        app_state.local_db.save_to_local_db(llm_user_message, &table_name, None).await?;
+
+        // Prepare System Role anf User question to ask a simple LLM
         let crap_system_role =
             std::fs::read_to_string("resources/crap_request_system_role.txt")
                 .expect("Failed to read system message from file");
 
-        let user_request = format!(
+        let user_request_text = format!(
             "{:?}\nТекущий запрос пользователя: {:?}",
             crap_system_role,
             &content
         );
-        let content = LlmMessageContent::from(user_request.as_str()); 
+        let content = LlmMessageContent::from(user_request_text.as_str());
+        let request_to_llm = LlmMessage {
+            save_to_context: False,
+            message_owner: User(UserLlmMessage {
+                sender_id: user_id.parse().expect("Can't parse user id"),
+                content,
+            }),
+        };
 
-        let request_to_llm = LlmMessage::User(UserLlmMessage { sender_id: msg_request.llm_message.sender_id, content });
-
-        let llm_response = app_state
+        // Asking LLM
+        let llm_response_text = app_state
             .nervo_llm
             .send_msg(request_to_llm, msg_request.chat_id)
             .await?;
-        info!("SKIPPED LLM_RESPONSE {:?}", llm_response);
+        info!("SKIPPED LLM_RESPONSE {:?}", llm_response_text.clone());
+
+        // Saving answer from LLM but not for History Context
+        llm_response.message_owner = Assistant(LlmMessageContent(llm_response_text));
+        app_state.local_db.save_to_local_db(llm_response.clone(), &table_name, None).await?;
         Ok(llm_response)
     } else {
-        let result = openai_chat_preparations(&app_state, &initial_user_request, user_id.as_str(), table_name)
-                .await?;
+        llm_user_message.save_to_context = True;
         
-        let llm_response = LlmMessage::Assistant(LlmMessageContent::from(result.as_str()));
-        info!("LLM_RESPONSE {:?}", llm_response);
+        // Save to DB to restore chat history, and for history context
+        let all_messages: Vec<LlmMessage> = app_state.local_db.read_from_local_db(&table_name).await?;
+        let messages_count = all_messages.len();
+        let table_name_start_index = format!("{}_start_index", table_name.clone());
+        app_state.local_db.save_to_local_db(messages_count, &table_name_start_index, Some(10_i64)).await?;
+        app_state.local_db.save_to_local_db(llm_user_message, &table_name, None).await?;
+
+        // Need to ask Qdrant
+        let llm_response_text = openai_chat_preparations(&app_state, &initial_user_request, table_name.clone())
+            .await?;
+
+        llm_response.save_to_context = True;
+        llm_response.message_owner = Assistant(LlmMessageContent(llm_response_text.clone()));
+        // Saving answer from LLM but not for History Context
+        app_state.local_db.save_to_local_db(messages_count+1, &table_name_start_index, Some(10_i64)).await?;
+        app_state.local_db.save_to_local_db(llm_response.clone(), &table_name, None).await?;
+        info!("LLM_RESPONSE {:?}", llm_response_text);
         Ok(llm_response)
     }
 }
@@ -59,6 +110,7 @@ async fn detecting_crap_request(
     prompt: &str,
     user_id: &str,
 ) -> anyhow::Result<String> {
+    info!("COMMON: CRAP DETECTION");
     let layers_info = get_all_search_layers().await?;
     let layer_content = create_layer_content(
         &app_state,
@@ -73,6 +125,7 @@ async fn detecting_crap_request(
 }
 
 pub async fn get_all_search_layers() -> anyhow::Result<QDrantSearchInfo> {
+    info!("COMMON: get_all_search_layers");
     let json_string = fs::read_to_string("resources/vectorisation_roles.json").await?;
     let layers_info: QDrantSearchInfo =
         serde_json::from_str(&json_string).expect("Failed to parse JSON");
@@ -87,9 +140,22 @@ async fn create_layer_content(
     rephrased_prompt: String,
     search_result_content: String,
 ) -> anyhow::Result<String> {
+    info!("COMMON: create_layer_content");
     let client = Client::new(app_state.nervo_llm.api_key().to_string());
-    let cached_messages: Vec<TelegramMessage> =
+    let all_saved_messages: Vec<LlmMessage> =
         app_state.local_db.read_from_local_db(db_table_name).await?;
+    let start_index_table_name = format!("{}_start_index", db_table_name);
+    info!("COMMON: start_index_table_name {}", start_index_table_name);
+    let context_messages_indexes: Vec<i64> = app_state.local_db.read_from_local_db(&start_index_table_name).await?;
+    info!("COMMON: context_messages_indexes len {:?}", context_messages_indexes.len());
+    let mut cached_messages: Vec<LlmMessage> = vec![];
+    for index in context_messages_indexes {
+        if let Some(content_message) = all_saved_messages.get(index as usize) {
+            info!("COMMON: add message");
+            cached_messages.push(content_message.clone());
+        }
+    }
+
     let model_name = app_state.nervo_config.llm.model_name.clone();
     let system_role_content = layer.system_role_text;
 
@@ -100,7 +166,7 @@ async fn create_layer_content(
             QDrantUserRoleTextType::History => cached_messages
                 .clone()
                 .iter()
-                .map(|msg| msg.message.clone())
+                .map(|msg| msg.content().0)
                 .collect::<Vec<String>>()
                 .join("\n"),
             QDrantUserRoleTextType::UserPromt => prompt.to_string().clone(),
@@ -167,8 +233,7 @@ async fn create_layer_content(
 async fn openai_chat_preparations(
     app_state: &AppState,
     prompt: &str,
-    user_id: &str,
-    table_name: String
+    table_name: String,
 ) -> anyhow::Result<String> {
     let mut rephrased_prompt = String::from(prompt);
     let bpe = p50k_base().unwrap();
@@ -179,7 +244,6 @@ async fn openai_chat_preparations(
     for processing_layer in processing_layers {
         if !processing_layer.collection_params.is_empty() {
             for collection_param in &processing_layer.collection_params {
-
                 let db_search = &app_state
                     .nervo_ai_db
                     .search(
@@ -223,23 +287,20 @@ async fn openai_chat_preparations(
             search_content.clone()).await?;
     }
 
-    let tg_message = TelegramMessage {
-        id: user_id.parse().expect("Failed to parse string"),
-        message: rephrased_prompt.clone(),
-        timestamp: Utc::now().naive_utc(),
-    };
-    app_state
-        .local_db
-        .save_to_local_db(tg_message, &table_name, false)
-        .await?;
-
-    let cached_messages: Vec<TelegramMessage> =
+    let all_saved_messages: Vec<LlmMessage> =
         app_state.local_db.read_from_local_db(&table_name).await?;
+    let start_index_table_name = format!("{}_start_index", table_name.clone());
+    let context_messages_indexes: Vec<i64> = app_state.local_db.read_from_local_db(&start_index_table_name).await?;
+
+    let mut cached_messages: Vec<LlmMessage> = vec![];
+    for index in context_messages_indexes {
+        if let Some(content_message) = all_saved_messages.get(index as usize) {
+            cached_messages.push(content_message.clone());
+        }
+    }
     if cached_messages.len() % 5 == 0 {
         rephrased_prompt.push_str(&layers_info.info_message);
     };
 
     Ok(String::from(rephrased_prompt.clone()))
-        
-    
 }

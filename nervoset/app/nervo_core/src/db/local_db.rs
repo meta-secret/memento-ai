@@ -7,7 +7,7 @@ use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
-use tracing::{error};
+use tracing::{error, info};
 
 pub struct LocalDb {
     db_params: DatabaseParams,
@@ -32,32 +32,42 @@ impl LocalDb {
         &self,
         message: T,
         table_name: &str,
-        need_restriction: bool,
+        restriction_limit: Option<i64>,
     ) -> anyhow::Result<()>
-    where
-        T: Serialize + Send + 'static,
+        where
+            T: Serialize + Send + 'static,
     {
+        info!("COMMON: SAVE");
         self.create_table(table_name).await?;
         let items_count = self.count_items(table_name).await?;
-        if items_count >= 10 && need_restriction {
-            self.overwrite_messages(message, table_name).await?;
-        } else {
-            self.insert_message(message, table_name).await?;
+
+        match restriction_limit {
+            Some(limit) if limit != 0 && items_count >= limit => {
+                self.overwrite_messages(message, table_name).await?;
+            }
+            _ => {
+                self.insert_message(message, table_name).await?;
+            }
         }
+
         Ok(())
     }
 
     pub async fn read_from_local_db<T>(&self, table_name: &str) -> anyhow::Result<Vec<T>>
-    where
-        T: DeserializeOwned,
+        where
+            T: DeserializeOwned,
     {
+        info!("DB: Create table if needed");
         self.create_table(table_name).await?;
         let query = format!("SELECT message FROM table_{}", table_name);
+        info!("DB: Connect to db");
         let mut conn = self.connect_db().await?;
         let rows = sqlx::query(&query).fetch_all(&mut conn).await?;
         let mut messages = Vec::new();
+        info!("in DB {:?}, we got {:?}", table_name, messages.len());
         for row in rows {
             let message_json: String = row.try_get("message")?;
+            info!("APP: MESSAGE {:?}", message_json);
             let message = match serde_json::from_str(&message_json) {
                 Ok(res) => res,
                 Err(err) => {
@@ -77,7 +87,7 @@ impl LocalDb {
         );
         let mut conn = self.connect_db().await?;
         let table_exists: bool = sqlx::query_scalar(&query).fetch_one(&mut conn).await?;
-
+        info!("DB: Table {} exists {:?}", table_name, table_exists.clone());
         if !table_exists {
             let query = format!(
                 "CREATE TABLE IF NOT EXISTS table_{} (
@@ -89,6 +99,7 @@ impl LocalDb {
             );
             sqlx::query(&query).execute(&mut conn).await?;
         };
+        
         Ok(())
     }
 
@@ -100,8 +111,8 @@ impl LocalDb {
     }
 
     async fn overwrite_messages<T>(&self, message: T, table_name: &str) -> anyhow::Result<()>
-    where
-        T: Serialize,
+        where
+            T: Serialize,
     {
         let mut conn = self.connect_db().await?;
         let sql = format!(
@@ -124,10 +135,11 @@ impl LocalDb {
     }
 
     async fn insert_message<T>(&self, message: T, table_name: &str) -> anyhow::Result<()>
-    where
-        T: Serialize,
+        where
+            T: Serialize,
     {
         let message_json = serde_json::to_string(&message)?;
+        info!("COMMON: message_json: {:?}", message_json);
         let mut conn = self.connect_db().await?;
 
         let query = format!("INSERT INTO table_{} (message) VALUES (?)", &table_name);
@@ -135,6 +147,7 @@ impl LocalDb {
             .bind(&message_json)
             .execute(&mut conn)
             .await?;
+        info!("COMMON: INSERTED");
         Ok(())
     }
 

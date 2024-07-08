@@ -55,7 +55,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
     let is_text = matches!(&msg_common.media_kind, MediaKind::Text(_media_text));
     let is_private = matches!(&msg.chat.kind, ChatKind::Private(_));
     let is_public = matches!(&msg.chat.kind, ChatKind::Public(_));
-    let is_public_and_text =is_public && is_text;
+    let is_public_and_text = is_public && is_text;
 
     // Parse message to raw text
     let text = parser.parse_message().await?;
@@ -90,21 +90,13 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                     timestamp: Utc::now().naive_utc(),
                 };
 
-                // User question local caching
-                if let Some(name) = &user.username {
-                    app_state
-                        .local_db
-                        .save_to_local_db(tg_message.clone(), &name, true)
-                        .await?;
-                }
-
                 // Create question for LLM
                 let question_msg = SendMessageRequest {
                     chat_id: msg.chat.id.0 as u64,
                     llm_message: UserLlmMessage {
                         sender_id: user_id,
                         content: LlmMessageContent::from(tg_message.message.as_str()),
-                    }
+                    },
                 };
 
                 chat_gpt_conversation(
@@ -125,7 +117,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                         llm_message: UserLlmMessage {
                             sender_id: user_id,
                             content: LlmMessageContent::from(question.as_str()),
-                        }
+                        },
                     };
 
                     chat_gpt_conversation(
@@ -310,7 +302,7 @@ async fn save_user_id(app_state: Arc<AppState>, user_id: String) -> anyhow::Resu
         };
         app_state
             .local_db
-            .save_to_local_db(user, "all_users_list", false)
+            .save_to_local_db(user, "all_users_list", None)
             .await?;
     }
     Ok(())
@@ -337,48 +329,16 @@ pub async fn chat_gpt_conversation(
 ) -> anyhow::Result<()> {
     let chat_id = msg.chat_id;
     let table_name = msg.llm_message.sender_id.to_string();
-    
+
     let user_final_question = if direct_message {
         msg.llm_message.content.text()
     } else {
         llm_conversation(app_state, msg, table_name)
             .await?
             .content_text()
-
-        // let initial_user_request = detecting_crap_request(&app_state, &msg.content, &user).await?;
-        // 
-        //     if initial_user_request == "SKIP" {
-        //         let crap_system_role =
-        //             std::fs::read_to_string("resources/crap_request_system_role.txt")
-        //                 .expect("Failed to read system message from file");
-        // 
-        //         let user_request = format!(
-        //             "{:?}\nТекущий запрос пользователя: {:?}",
-        //             crap_system_role,
-        //             &message.text().unwrap()
-        //         );
-        // 
-        //         let request_to_llm = LlmMessage {
-        //             sender_id: user.id.0,
-        //             role: Role::User,
-        //             content: user_request,
-        //         };
-        // 
-        //         app_state
-        //             .nervo_llm
-        //             .send_msg(request_to_llm, chat_id.0 as u64, user.id.0)
-        //             .await?
-        //             .content
-        //     } else {
-        //         let result =
-        //             openai_chat_preparations(&app_state, &initial_user_request, user.clone(), chat_id)
-        //                 .await?;
-        //         result
-        //     }
     };
 
     if is_voice {
-        
         create_speech(&bot, user_final_question.as_str(), chat_id, &app_state).await;
     } else {
         bot.send_message(ChatId(chat_id as i64), user_final_question)
@@ -414,195 +374,3 @@ async fn create_speech(bot: &Bot, text: &str, chat_id: u64, app_state: &AppState
         }
     }
 }
-
-// async fn openai_chat_preparations(
-//     app_state: &AppState,
-//     prompt: &str,
-//     user: User,
-//     chat_id: ChatId,
-// ) -> anyhow::Result<String> {
-//     let mut rephrased_prompt = String::from(prompt);
-//     let bpe = p50k_base().unwrap();
-// 
-//     match user.username {
-//         None => {
-//             bail!("Oooops! Something went wrong")
-//         }
-//         Some(username) => {
-//             let layers_info = get_all_search_layers().await?;
-//             let processing_layers = layers_info.layers;
-//             let mut search_content = String::new();
-// 
-//             for processing_layer in processing_layers {
-//                 if !processing_layer.collection_params.is_empty() {
-//                     for collection_param in &processing_layer.collection_params {
-// 
-//                         let db_search = &app_state
-//                             .nervo_ai_db
-//                             .search(
-//                                 &app_state,
-//                                 collection_param.name.clone(),
-//                                 rephrased_prompt.clone(),
-//                                 collection_param.vectors_limit.clone(),
-//                             )
-//                             .await?;
-// 
-//                         for search_result in &db_search.result {
-//                             if search_result.score.clone() > 0.1 {
-//                                 let Some(Kind::StringValue(result)) =
-//                                     &search_result.payload["text"].kind
-//                                 else {
-//                                     bail!("Oooops! Error")
-//                                 };
-// 
-//                                 let token_limit = collection_param.tokens_limit.clone() as usize;
-//                                 let vectors_limit = collection_param.vectors_limit.clone() as usize;
-//                                 let mut tokens = bpe.split_by_token(&result, true)?;
-// 
-//                                 if tokens.len() > (token_limit / vectors_limit) {
-//                                     tokens.truncate(token_limit / vectors_limit);
-//                                     let response = tokens.join("");
-//                                     search_content.push_str(&response);
-//                                 } else {
-//                                     search_content.push_str(result);
-//                                 }
-//                             }
-//                         }
-//                     }
-//                 }
-// 
-//                 rephrased_prompt = create_layer_content(
-//                     &app_state,
-//                     &prompt,
-//                     &user.id.to_string(),
-//                     processing_layer.clone(),
-//                     rephrased_prompt.clone(),
-//                     search_content.clone(),
-//                 )
-//                 .await?;
-//             }
-// 
-//             let tg_message = TelegramMessage {
-//                 id: user.id.0,
-//                 message: rephrased_prompt.clone(),
-//                 timestamp: Utc::now().naive_utc(),
-//             };
-//             app_state
-//                 .local_db
-//                 .save_to_local_db(tg_message, &username, false)
-//                 .await?;
-// 
-//             let cached_messages: Vec<TelegramMessage> =
-//                 app_state.local_db.read_from_local_db(&username).await?;
-//             if cached_messages.len() % 5 == 0 {
-//                 rephrased_prompt.push_str(&layers_info.info_message);
-//             };
-// 
-//             Ok(String::from(rephrased_prompt.clone()))
-//         }
-//     }
-// }
-
-// async fn create_layer_content(
-//     app_state: &AppState,
-//     prompt: &str,
-//     db_table_name: &str,
-//     layer: QDrantSearchLayer,
-//     rephrased_prompt: String,
-//     search_result_content: String,
-// ) -> anyhow::Result<String> {
-//     let client = Client::new(app_state.nervo_llm.api_key().to_string());
-//     let cached_messages: Vec<TelegramMessage> =
-//         app_state.local_db.read_from_local_db(db_table_name).await?;
-//     let model_name = app_state.nervo_config.llm.model_name.clone();
-//     let system_role_content = layer.system_role_text;
-// 
-//     //Create user request role text
-//     let mut user_role_full_text = String::new();
-//     for parameter in layer.user_role_params {
-//         let value = match parameter.param_type {
-//             QDrantUserRoleTextType::History => cached_messages
-//                 .clone()
-//                 .iter()
-//                 .map(|msg| msg.message.clone())
-//                 .collect::<Vec<String>>()
-//                 .join("\n"),
-//             QDrantUserRoleTextType::UserPromt => prompt.to_string().clone(),
-//             QDrantUserRoleTextType::RephrasedPromt => rephrased_prompt.clone(),
-//             QDrantUserRoleTextType::DBSearch => search_result_content.clone(),
-//         };
-//         let part = format!("{:?}{:?}\n", parameter.param_value, value);
-//         user_role_full_text.push_str(&part)
-//     }
-// 
-//     let mut messages: Vec<ChatMessage> = Vec::new();
-//     let system_role_msg = ChatMessage {
-//         role: openai_dive::v1::resources::chat::Role::System,
-//         content: ChatMessageContent::Text(String::from(system_role_content)),
-//         tool_calls: None,
-//         name: None,
-//         tool_call_id: None,
-//     };
-//     let user_role_msg = ChatMessage {
-//         role: openai_dive::v1::resources::chat::Role::User,
-//         content: ChatMessageContent::Text(String::from(user_role_full_text)),
-//         tool_calls: None,
-//         name: None,
-//         tool_call_id: None,
-//     };
-// 
-//     messages.push(system_role_msg);
-//     messages.push(user_role_msg);
-// 
-//     let params = ChatCompletionParameters {
-//         messages,
-//         model: model_name,
-//         frequency_penalty: None,
-//         logit_bias: None,
-//         logprobs: None,
-//         top_logprobs: None,
-//         max_tokens: Some(layer.max_tokens),
-//         n: None,
-//         presence_penalty: None,
-//         response_format: None,
-//         seed: None,
-//         stop: None,
-//         stream: None,
-//         temperature: Some(layer.temperature),
-//         top_p: None,
-//         tools: None,
-//         tool_choice: None,
-//         user: None,
-//     };
-//     let layer_processing_content = match client.chat().create(params).await {
-//         Ok(value) => value.choices[0].message.content.to_owned(),
-//         Err(err) => {
-//             error!("Error {:?}", err);
-//             bail!("Error {:?}", err)
-//         }
-//     };
-//     let layer_content_text = match layer_processing_content {
-//         ChatMessageContent::Text(text) => text,
-//         _ => String::new(),
-//     };
-//     Ok(layer_content_text)
-// }
-
-// Need to check if it is crap question from user (e.g "Hi!", "What's up" etc.)
-// async fn detecting_crap_request(
-//     app_state: &Arc<AppState>,
-//     prompt: &str,
-//     user: &User,
-// ) -> anyhow::Result<String> {
-//     let layers_info = get_all_search_layers().await?;
-//     let layer_content = create_layer_content(
-//         &app_state,
-//         &prompt,
-//         &user.id.to_string(),
-//         layers_info.crap_detecting_layer,
-//         String::new(),
-//         String::new(),
-//     )
-//     .await?;
-//     Ok(layer_content)
-// }
