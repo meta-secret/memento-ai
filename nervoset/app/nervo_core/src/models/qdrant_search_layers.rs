@@ -14,6 +14,7 @@ pub struct QDrantSearchLayer {
     pub system_role_text: String,
     pub temperature: f32,
     pub max_tokens: u32,
+    pub common_token_limit: u32,
     pub collection_params: Vec<QDrantCollectionParameters>,
 }
 

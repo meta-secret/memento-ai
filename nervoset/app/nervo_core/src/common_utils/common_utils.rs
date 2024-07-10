@@ -2,8 +2,10 @@ use std::sync::Arc;
 use anyhow::bail;
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::chat::{ChatCompletionParameters, ChatMessage, ChatMessageContent};
+use qdrant_client::qdrant::{ScoredPoint, SearchResponse};
 use qdrant_client::qdrant::value::Kind;
 use serde_derive::{Deserialize, Serialize};
+use teloxide::types::MessageKind::Common;
 use tiktoken_rs::p50k_base;
 use tokio::fs;
 use tracing::{error, info};
@@ -243,6 +245,9 @@ async fn openai_chat_preparations(
 
     for processing_layer in processing_layers {
         if !processing_layer.collection_params.is_empty() {
+            info!("COMMON: QDrant collections count is {:?}", &processing_layer.collection_params.len());
+            
+            let mut all_search_results = vec![];
             for collection_param in &processing_layer.collection_params {
                 let db_search = &app_state
                     .nervo_ai_db
@@ -255,27 +260,37 @@ async fn openai_chat_preparations(
                     .await?;
 
                 for search_result in &db_search.result {
-                    if search_result.score.clone() > 0.1 {
-                        let Some(Kind::StringValue(result)) =
-                            &search_result.payload["text"].kind
-                            else {
-                                bail!("Oooops! Error")
-                            };
-
-                        let token_limit = collection_param.tokens_limit.clone() as usize;
-                        let vectors_limit = collection_param.vectors_limit.clone() as usize;
-                        let mut tokens = bpe.split_by_token(&result, true)?;
-
-                        if tokens.len() > (token_limit / vectors_limit) {
-                            tokens.truncate(token_limit / vectors_limit);
-                            let response = tokens.join("");
-                            search_content.push_str(&response);
-                        } else {
-                            search_content.push_str(result);
-                        }
+                    if search_result.score.clone() >= 0.3 {
+                        all_search_results.push(search_result.clone());
                     }
                 }
             }
+
+            all_search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+            all_search_results.truncate(10);
+            let mut concatenated_texts: String = String::new();
+            for search_result in all_search_results {
+                let Some(Kind::StringValue(text)) =
+                    &search_result.payload["text"].kind
+                    else {
+                        bail!("Oooops! Error")
+                    };
+                concatenated_texts.push_str(text);
+            }
+            
+            info!("COMMON: concatenated text {}", concatenated_texts.clone());
+            let token_limit = processing_layer.common_token_limit as usize;
+            let mut tokens = bpe.split_by_token(&concatenated_texts, true)?;
+
+            info!("COMMON: tokens len {:?} and token limit {:?}", tokens.len(), token_limit);
+            if tokens.len() > token_limit {
+                tokens.truncate(token_limit);
+                let response = tokens.join("");
+                search_content.push_str(&response);
+            } else {
+                search_content.push_str(&concatenated_texts);
+            }
+            info!("COMMON: search content result: {}", search_content);
         }
 
         rephrased_prompt = create_layer_content(
