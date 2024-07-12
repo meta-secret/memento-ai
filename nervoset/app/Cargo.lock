@@ -1029,6 +1029,7 @@ dependencies = [
  "async-openai",
  "chrono",
  "config",
+ "lazy_static",
  "nervo-core",
  "regex",
  "reqwest 0.12.4",
