@@ -67,12 +67,13 @@ tasks:
       - task -t ../../../nervoset/Taskfile.yml docker_{{.APP_NAME}}:push INFRA={{.INFRA}}
       - task: generate
       - kubectl apply -f {{ .BUILD_DIR }}
+      - kubectl wait --for=jsonpath='{.status.phase}'=Running pod/{{.K8S_APP_NAME}}-0 --timeout=180s
 
   delete:
     cmds:
       - task: generate
-      - kubectl delete -f {{ .BUILD_DIR }}
+      - kubectl delete -f {{ .BUILD_DIR }} || true
 
   describe:
     cmds:
-      - kubectl describe pod probiot-t1000-0
+      - kubectl describe pod {{.K8S_APP_NAME}}-0
