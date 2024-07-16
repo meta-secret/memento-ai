@@ -13,6 +13,7 @@ pub struct AppState {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NervoConfig {
     pub telegram: TelegramBotParams,
     pub llm: NervoLlmConfig,
@@ -21,17 +22,20 @@ pub struct NervoConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TelegramBotParams {
     pub token: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct QdrantParams {
     pub server_url: String,
     pub api_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DatabaseParams {
     pub url: String,
 }

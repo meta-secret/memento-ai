@@ -16,6 +16,7 @@ use crate::common::AppState;
 use crate::models::qdrant_search_layers::{QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType};
 
 #[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct SendMessageRequest {
     pub chat_id: u64,
     pub llm_message: UserLlmMessage,

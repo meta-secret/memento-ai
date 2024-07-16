@@ -16,6 +16,7 @@ use async_openai::types::ModerationInput;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NervoLlmConfig {
     pub api_key: String,
     pub model_name: String,
@@ -136,24 +137,28 @@ impl NervoLlm {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LlmChat {
     pub chat_id: u64,
     pub messages: Vec<LlmMessage>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct LlmMessage {
     pub save_to_context: LlmSaveContext,
     pub message_owner: LlmOwnerType,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub enum LlmSaveContext {
     True,
     False,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub enum LlmOwnerType {
     System(LlmMessageContent),
     User(UserLlmMessage),
@@ -161,6 +166,7 @@ pub enum LlmOwnerType {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct UserLlmMessage {
     pub sender_id: u64,
     pub content: LlmMessageContent,
@@ -193,6 +199,7 @@ impl LlmMessage {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct LlmMessageContent(pub String);
 
 impl LlmMessageContent {

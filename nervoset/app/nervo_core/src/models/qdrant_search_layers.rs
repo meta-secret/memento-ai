@@ -1,6 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct QDrantSearchInfo {
     pub crap_detecting_layer: QDrantSearchLayer,
     pub layers: Vec<QDrantSearchLayer>,
@@ -8,6 +9,7 @@ pub struct QDrantSearchInfo {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct QDrantSearchLayer {
     pub index: i64,
     pub user_role_params: Vec<QDrantUserRoleParameters>,
@@ -19,12 +21,14 @@ pub struct QDrantSearchLayer {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct QDrantUserRoleParameters {
     pub param_type: QDrantUserRoleTextType,
     pub param_value: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub enum QDrantUserRoleTextType {
     History,
     UserPromt,
@@ -33,6 +37,7 @@ pub enum QDrantUserRoleTextType {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct QDrantCollectionParameters {
     pub name: String,
     pub tokens_limit: i64,
