@@ -3,7 +3,7 @@ mod utils;
 use wasm_bindgen::prelude::*;
 use log::{info, Level};
 use reqwest::{Client};
-
+use nervo_api::{LlmMessageContent, SendMessageRequest, UserLlmMessage};
 
 #[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
@@ -39,14 +39,13 @@ impl ApiUrl {
 #[wasm_bindgen]
 pub struct NervoClient {
     pub api_url: ApiUrl,
+    client: Client
 }
 
 #[wasm_bindgen]
 impl NervoClient {
     pub fn new(api_url: ApiUrl) -> Self {
-        NervoClient {
-            api_url
-        }
+        NervoClient { api_url, client: Client::new() }
     }
 
     pub fn configure(&self) {
@@ -65,21 +64,35 @@ impl NervoClient {
     }
 
     pub async fn send_message(&self, chat_id: u64, user_id: u64, role: String, content: String) -> Result<String, JsValue> {
-        let json = format!(
-            "{{\"chat_id\": {}, \"llm_message\": {{\"sender_id\": {}, \"role\": \"{}\", \"content\": \"{}\"}}}}",
-            chat_id, user_id, role, content
-        );
+        let json = SendMessageRequest {
+            chat_id,
+            llm_message: UserLlmMessage { sender_id: 0, content: LlmMessageContent(String::from("test")) },
+        };
+        
+        //let json = format!(
+        //    "{{\"chat_id\": {}, \"llm_message\": {{\"sender_id\": {}, \"role\": \"{}\", \"content\": \"{}\"}}}}",
+        //    chat_id, user_id, role, content
+        //);
 
         let url = format!("{}/send_message", self.api_url.get_url());
-        info!("LIB: Send msg url {:?} with json: {}", url, json);
+        info!("LIB: Send msg url {:?} with json: {:?}", url, json);
 
-        self.fetch_post(&url, json).await
+        self.client
+            .post(url)
+            .header("Content-Type", "application/json")
+            .json(&json)
+            .send()
+            .await?;
+        
+        Ok(String::from("result"))
+
+        //self.fetch_post(&url, json).await
     }
 
     async fn fetch_get(&self, url: &str) -> Result<String, JsValue> {
         info!("LIB: FETCH GET {:?}", url);
-        let client = Client::new();
-        let response = match client.get(url)
+        
+        let response = match self.client.get(url)
             .send()
             .await {
             Ok(response) => {
@@ -101,9 +114,7 @@ impl NervoClient {
     }
 
     async fn fetch_post(&self, url: &str, json: String) -> Result<String, JsValue> {
-        let client = Client::new();
-
-        let response = match client.post(url)
+        let response = match self.client.post(url)
             .header("Content-Type", "application/json")
             .body(json)
             .send()

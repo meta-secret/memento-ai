@@ -2,25 +2,16 @@ use std::sync::Arc;
 use anyhow::bail;
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::chat::{ChatCompletionParameters, ChatMessage, ChatMessageContent};
-use qdrant_client::qdrant::{ScoredPoint, SearchResponse};
 use qdrant_client::qdrant::value::Kind;
 use serde_derive::{Deserialize, Serialize};
-use teloxide::types::MessageKind::Common;
 use tiktoken_rs::p50k_base;
 use tokio::fs;
 use tracing::{error, info};
-use crate::ai::nervo_llm::{LlmMessage, LlmMessageContent, UserLlmMessage};
-use crate::ai::nervo_llm::LlmOwnerType::{Assistant, User};
-use crate::ai::nervo_llm::LlmSaveContext::{False, True};
+use nervo_api::LlmSaveContext::{False, True};
+use nervo_api::{LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
+use nervo_api::LlmOwnerType::{Assistant, User};
 use crate::common::AppState;
 use crate::models::qdrant_search_layers::{QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType};
-
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct SendMessageRequest {
-    pub chat_id: u64,
-    pub llm_message: UserLlmMessage,
-}
 
 //Common entry point for WEB and TG
 pub async fn llm_conversation(

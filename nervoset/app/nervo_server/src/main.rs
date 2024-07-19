@@ -1,7 +1,6 @@
 mod commands;
 mod queries;
 mod cors;
-mod models;
 
 use std::sync::Arc;
 use axum::{routing::{get, post}, Router, Json};

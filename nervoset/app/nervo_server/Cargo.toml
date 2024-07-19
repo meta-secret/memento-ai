@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 nervo-core = { path = "../nervo_core" }
+nervo-api = { path = "../nervo_api" }
 
 thiserror.workspace = true
 anyhow.workspace = true

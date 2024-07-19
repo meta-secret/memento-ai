@@ -46,13 +46,9 @@ function App() {
     const nervoClient = NervoClient.new(apiUrl);
     nervoClient.configure();
 
-    useEffect(() => {
-        fetchChat().catch(console.error);
-    }, []);
+    useEffect(() => { fetchChat().catch(console.error); }, []);
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [conversation]);
+    useEffect(() => { scrollToBottom(); }, [conversation]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

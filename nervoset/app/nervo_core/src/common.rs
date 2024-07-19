@@ -42,9 +42,12 @@ pub struct DatabaseParams {
 
 impl NervoConfig {
     pub fn load() -> anyhow::Result<NervoConfig> {
-        let config_file = config::File::with_name("config").format(config::FileFormat::Yaml);
+        let config_file = config::File::with_name("config")
+            .format(config::FileFormat::Yaml);
 
-        let app_config = AppConfig::builder().add_source(config_file).build()?;
+        let app_config = AppConfig::builder()
+            .add_source(config_file)
+            .build()?;
 
         let cfg = app_config.try_deserialize()?;
 

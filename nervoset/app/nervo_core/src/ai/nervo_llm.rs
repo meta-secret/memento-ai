@@ -13,7 +13,9 @@ use async_openai::types::CreateEmbeddingResponse;
 use async_openai::types::CreateModerationRequest;
 use async_openai::types::CreateTranscriptionRequest;
 use async_openai::types::ModerationInput;
-use serde_derive::{Deserialize, Serialize};
+use serde_derive::Deserialize;
+
+use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmOwnerType, UserLlmMessage};
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -77,7 +79,7 @@ impl NervoLlm {
     pub async fn send_msg_batch(&self, chat: LlmChat) -> Result<String> {
         let mut messages = vec![];
         for msg in chat.messages {
-            let gpt_msg = ChatCompletionRequestMessage::try_from(msg)?;
+            let gpt_msg = ChatCompletionRequestMessage::transform_to(msg)?;
             messages.push(gpt_msg);
         }
 
@@ -136,88 +138,17 @@ impl NervoLlm {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LlmChat {
-    pub chat_id: u64,
-    pub messages: Vec<LlmMessage>,
+pub trait TransformTo<T>: Sized {
+    type Error;
+
+    /// Performs the conversion.
+    fn transform_to(value: T) -> std::result::Result<Self, Self::Error>;
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct LlmMessage {
-    pub save_to_context: LlmSaveContext,
-    pub message_owner: LlmOwnerType,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub enum LlmSaveContext {
-    True,
-    False,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub enum LlmOwnerType {
-    System(LlmMessageContent),
-    User(UserLlmMessage),
-    Assistant(LlmMessageContent),
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct UserLlmMessage {
-    pub sender_id: u64,
-    pub content: LlmMessageContent,
-}
-
-impl LlmMessage {
-    pub fn role(&self) -> String {
-        match self.message_owner {
-            LlmOwnerType::System(_) => String::from("system"),
-            LlmOwnerType::User(_) => String::from("user"),
-            LlmOwnerType::Assistant(_) => String::from("assistant")
-        }
-    }
-
-    pub fn content_text(&self) -> String {
-        match &self.message_owner {
-            LlmOwnerType::System(LlmMessageContent(content)) => content.clone(),
-            LlmOwnerType::User(UserLlmMessage { content: LlmMessageContent(text), .. }) => text.clone(),
-            LlmOwnerType::Assistant(LlmMessageContent(content)) => content.clone(),
-        }
-    }
-
-    pub fn content(&self) -> LlmMessageContent {
-        match &self.message_owner {
-            LlmOwnerType::System(content) => content.clone(),
-            LlmOwnerType::User(user) => user.content.clone(),
-            LlmOwnerType::Assistant(content) => content.clone(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct LlmMessageContent(pub String);
-
-impl LlmMessageContent {
-    pub fn text(&self) -> String {
-        self.0.clone()
-    }
-}
-
-impl From<&str> for LlmMessageContent {
-    fn from(content: &str) -> Self {
-        LlmMessageContent(content.to_string())
-    }
-}
-
-impl TryFrom<LlmMessage> for ChatCompletionRequestMessage {
+impl TransformTo<LlmMessage> for ChatCompletionRequestMessage {
     type Error = anyhow::Error;
 
-    fn try_from(msg: LlmMessage) -> std::result::Result<Self, Self::Error> {
+    fn transform_to(msg: LlmMessage) -> std::result::Result<Self, Self::Error> {
         match msg.message_owner {
             LlmOwnerType::System(LlmMessageContent(content)) => {
                 let message = ChatCompletionRequestSystemMessage {

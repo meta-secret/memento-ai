@@ -37,7 +37,3 @@ impl NervoAiDb {
             .await
     }
 }
-
-enum AiDbType {
-    Qdrant,
-}
