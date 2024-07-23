@@ -3,7 +3,7 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use tracing::{error, info};
-use nervo_bot_core::ai::nervo_llm::{LlmChat, LlmMessage};
+use nervo_api::{LlmChat, LlmMessage};
 use nervo_bot_core::common::AppState;
 
 pub async fn chat(

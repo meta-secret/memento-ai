@@ -1,4 +1,3 @@
-use crate::ai::nervo_llm::{LlmMessageContent, UserLlmMessage};
 use crate::common::AppState;
 use crate::models::nervo_message_model::TelegramMessage;
 use crate::models::system_messages::SystemMessages;
@@ -6,10 +5,7 @@ use crate::models::user_model::TelegramUser;
 use anyhow::bail;
 use chrono::Utc;
 use openai_dive::v1::api::Client;
-use openai_dive::v1::resources::audio::{
-    AudioOutputFormat, AudioSpeechParameters, AudioSpeechResponseFormat,
-    AudioTranscriptionParameters, AudioVoice,
-};
+use openai_dive::v1::resources::audio::{AudioOutputFormat, AudioSpeechParameters, AudioSpeechResponseFormat, AudioTranscriptionFile, AudioTranscriptionParameters, AudioVoice};
 use std::sync::Arc;
 use teloxide::net::Download;
 use teloxide::prelude::ChatId;
@@ -20,7 +16,8 @@ use teloxide::types::{
 use teloxide::Bot;
 use tokio::fs;
 use tracing::{error, info};
-use crate::common_utils::common_utils::{llm_conversation, SendMessageRequest};
+use nervo_api::{LlmMessageContent, SendMessageRequest, UserLlmMessage};
+use crate::common_utils::common_utils::{llm_conversation};
 
 pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Result<()> {
     info!("Start chat...");
@@ -223,7 +220,7 @@ impl<'a> MessageParser<'a> {
             self.bot.download_file(&file.path, &mut dst).await?;
 
             let parameters = AudioTranscriptionParameters {
-                file: file_path.to_string(),
+                file: AudioTranscriptionFile::File(file_path.to_string()),
                 model: "whisper-1".to_string(),
                 language: None,
                 prompt: None,
@@ -231,6 +228,16 @@ impl<'a> MessageParser<'a> {
                 temperature: None,
                 timestamp_granularities: None,
             };
+            
+            // let parameters = AudioTranscriptionParameters {
+            //     file: file_path.to_string(),
+            //     model: "whisper-1".to_string(),
+            //     language: None,
+            //     prompt: None,
+            //     response_format: Some(AudioOutputFormat::Text),
+            //     temperature: None,
+            //     timestamp_granularities: None,
+            // };
 
             let client = Client::new(self.app_state.nervo_llm.api_key().to_string());
             let response = client.audio().create_transcription(parameters).await;

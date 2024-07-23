@@ -7,9 +7,9 @@ use serde_derive::{Deserialize, Serialize};
 use tiktoken_rs::p50k_base;
 use tokio::fs;
 use tracing::{error, info};
-use nervo_api::LlmSaveContext::{False, True};
 use nervo_api::{LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use nervo_api::LlmOwnerType::{Assistant, User};
+use nervo_api::LlmSaveContext::{False, True};
 use crate::common::AppState;
 use crate::models::qdrant_search_layers::{QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType};
 
@@ -165,7 +165,7 @@ async fn create_layer_content(
                 .join("\n"),
             QDrantUserRoleTextType::UserPromt => prompt.to_string().clone(),
             QDrantUserRoleTextType::RephrasedPromt => rephrased_prompt.clone(),
-            QDrantUserRoleTextType::DBSearch => search_result_content.clone(),
+            QDrantUserRoleTextType::DbSearch => search_result_content.clone(),
         };
         let part = format!("{:?}{:?}\n", parameter.param_value, value);
         user_role_full_text.push_str(&part)

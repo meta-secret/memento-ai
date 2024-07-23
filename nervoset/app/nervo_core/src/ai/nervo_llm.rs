@@ -18,7 +18,6 @@ use serde_derive::Deserialize;
 use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmOwnerType, UserLlmMessage};
 
 #[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct NervoLlmConfig {
     pub api_key: String,
     pub model_name: String,
@@ -153,7 +152,6 @@ impl TransformTo<LlmMessage> for ChatCompletionRequestMessage {
             LlmOwnerType::System(LlmMessageContent(content)) => {
                 let message = ChatCompletionRequestSystemMessage {
                     content,
-                    role: Role::System,
                     name: None,
                 };
                 Ok(ChatCompletionRequestMessage::from(message))
@@ -161,7 +159,6 @@ impl TransformTo<LlmMessage> for ChatCompletionRequestMessage {
             LlmOwnerType::User(UserLlmMessage { sender_id, content }) => {
                 let message = ChatCompletionRequestUserMessage {
                     content: ChatCompletionRequestUserMessageContent::Text(content.0),
-                    role: Role::User,
                     name: Some(sender_id.to_string()),
                 };
                 Ok(ChatCompletionRequestMessage::from(message))
@@ -169,7 +166,6 @@ impl TransformTo<LlmMessage> for ChatCompletionRequestMessage {
             LlmOwnerType::Assistant(LlmMessageContent(content)) => {
                 let message = ChatCompletionRequestAssistantMessage {
                     content: Some(content),
-                    role: Role::Assistant,
                     name: None,
                     tool_calls: None,
                     function_call: None,

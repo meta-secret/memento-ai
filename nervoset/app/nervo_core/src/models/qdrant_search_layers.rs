@@ -33,7 +33,7 @@ pub enum QDrantUserRoleTextType {
     History,
     UserPromt,
     RephrasedPromt,
-    DBSearch,
+    DbSearch,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

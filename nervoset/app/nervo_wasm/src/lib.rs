@@ -1,9 +1,11 @@
-mod utils;
-
-use wasm_bindgen::prelude::*;
 use log::{info, Level};
-use reqwest::{Client};
-use nervo_api::{LlmMessageContent, SendMessageRequest, UserLlmMessage};
+use reqwest::Client;
+use serde::Serialize;
+use wasm_bindgen::JsValue;
+use wasm_bindgen::prelude::wasm_bindgen;
+use nervo_api::{LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
+
+mod utils;
 
 #[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
@@ -54,7 +56,7 @@ impl NervoClient {
 
     #[wasm_bindgen]
     pub async fn get_chat(&self, chat_id: u64) -> Result<String, JsValue> {
-        console_log::init_with_level(Level::Debug).expect("TODO: panic message");
+        // console_log::init_with_level(Level::Debug).expect("TODO: panic message");
         info!("LIB: get_chat");
 
         let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
@@ -63,30 +65,16 @@ impl NervoClient {
         self.fetch_get(&url).await
     }
 
-    pub async fn send_message(&self, chat_id: u64, user_id: u64, role: String, content: String) -> Result<String, JsValue> {
+    pub async fn send_message(&self, chat_id: u64, user_id: u64, content: String) -> Result<String, JsValue> {
         let json = SendMessageRequest {
             chat_id,
-            llm_message: UserLlmMessage { sender_id: 0, content: LlmMessageContent(String::from("test")) },
+            llm_message: UserLlmMessage { sender_id: user_id, content: LlmMessageContent(String::from(content)) },
         };
-        
-        //let json = format!(
-        //    "{{\"chat_id\": {}, \"llm_message\": {{\"sender_id\": {}, \"role\": \"{}\", \"content\": \"{}\"}}}}",
-        //    chat_id, user_id, role, content
-        //);
 
         let url = format!("{}/send_message", self.api_url.get_url());
         info!("LIB: Send msg url {:?} with json: {:?}", url, json);
 
-        self.client
-            .post(url)
-            .header("Content-Type", "application/json")
-            .json(&json)
-            .send()
-            .await?;
-        
-        Ok(String::from("result"))
-
-        //self.fetch_post(&url, json).await
+        self.fetch_post(&url, json).await
     }
 
     async fn fetch_get(&self, url: &str) -> Result<String, JsValue> {
@@ -113,10 +101,13 @@ impl NervoClient {
         }
     }
 
-    async fn fetch_post(&self, url: &str, json: String) -> Result<String, JsValue> {
+    async fn fetch_post<T>(&self, url: &str, json: T) -> Result<String, JsValue>
+        where
+            T: Serialize {
         let response = match self.client.post(url)
             .header("Content-Type", "application/json")
-            .body(json)
+            .header("Access-Control-Allow-Origin", url)
+            .json(&json)
             .send()
             .await {
             Ok(response) => {

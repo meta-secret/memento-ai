@@ -2,6 +2,7 @@ use crate::common::{AppState, QdrantParams};
 use anyhow::bail;
 use async_openai::types::Embedding;
 use qdrant_client::client::QdrantClient;
+use qdrant_client::Payload;
 use qdrant_client::prelude::{CreateCollection, Distance, PointStruct, SearchPoints};
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::{SearchResponse, VectorParams, VectorsConfig};
@@ -63,10 +64,11 @@ impl QdrantDb {
 
         let points = {
             let id: u64 = rng.gen();
+            let payload: Payload = json!({"text": text}).try_into().unwrap();
             let point = PointStruct::new(
                 id,
                 vec_data.embedding.clone(),
-                json!({"text": text}).try_into().unwrap(),
+                payload,
             );
             vec![point]
         };

@@ -105,7 +105,7 @@ function App() {
         ]);
 
         try {
-            let responseString = await nervoClient.send_message(BigInt(chatId), BigInt(userId), Roles.user, messageText);
+            let responseString = await nervoClient.send_message(BigInt(chatId), BigInt(userId), messageText);
             console.log(`WEB: responseString ${responseString}`)
             let responseMessage: Message = JSON.parse(responseString);
 
@@ -150,7 +150,7 @@ interface ReplyContentProps {
     role: string;
 }
 
-const ReplyContent: React.FC<ReplyContentProps> = ({ text, role }) => {
+const ReplyContent: React.FC<ReplyContentProps> = ({ text }) => {
     return (
         <div className="flex bg-slate-100 px-4 py-8 dark:bg-slate-900 sm:px-6">
             <img

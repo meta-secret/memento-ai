@@ -6,9 +6,8 @@ use teloxide::{prelude::*, utils::command::BotCommands};
 use teloxide::Bot as TelegramBot;
 use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
-
-use crate::ai::nervo_llm::{LlmChat, LlmMessage, LlmMessageContent, LlmSaveContext, UserLlmMessage};
-use crate::ai::nervo_llm::LlmOwnerType::{System, User};
+use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmSaveContext, UserLlmMessage};
+use nervo_api::LlmOwnerType::{System, User};
 use crate::common::AppState;
 use crate::telegram::bot_utils::{chat, MessageParser};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
