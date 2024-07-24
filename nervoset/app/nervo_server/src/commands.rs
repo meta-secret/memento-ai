@@ -3,8 +3,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
 use tracing::{error, info};
-use nervo_api::{LlmMessage, LlmMessageContent, LlmSaveContext, SendMessageRequest, UserLlmMessage};
-use nervo_api::LlmOwnerType::{Assistant, User};
+use nervo_api::{LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole, SendMessageRequest};
 use nervo_bot_core::common::AppState;
 use nervo_bot_core::common_utils::common_utils::{llm_conversation};
 
@@ -66,8 +65,12 @@ async fn fail_path_of_moderation(
 
         let content = LlmMessageContent::from(question.as_str());
         LlmMessage {
-            save_to_context: LlmSaveContext::False,
-            message_owner: User(UserLlmMessage { sender_id: user_id, content }),
+            meta_info: LlmMessageMetaInfo {
+                sender_id: Some(user_id),
+                role: LlmMessageRole::User,
+                persistence: LlmMessagePersistence::Temporal,
+            },
+            content,
         }
     };
 
@@ -82,8 +85,13 @@ async fn fail_path_of_moderation(
     info!("REPLY: {:?}", reply_text.clone());
 
     let llm_response = LlmMessage {
-        save_to_context: LlmSaveContext::False,
-        message_owner: Assistant(LlmMessageContent(reply_text))
+        meta_info: LlmMessageMetaInfo {
+            sender_id: None,
+            role: LlmMessageRole::Assistant,
+            persistence: LlmMessagePersistence::Temporal,
+        },
+        content: LlmMessageContent(reply_text),
     };
+    
     Ok(Json(llm_response))
 }

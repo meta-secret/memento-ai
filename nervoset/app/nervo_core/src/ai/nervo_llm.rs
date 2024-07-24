@@ -15,7 +15,7 @@ use async_openai::types::CreateTranscriptionRequest;
 use async_openai::types::ModerationInput;
 use serde_derive::Deserialize;
 
-use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmOwnerType, UserLlmMessage};
+use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageRole, UserLlmMessage};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct NervoLlmConfig {
@@ -148,24 +148,24 @@ impl TransformTo<LlmMessage> for ChatCompletionRequestMessage {
     type Error = anyhow::Error;
 
     fn transform_to(msg: LlmMessage) -> std::result::Result<Self, Self::Error> {
-        match msg.message_owner {
-            LlmOwnerType::System(LlmMessageContent(content)) => {
+        match msg.meta_info.role {
+            LlmMessageRole::System => {
                 let message = ChatCompletionRequestSystemMessage {
-                    content,
+                    content: msg.content.text(),
                     name: None,
                 };
                 Ok(ChatCompletionRequestMessage::from(message))
             }
-            LlmOwnerType::User(UserLlmMessage { sender_id, content }) => {
+            LlmMessageRole::User => {
                 let message = ChatCompletionRequestUserMessage {
-                    content: ChatCompletionRequestUserMessageContent::Text(content.0),
-                    name: Some(sender_id.to_string()),
+                    content: ChatCompletionRequestUserMessageContent::Text(msg.content.text()),
+                    name: msg.meta_info.sender_id.map(|id| id.to_string()),
                 };
                 Ok(ChatCompletionRequestMessage::from(message))
             }
-            LlmOwnerType::Assistant(LlmMessageContent(content)) => {
+            LlmMessageRole::Assistant => {
                 let message = ChatCompletionRequestAssistantMessage {
-                    content: Some(content),
+                    content: Some(msg.content.text()),
                     name: None,
                     tool_calls: None,
                     function_call: None,

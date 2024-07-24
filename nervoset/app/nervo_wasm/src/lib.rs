@@ -65,10 +65,10 @@ impl NervoClient {
         self.fetch_get(&url).await
     }
 
-    pub async fn send_message(&self, chat_id: u64, user_id: u64, content: String) -> Result<String, JsValue> {
+    pub async fn send_message(&self, chat_id: u64, user_id: u64, content: String) -> Result<LlmMessage, JsValue> {
         let json = SendMessageRequest {
             chat_id,
-            llm_message: UserLlmMessage { sender_id: user_id, content: LlmMessageContent(String::from(content)) },
+            llm_message: UserLlmMessage { sender_id: user_id, content: LlmMessageContent(content) },
         };
 
         let url = format!("{}/send_message", self.api_url.get_url());
@@ -101,7 +101,7 @@ impl NervoClient {
         }
     }
 
-    async fn fetch_post<T>(&self, url: &str, json: T) -> Result<String, JsValue>
+    async fn fetch_post<T, R>(&self, url: &str, json: T) -> Result<R, JsValue>
         where
             T: Serialize {
         let response = match self.client.post(url)

@@ -7,9 +7,7 @@ use serde_derive::{Deserialize, Serialize};
 use tiktoken_rs::p50k_base;
 use tokio::fs;
 use tracing::{error, info};
-use nervo_api::{LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
-use nervo_api::LlmOwnerType::{Assistant, User};
-use nervo_api::LlmSaveContext::{False, True};
+use nervo_api::{LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole, SendMessageRequest};
 use crate::common::AppState;
 use crate::models::qdrant_search_layers::{QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType};
 
@@ -26,22 +24,15 @@ pub async fn llm_conversation(
     // First, detect the request type. Will we use Qdrant or a simple LLM going forward?
     let initial_user_request = detecting_crap_request(&app_state, &content, user_id.as_str()).await?;
 
-    // Prepare user message to save to DB
-    let mut llm_user_message = LlmMessage {
-        save_to_context: False,
-        message_owner: User(UserLlmMessage {
-            sender_id: user_id.parse().expect("Can't parse user id"),
-            content: LlmMessageContent(String::from(content)),
-        }),
-    };
-
-    // Prepare llm response to save to DB
-    let mut llm_response = LlmMessage {
-        save_to_context: False,
-        message_owner: Assistant(LlmMessageContent(String::new())),
-    };
-
     if initial_user_request == "SKIP" {
+        let llm_user_message = LlmMessage {
+            meta_info: LlmMessageMetaInfo {
+                sender_id: Some(msg_request.llm_message.sender_id),
+                role: LlmMessageRole::User,
+                persistence: LlmMessagePersistence::Temporal,
+            },
+            content: LlmMessageContent(String::from(content)),
+        };
         // Save to DB to restore chat history, not for history context
         app_state.local_db.save_to_local_db(llm_user_message, &table_name, None).await?;
 
@@ -56,12 +47,14 @@ pub async fn llm_conversation(
             &content
         );
         let content = LlmMessageContent::from(user_request_text.as_str());
+        
         let request_to_llm = LlmMessage {
-            save_to_context: False,
-            message_owner: User(UserLlmMessage {
-                sender_id: user_id.parse().expect("Can't parse user id"),
-                content,
-            }),
+            meta_info: LlmMessageMetaInfo {
+                sender_id: Some(msg_request.llm_message.sender_id),
+                role: LlmMessageRole::User,
+                persistence: LlmMessagePersistence::Temporal,
+            },
+            content
         };
 
         // Asking LLM
@@ -72,11 +65,26 @@ pub async fn llm_conversation(
         info!("SKIPPED LLM_RESPONSE {:?}", llm_response_text.clone());
 
         // Saving answer from LLM but not for History Context
-        llm_response.message_owner = Assistant(LlmMessageContent(llm_response_text));
+        let llm_response = LlmMessage {
+            meta_info: LlmMessageMetaInfo {
+                sender_id: None,
+                role: LlmMessageRole::Assistant,
+                persistence: LlmMessagePersistence::Temporal,
+            },
+            content: LlmMessageContent(llm_response_text),
+        };
+        
         app_state.local_db.save_to_local_db(llm_response.clone(), &table_name, None).await?;
         Ok(llm_response)
     } else {
-        llm_user_message.save_to_context = True;
+        let llm_user_message = LlmMessage {
+            meta_info: LlmMessageMetaInfo {
+                sender_id: Some(msg_request.llm_message.sender_id),
+                role: LlmMessageRole::User,
+                persistence: LlmMessagePersistence::Persistent,
+            },
+            content: LlmMessageContent(String::from(content)),
+        };
         
         // Save to DB to restore chat history, and for history context
         let all_messages: Vec<LlmMessage> = app_state.local_db.read_from_local_db(&table_name).await?;
@@ -89,11 +97,23 @@ pub async fn llm_conversation(
         let llm_response_text = openai_chat_preparations(&app_state, &initial_user_request, table_name.clone())
             .await?;
 
-        llm_response.save_to_context = True;
-        llm_response.message_owner = Assistant(LlmMessageContent(llm_response_text.clone()));
+        let llm_response = LlmMessage {
+            meta_info: LlmMessageMetaInfo {
+                sender_id: None,
+                role: LlmMessageRole::Assistant,
+                persistence: LlmMessagePersistence::Persistent,
+            },
+            content: LlmMessageContent(llm_response_text.clone())
+        };
+        
         // Saving answer from LLM but not for History Context
-        app_state.local_db.save_to_local_db(messages_count+1, &table_name_start_index, Some(10_i64)).await?;
-        app_state.local_db.save_to_local_db(llm_response.clone(), &table_name, None).await?;
+        app_state.local_db
+            .save_to_local_db(messages_count+1, &table_name_start_index, Some(10_i64))
+            .await?;
+        app_state.local_db
+            .save_to_local_db(llm_response.clone(), &table_name, None)
+            .await?;
+        
         info!("LLM_RESPONSE {:?}", llm_response_text);
         Ok(llm_response)
     }
@@ -160,7 +180,7 @@ async fn create_layer_content(
             QDrantUserRoleTextType::History => cached_messages
                 .clone()
                 .iter()
-                .map(|msg| msg.content().0)
+                .map(|msg| msg.content.text())
                 .collect::<Vec<String>>()
                 .join("\n"),
             QDrantUserRoleTextType::UserPromt => prompt.to_string().clone(),

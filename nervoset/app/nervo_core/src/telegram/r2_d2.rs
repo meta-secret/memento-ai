@@ -6,8 +6,7 @@ use teloxide::{prelude::*, utils::command::BotCommands};
 use teloxide::Bot as TelegramBot;
 use teloxide::dispatching::dialogue::InMemStorage;
 use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
-use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmSaveContext, UserLlmMessage};
-use nervo_api::LlmOwnerType::{System, User};
+use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole, UserLlmMessage};
 use crate::common::AppState;
 use crate::telegram::bot_utils::{chat, MessageParser};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
@@ -211,9 +210,13 @@ async fn endpoint(
             let UserId(user_id) = parser.parse_user().await?.id;
             for text in &result_strings {
                 let content = LlmMessageContent::from(text.chars().take(1000).collect::<String>().as_str());
-                let user_msg = LlmMessage{
-                    save_to_context: LlmSaveContext::True,
-                    message_owner: User(UserLlmMessage { sender_id: user_id, content }),
+                let user_msg = LlmMessage {
+                    meta_info: LlmMessageMetaInfo {
+                        sender_id: Some(user_id),
+                        role: LlmMessageRole::User,
+                        persistence: LlmMessagePersistence::Persistent,
+                    },
+                    content,
                 };
 
                 messages.push(user_msg);
@@ -226,9 +229,14 @@ async fn endpoint(
             );
 
             let system_msg = LlmMessage {
-                save_to_context: LlmSaveContext::True,
-                message_owner: System(LlmMessageContent::from(enriched_question.as_str())),
+                meta_info: LlmMessageMetaInfo {
+                    sender_id: None,
+                    role: LlmMessageRole::System,
+                    persistence: LlmMessagePersistence::Persistent,
+                },
+                content: LlmMessageContent(enriched_question),
             };
+            
             messages.insert(0, system_msg);
 
             let chat = LlmChat {

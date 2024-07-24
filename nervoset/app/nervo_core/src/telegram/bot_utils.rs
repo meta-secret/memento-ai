@@ -342,15 +342,16 @@ pub async fn chat_gpt_conversation(
     } else {
         llm_conversation(app_state, msg, table_name)
             .await?
-            .content_text()
+            .content
+            .text()
     };
 
     if is_voice {
-        create_speech(&bot, user_final_question.as_str(), chat_id, &app_state).await;
+        create_speech(bot, user_final_question.as_str(), chat_id, app_state).await;
     } else {
         bot.send_message(ChatId(chat_id as i64), user_final_question)
             .parse_mode(ParseMode::Markdown)
-            .reply_to_message_id(message.id.clone())
+            .reply_to_message_id(message.id)
             .await?;
     }
 
