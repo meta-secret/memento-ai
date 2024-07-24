@@ -48,9 +48,8 @@ function App() {
 
     async function fetchChat() {
         try {
-            let chatString = await nervoClient.get_chat(BigInt(chatId));
-            console.log(`WEB: chatString ${chatString}`)
-            let chat: LlmChat = JSON.parse(chatString);
+            let chat: LlmChat = await nervoClient.get_chat(BigInt(chatId));
+            console.log(`WEB: chatString ${JSON.stringify(chat)}`)
 
             const conversationElements = chat.messages.map((message, index) => {
                 if (message.meta_info.role === LlmMessageRole.User) {
@@ -79,11 +78,8 @@ function App() {
         ]);
 
         try {
-            let responseString = await nervoClient.send_message(BigInt(chatId), BigInt(userId), messageText);
-            console.log(`WEB: responseString ${responseString}`)
-            let responseMessage: LlmMessage = JSON.parse(responseString);
-            console.log(`WEB: responseString2 ${JSON.stringify(responseMessage)}`)
-            console.log(`printota!!!!! ${responseMessage}`)
+            let responseMessage: LlmMessage = await nervoClient.send_message(BigInt(chatId), BigInt(userId), messageText);
+            console.log(`WEB: responseString ${JSON.stringify(responseMessage)}`)
 
             if (responseMessage.meta_info.role === LlmMessageRole.Assistant) {
                 let msg = responseMessage.content.text();

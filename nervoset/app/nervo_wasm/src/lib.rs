@@ -1,9 +1,9 @@
 use log::{info, Level};
 use reqwest::Client;
 use serde::Serialize;
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsError, JsValue};
 use wasm_bindgen::prelude::wasm_bindgen;
-use nervo_api::{LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
+use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
 
 mod utils;
 
@@ -55,14 +55,28 @@ impl NervoClient {
     }
 
     #[wasm_bindgen]
-    pub async fn get_chat(&self, chat_id: u64) -> Result<String, JsValue> {
+    pub async fn get_chat(&self, chat_id: u64) -> Result<LlmChat, JsValue> {
         // console_log::init_with_level(Level::Debug).expect("TODO: panic message");
         info!("LIB: get_chat");
 
         let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
         info!("LIB: url {:?}", url);
 
-        self.fetch_get(&url).await
+        let response = match self.client.get(url)
+            .send()
+            .await {
+            Ok(response) => {
+                info!("LIB: FETCH GET response {:?}", response);
+                response
+            }
+            Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
+        };
+
+        let json: LlmChat = response.json()
+            .await
+            .map_err(JsError::from)?;
+
+        Ok(json)
     }
 
     pub async fn send_message(&self, chat_id: u64, user_id: u64, content: String) -> Result<LlmMessage, JsValue> {
@@ -74,59 +88,18 @@ impl NervoClient {
         let url = format!("{}/send_message", self.api_url.get_url());
         info!("LIB: Send msg url {:?} with json: {:?}", url, json);
 
-        self.fetch_post(&url, json).await
-    }
-
-    async fn fetch_get(&self, url: &str) -> Result<String, JsValue> {
-        info!("LIB: FETCH GET {:?}", url);
-        
-        let response = match self.client.get(url)
-            .send()
-            .await {
-            Ok(response) => {
-                info!("LIB: FETCH GET response {:?}", response);
-                response
-            }
-            Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
-        };
-
-        if response.status().is_success() {
-            info!("LIB: FETCH GET response SUCCESS");
-            match response.text().await {
-                Ok(body) => Ok(body),
-                Err(error) => Err(JsValue::from_str(&format!("Failed to read response body: {}", error))),
-            }
-        } else {
-            Err(JsValue::from_str(&format!("Request failed with status code: {}", response.status())))
-        }
-    }
-
-    async fn fetch_post<T, R>(&self, url: &str, json: T) -> Result<R, JsValue>
-        where
-            T: Serialize {
-        let response = match self.client.post(url)
+        let response = self.client.post(url.clone())
             .header("Content-Type", "application/json")
             .header("Access-Control-Allow-Origin", url)
             .json(&json)
             .send()
-            .await {
-            Ok(response) => {
-                info!("LIB: FETCH POST response {:?}", response);
-                response
-            }
-            Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
-        };
+            .await
+            .map_err(JsError::from)?;
 
-        if response.status().is_success() {
-            info!("LIB: FETCH POST response SUCCESS");
-            match response.text().await {
-                Ok(body) => {
-                    Ok(body)
-                },
-                Err(error) => Err(JsValue::from_str(&format!("Failed to read response body: {}", error))),
-            }
-        } else {
-            Err(JsValue::from_str(&format!("Request failed, with status code: {}", response.status())))
-        }
+        let json: LlmMessage = response.json()
+            .await
+            .map_err(JsError::from)?;
+        
+        Ok(json)
     }
 }
