@@ -1,20 +1,23 @@
-use crate::common::AppState;
-use crate::models::qdrant_search_layers::{
-    QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType,
-};
+use std::sync::Arc;
+
 use anyhow::bail;
+use openai_dive::v1::api::Client;
+use openai_dive::v1::resources::chat::{ChatCompletionParameters, ChatMessage, ChatMessageContent};
+use qdrant_client::qdrant::ScoredPoint;
+use qdrant_client::qdrant::value::Kind;
+use tiktoken_rs::cl100k_base;
+use tokio::fs;
+use tracing::{error, info};
+
 use nervo_api::{
     LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole,
     SendMessageRequest,
 };
-use openai_dive::v1::api::Client;
-use openai_dive::v1::resources::chat::{ChatCompletionParameters, ChatMessage, ChatMessageContent};
-use qdrant_client::qdrant::value::Kind;
-use serde_derive::{Deserialize, Serialize};
-use std::sync::Arc;
-use tiktoken_rs::p50k_base;
-use tokio::fs;
-use tracing::{error, info};
+
+use crate::common::AppState;
+use crate::models::qdrant_search_layers::{
+    QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType,
+};
 
 //Common entry point for WEB and TG
 pub async fn llm_conversation(
@@ -111,7 +114,7 @@ pub async fn llm_conversation(
 
         // Need to ask Qdrant
         let llm_response_text =
-            openai_chat_preparations(&app_state, &initial_user_request, table_name.clone()).await?;
+            openai_chat_preparations(app_state, &initial_user_request, table_name.clone()).await?;
 
         let llm_response = LlmMessage {
             meta_info: LlmMessageMetaInfo {
@@ -274,7 +277,6 @@ async fn openai_chat_preparations(
     table_name: String,
 ) -> anyhow::Result<String> {
     let mut rephrased_prompt = String::from(prompt);
-    let bpe = p50k_base().unwrap();
     let layers_info = get_all_search_layers().await?;
     let processing_layers = layers_info.layers;
     let mut search_content = String::new();
@@ -291,15 +293,15 @@ async fn openai_chat_preparations(
                 let db_search = &app_state
                     .nervo_ai_db
                     .search(
-                        &app_state,
+                        app_state,
                         collection_param.name.clone(),
                         rephrased_prompt.clone(),
-                        collection_param.vectors_limit.clone(),
+                        collection_param.vectors_limit,
                     )
                     .await?;
 
                 for search_result in &db_search.result {
-                    if search_result.score.clone() >= 0.3 {
+                    if search_result.score >= 0.3 {
                         all_search_results.push(search_result.clone());
                     }
                 }
@@ -307,36 +309,19 @@ async fn openai_chat_preparations(
 
             all_search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
             all_search_results.truncate(10);
-            let mut concatenated_texts: String = String::new();
-            for search_result in all_search_results {
-                let Some(Kind::StringValue(text)) = &search_result.payload["text"].kind else {
-                    bail!("Oooops! Error")
-                };
-                concatenated_texts.push_str(text);
-            }
 
-            info!("COMMON: concatenated text {}", concatenated_texts.clone());
-            let token_limit = processing_layer.common_token_limit as usize;
-            let mut tokens = bpe.split_by_token(&concatenated_texts, true)?;
+            {
+                let concatenated_texts = concatenate_results(all_search_results)?;
 
-            info!(
-                "COMMON: tokens len {:?} and token limit {:?}",
-                tokens.len(),
-                token_limit
-            );
-            if tokens.len() > token_limit {
-                tokens.truncate(token_limit);
-                let response = tokens.join("");
-                search_content.push_str(&response);
-            } else {
-                search_content.push_str(&concatenated_texts);
+                let token_limit = processing_layer.common_token_limit as usize;
+                let updated_content = update_search_content(token_limit, concatenated_texts)?;
+                search_content.push_str(updated_content.as_str());
             }
-            info!("COMMON: search content result: {}", search_content);
         }
 
         rephrased_prompt = create_layer_content(
-            &app_state,
-            &prompt,
+            app_state,
+            prompt,
             &table_name,
             processing_layer.clone(),
             rephrased_prompt.clone(),
@@ -363,5 +348,71 @@ async fn openai_chat_preparations(
         rephrased_prompt.push_str(&layers_info.info_message);
     };
 
-    Ok(String::from(rephrased_prompt.clone()))
+    Ok(rephrased_prompt)
+}
+
+fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyhow::Result<String> {
+    info!("COMMON: concatenated text {}", concatenated_texts.clone());
+
+    let bpe = cl100k_base()?;
+    let mut tokens = bpe.split_by_token(&concatenated_texts, true)?;
+
+    info!("COMMON: tokens len {:?} and token limit {:?}",tokens.len(),token_limit);
+    if tokens.len() > token_limit {
+        tokens.truncate(token_limit);
+        Ok(tokens.join(""))
+    } else {
+        Ok(concatenated_texts)
+    }
+    //info!("COMMON: search content result: {}", search_content);
+}
+
+
+fn concatenate_results (all_search_results: Vec<ScoredPoint>) -> anyhow::Result<String> {
+    let mut concatenated_texts: String = String::new();
+    
+    for search_result in all_search_results {
+        let Some(Kind::StringValue(text)) = &search_result.payload["text"].kind else {
+            bail!("Oooops! Error")
+        };
+        concatenated_texts.push_str(text.as_str());
+    }
+    Ok(concatenated_texts)
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use qdrant_client::qdrant::ScoredPoint;
+
+    use crate::common_utils::common_utils::{concatenate_results, update_search_content};
+
+    #[test]
+    fn test_update_search_content() -> anyhow::Result<()> {
+        let content = update_search_content(1, String::from("hi hi"))?;
+        assert_eq!(content, String::from("hi"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_concatenate_results() -> anyhow::Result<()> {
+        let mut data = HashMap::new();
+        data.insert(
+            "text".to_string(),
+            qdrant_client::qdrant::Value::from("lala-ley".to_string())
+        );
+        let vector = vec![ScoredPoint{
+            id: None,
+            payload: data,
+            score: 0.5,
+            version: 0,
+            vectors: None,
+            shard_key: None,
+            order_value: None,
+        }];
+        let test_result = concatenate_results(vector)?;
+        assert_eq!(test_result, String::from("lala-ley"));
+        Ok(())
+    }
 }
