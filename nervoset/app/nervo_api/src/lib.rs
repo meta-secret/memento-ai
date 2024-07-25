@@ -20,7 +20,9 @@ pub struct LlmChat {
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
 #[wasm_bindgen]
 pub enum LlmMessageRole {
-    System, User, Assistant
+    System,
+    User,
+    Assistant,
 }
 
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
@@ -36,7 +38,7 @@ impl LlmMessage {
         match self.meta_info.role {
             LlmMessageRole::System => String::from("system"),
             LlmMessageRole::User => String::from("user"),
-            LlmMessageRole::Assistant => String::from("assistant")
+            LlmMessageRole::Assistant => String::from("assistant"),
         }
     }
 }
@@ -82,4 +84,3 @@ impl From<&str> for LlmMessageContent {
         LlmMessageContent(content.to_string())
     }
 }
-

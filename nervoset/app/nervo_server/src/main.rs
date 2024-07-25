@@ -1,19 +1,22 @@
 mod commands;
-mod queries;
 mod cors;
+mod queries;
 
-use std::sync::Arc;
-use axum::{routing::{get, post}, Router, Json};
-use http::{StatusCode, Uri};
-use serde_derive::Serialize;
-use tokio::net::TcpListener;
-use tracing::{info, Level};
-use tracing_subscriber::{EnvFilter, FmtSubscriber};
-use nervo_bot_core::common::{AppState, NervoConfig};
 use crate::commands::send_message;
 use crate::queries::chat;
-use tower_http::cors::{CorsLayer};
+use axum::{
+    routing::{get, post},
+    Json, Router,
+};
+use http::{StatusCode, Uri};
+use nervo_bot_core::common::{AppState, NervoConfig};
+use serde_derive::Serialize;
+use std::sync::Arc;
+use tokio::net::TcpListener;
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
+use tracing::{info, Level};
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -55,7 +58,6 @@ async fn main() -> anyhow::Result<()> {
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .fallback(not_found_handler);
-
 
     let port = 3000;
     info!("Run axum server, on port: {}", port);

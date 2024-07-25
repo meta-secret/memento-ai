@@ -1,28 +1,33 @@
-use std::sync::Arc;
+use crate::common::AppState;
+use crate::models::qdrant_search_layers::{
+    QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType,
+};
 use anyhow::bail;
+use nervo_api::{
+    LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole,
+    SendMessageRequest,
+};
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::chat::{ChatCompletionParameters, ChatMessage, ChatMessageContent};
 use qdrant_client::qdrant::value::Kind;
 use serde_derive::{Deserialize, Serialize};
+use std::sync::Arc;
 use tiktoken_rs::p50k_base;
 use tokio::fs;
 use tracing::{error, info};
-use nervo_api::{LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole, SendMessageRequest};
-use crate::common::AppState;
-use crate::models::qdrant_search_layers::{QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType};
 
 //Common entry point for WEB and TG
 pub async fn llm_conversation(
     app_state: &Arc<AppState>,
     msg_request: SendMessageRequest,
-    table_name: String
+    table_name: String,
 ) -> anyhow::Result<LlmMessage> {
     let content = msg_request.llm_message.content.0.as_str();
     let user_id = msg_request.llm_message.sender_id.to_string();
     info!("COMMON: content: {:?} and user_id: {:?}", &content, user_id);
 
     // First, detect the request type. Will we use Qdrant or a simple LLM going forward?
-    let initial_user_request = detecting_crap_request(&app_state, &content, user_id.as_str()).await?;
+    let initial_user_request = detecting_crap_request(app_state, content, user_id.as_str()).await?;
 
     if initial_user_request == "SKIP" {
         let llm_user_message = LlmMessage {
@@ -34,27 +39,28 @@ pub async fn llm_conversation(
             content: LlmMessageContent(String::from(content)),
         };
         // Save to DB to restore chat history, not for history context
-        app_state.local_db.save_to_local_db(llm_user_message, &table_name, None).await?;
+        app_state
+            .local_db
+            .save_to_local_db(llm_user_message, &table_name, None)
+            .await?;
 
         // Prepare System Role anf User question to ask a simple LLM
-        let crap_system_role =
-            std::fs::read_to_string("resources/crap_request_system_role.txt")
-                .expect("Failed to read system message from file");
+        let crap_system_role = std::fs::read_to_string("resources/crap_request_system_role.txt")
+            .expect("Failed to read system message from file");
 
         let user_request_text = format!(
             "{:?}\nТекущий запрос пользователя: {:?}",
-            crap_system_role,
-            &content
+            crap_system_role, &content
         );
         let content = LlmMessageContent::from(user_request_text.as_str());
-        
+
         let request_to_llm = LlmMessage {
             meta_info: LlmMessageMetaInfo {
                 sender_id: Some(msg_request.llm_message.sender_id),
                 role: LlmMessageRole::User,
                 persistence: LlmMessagePersistence::Temporal,
             },
-            content
+            content,
         };
 
         // Asking LLM
@@ -73,8 +79,11 @@ pub async fn llm_conversation(
             },
             content: LlmMessageContent(llm_response_text),
         };
-        
-        app_state.local_db.save_to_local_db(llm_response.clone(), &table_name, None).await?;
+
+        app_state
+            .local_db
+            .save_to_local_db(llm_response.clone(), &table_name, None)
+            .await?;
         Ok(llm_response)
     } else {
         let llm_user_message = LlmMessage {
@@ -85,17 +94,24 @@ pub async fn llm_conversation(
             },
             content: LlmMessageContent(String::from(content)),
         };
-        
+
         // Save to DB to restore chat history, and for history context
-        let all_messages: Vec<LlmMessage> = app_state.local_db.read_from_local_db(&table_name).await?;
+        let all_messages: Vec<LlmMessage> =
+            app_state.local_db.read_from_local_db(&table_name).await?;
         let messages_count = all_messages.len();
         let table_name_start_index = format!("{}_start_index", table_name.clone());
-        app_state.local_db.save_to_local_db(messages_count, &table_name_start_index, Some(10_i64)).await?;
-        app_state.local_db.save_to_local_db(llm_user_message, &table_name, None).await?;
+        app_state
+            .local_db
+            .save_to_local_db(messages_count, &table_name_start_index, Some(10_i64))
+            .await?;
+        app_state
+            .local_db
+            .save_to_local_db(llm_user_message, &table_name, None)
+            .await?;
 
         // Need to ask Qdrant
-        let llm_response_text = openai_chat_preparations(&app_state, &initial_user_request, table_name.clone())
-            .await?;
+        let llm_response_text =
+            openai_chat_preparations(&app_state, &initial_user_request, table_name.clone()).await?;
 
         let llm_response = LlmMessage {
             meta_info: LlmMessageMetaInfo {
@@ -103,17 +119,19 @@ pub async fn llm_conversation(
                 role: LlmMessageRole::Assistant,
                 persistence: LlmMessagePersistence::Persistent,
             },
-            content: LlmMessageContent(llm_response_text.clone())
+            content: LlmMessageContent(llm_response_text.clone()),
         };
-        
+
         // Saving answer from LLM but not for History Context
-        app_state.local_db
-            .save_to_local_db(messages_count+1, &table_name_start_index, Some(10_i64))
+        app_state
+            .local_db
+            .save_to_local_db(messages_count + 1, &table_name_start_index, Some(10_i64))
             .await?;
-        app_state.local_db
+        app_state
+            .local_db
             .save_to_local_db(llm_response.clone(), &table_name, None)
             .await?;
-        
+
         info!("LLM_RESPONSE {:?}", llm_response_text);
         Ok(llm_response)
     }
@@ -134,7 +152,7 @@ async fn detecting_crap_request(
         String::new(),
         String::new(),
     )
-        .await?;
+    .await?;
     Ok(layer_content)
 }
 
@@ -160,8 +178,14 @@ async fn create_layer_content(
         app_state.local_db.read_from_local_db(db_table_name).await?;
     let start_index_table_name = format!("{}_start_index", db_table_name);
     info!("COMMON: start_index_table_name {}", start_index_table_name);
-    let context_messages_indexes: Vec<i64> = app_state.local_db.read_from_local_db(&start_index_table_name).await?;
-    info!("COMMON: context_messages_indexes len {:?}", context_messages_indexes.len());
+    let context_messages_indexes: Vec<i64> = app_state
+        .local_db
+        .read_from_local_db(&start_index_table_name)
+        .await?;
+    info!(
+        "COMMON: context_messages_indexes len {:?}",
+        context_messages_indexes.len()
+    );
     let mut cached_messages: Vec<LlmMessage> = vec![];
     for index in context_messages_indexes {
         if let Some(content_message) = all_saved_messages.get(index as usize) {
@@ -257,8 +281,11 @@ async fn openai_chat_preparations(
 
     for processing_layer in processing_layers {
         if !processing_layer.collection_params.is_empty() {
-            info!("COMMON: QDrant collections count is {:?}", &processing_layer.collection_params.len());
-            
+            info!(
+                "COMMON: QDrant collections count is {:?}",
+                &processing_layer.collection_params.len()
+            );
+
             let mut all_search_results = vec![];
             for collection_param in &processing_layer.collection_params {
                 let db_search = &app_state
@@ -282,19 +309,21 @@ async fn openai_chat_preparations(
             all_search_results.truncate(10);
             let mut concatenated_texts: String = String::new();
             for search_result in all_search_results {
-                let Some(Kind::StringValue(text)) =
-                    &search_result.payload["text"].kind
-                    else {
-                        bail!("Oooops! Error")
-                    };
+                let Some(Kind::StringValue(text)) = &search_result.payload["text"].kind else {
+                    bail!("Oooops! Error")
+                };
                 concatenated_texts.push_str(text);
             }
-            
+
             info!("COMMON: concatenated text {}", concatenated_texts.clone());
             let token_limit = processing_layer.common_token_limit as usize;
             let mut tokens = bpe.split_by_token(&concatenated_texts, true)?;
 
-            info!("COMMON: tokens len {:?} and token limit {:?}", tokens.len(), token_limit);
+            info!(
+                "COMMON: tokens len {:?} and token limit {:?}",
+                tokens.len(),
+                token_limit
+            );
             if tokens.len() > token_limit {
                 tokens.truncate(token_limit);
                 let response = tokens.join("");
@@ -311,13 +340,18 @@ async fn openai_chat_preparations(
             &table_name,
             processing_layer.clone(),
             rephrased_prompt.clone(),
-            search_content.clone()).await?;
+            search_content.clone(),
+        )
+        .await?;
     }
 
     let all_saved_messages: Vec<LlmMessage> =
         app_state.local_db.read_from_local_db(&table_name).await?;
     let start_index_table_name = format!("{}_start_index", table_name.clone());
-    let context_messages_indexes: Vec<i64> = app_state.local_db.read_from_local_db(&start_index_table_name).await?;
+    let context_messages_indexes: Vec<i64> = app_state
+        .local_db
+        .read_from_local_db(&start_index_table_name)
+        .await?;
 
     let mut cached_messages: Vec<LlmMessage> = vec![];
     for index in context_messages_indexes {

@@ -34,8 +34,8 @@ impl LocalDb {
         table_name: &str,
         restriction_limit: Option<i64>,
     ) -> anyhow::Result<()>
-        where
-            T: Serialize + Send + 'static,
+    where
+        T: Serialize + Send + 'static,
     {
         info!("COMMON: SAVE");
         self.create_table(table_name).await?;
@@ -54,8 +54,8 @@ impl LocalDb {
     }
 
     pub async fn read_from_local_db<T>(&self, table_name: &str) -> anyhow::Result<Vec<T>>
-        where
-            T: DeserializeOwned,
+    where
+        T: DeserializeOwned,
     {
         info!("DB: Create table if needed");
         self.create_table(table_name).await?;
@@ -99,7 +99,7 @@ impl LocalDb {
             );
             sqlx::query(&query).execute(&mut conn).await?;
         };
-        
+
         Ok(())
     }
 
@@ -111,8 +111,8 @@ impl LocalDb {
     }
 
     async fn overwrite_messages<T>(&self, message: T, table_name: &str) -> anyhow::Result<()>
-        where
-            T: Serialize,
+    where
+        T: Serialize,
     {
         let mut conn = self.connect_db().await?;
         let sql = format!(
@@ -135,8 +135,8 @@ impl LocalDb {
     }
 
     async fn insert_message<T>(&self, message: T, table_name: &str) -> anyhow::Result<()>
-        where
-            T: Serialize,
+    where
+        T: Serialize,
     {
         let message_json = serde_json::to_string(&message)?;
         info!("COMMON: message_json: {:?}", message_json);

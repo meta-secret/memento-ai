@@ -1,15 +1,18 @@
 use std::sync::Arc;
 
-use anyhow::Result;
-use qdrant_client::qdrant::value::Kind;
-use teloxide::{prelude::*, utils::command::BotCommands};
-use teloxide::Bot as TelegramBot;
-use teloxide::dispatching::dialogue::InMemStorage;
-use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
-use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole, UserLlmMessage};
 use crate::common::AppState;
 use crate::telegram::bot_utils::{chat, MessageParser};
 use crate::telegram::tg_keyboard::NervoBotKeyboard;
+use anyhow::Result;
+use nervo_api::{
+    LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence,
+    LlmMessageRole, UserLlmMessage,
+};
+use qdrant_client::qdrant::value::Kind;
+use teloxide::dispatching::dialogue::InMemStorage;
+use teloxide::types::{File, MediaKind, MessageKind, ReplyMarkup};
+use teloxide::Bot as TelegramBot;
+use teloxide::{prelude::*, utils::command::BotCommands};
 
 type MyDialogue = Dialogue<ChatState, InMemStorage<ChatState>>;
 
@@ -106,7 +109,7 @@ async fn chat_initialization(
         msg.chat.id,
         "State:Chat. Welcome to conversational chat. Let's go!",
     )
-        .await?;
+    .await?;
     //dialogue.update(ChatState::Conversation).await?;
     Ok(())
 }
@@ -209,7 +212,8 @@ async fn endpoint(
             let mut messages = vec![];
             let UserId(user_id) = parser.parse_user().await?.id;
             for text in &result_strings {
-                let content = LlmMessageContent::from(text.chars().take(1000).collect::<String>().as_str());
+                let content =
+                    LlmMessageContent::from(text.chars().take(1000).collect::<String>().as_str());
                 let user_msg = LlmMessage {
                     meta_info: LlmMessageMetaInfo {
                         sender_id: Some(user_id),
@@ -236,7 +240,7 @@ async fn endpoint(
                 },
                 content: LlmMessageContent(enriched_question),
             };
-            
+
             messages.insert(0, system_msg);
 
             let chat = LlmChat {
@@ -244,17 +248,13 @@ async fn endpoint(
                 messages,
             };
 
-            let reply = app_state
-                .nervo_llm
-                .send_msg_batch(chat)
-                .await?;
+            let reply = app_state.nervo_llm.send_msg_batch(chat).await?;
 
             //for embeddings in &result_strings {
             //    bot.send_message(msg.chat.id, embeddings).await?;
             //}
 
-            bot
-                .send_message(msg.chat.id, reply)
+            bot.send_message(msg.chat.id, reply)
                 .reply_markup(ReplyMarkup::Keyboard(NervoBotKeyboard::build_keyboard()))
                 .await?;
 

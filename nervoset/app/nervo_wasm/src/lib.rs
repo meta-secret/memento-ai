@@ -1,9 +1,9 @@
 use log::{info, Level};
+use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use reqwest::Client;
 use serde::Serialize;
-use wasm_bindgen::{JsError, JsValue};
 use wasm_bindgen::prelude::wasm_bindgen;
-use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
+use wasm_bindgen::{JsError, JsValue};
 
 mod utils;
 
@@ -41,13 +41,16 @@ impl ApiUrl {
 #[wasm_bindgen]
 pub struct NervoClient {
     pub api_url: ApiUrl,
-    client: Client
+    client: Client,
 }
 
 #[wasm_bindgen]
 impl NervoClient {
     pub fn new(api_url: ApiUrl) -> Self {
-        NervoClient { api_url, client: Client::new() }
+        NervoClient {
+            api_url,
+            client: Client::new(),
+        }
     }
 
     pub fn configure(&self) {
@@ -62,9 +65,7 @@ impl NervoClient {
         let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
         info!("LIB: url {:?}", url);
 
-        let response = match self.client.get(url)
-            .send()
-            .await {
+        let response = match self.client.get(url).send().await {
             Ok(response) => {
                 info!("LIB: FETCH GET response {:?}", response);
                 response
@@ -72,23 +73,31 @@ impl NervoClient {
             Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
         };
 
-        let json: LlmChat = response.json()
-            .await
-            .map_err(JsError::from)?;
+        let json: LlmChat = response.json().await.map_err(JsError::from)?;
 
         Ok(json)
     }
 
-    pub async fn send_message(&self, chat_id: u64, user_id: u64, content: String) -> Result<LlmMessage, JsValue> {
+    pub async fn send_message(
+        &self,
+        chat_id: u64,
+        user_id: u64,
+        content: String,
+    ) -> Result<LlmMessage, JsValue> {
         let json = SendMessageRequest {
             chat_id,
-            llm_message: UserLlmMessage { sender_id: user_id, content: LlmMessageContent(content) },
+            llm_message: UserLlmMessage {
+                sender_id: user_id,
+                content: LlmMessageContent(content),
+            },
         };
 
         let url = format!("{}/send_message", self.api_url.get_url());
         info!("LIB: Send msg url {:?} with json: {:?}", url, json);
 
-        let response = self.client.post(url.clone())
+        let response = self
+            .client
+            .post(url.clone())
             .header("Content-Type", "application/json")
             .header("Access-Control-Allow-Origin", url)
             .json(&json)
@@ -96,10 +105,8 @@ impl NervoClient {
             .await
             .map_err(JsError::from)?;
 
-        let json: LlmMessage = response.json()
-            .await
-            .map_err(JsError::from)?;
-        
+        let json: LlmMessage = response.json().await.map_err(JsError::from)?;
+
         Ok(json)
     }
 }

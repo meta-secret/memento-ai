@@ -1,11 +1,6 @@
 use anyhow::bail;
 use anyhow::Result;
-use async_openai::Client;
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{
-    ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
-    ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent, Role,
-};
 use async_openai::types::ChatCompletionRequestUserMessage;
 use async_openai::types::CreateChatCompletionRequestArgs;
 use async_openai::types::CreateEmbeddingRequestArgs;
@@ -13,6 +8,11 @@ use async_openai::types::CreateEmbeddingResponse;
 use async_openai::types::CreateModerationRequest;
 use async_openai::types::CreateTranscriptionRequest;
 use async_openai::types::ModerationInput;
+use async_openai::types::{
+    ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
+    ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent, Role,
+};
+use async_openai::Client;
 use serde_derive::Deserialize;
 
 use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageRole, UserLlmMessage};
@@ -64,10 +64,7 @@ impl NervoLlm {
                 .input(text)
                 .build()?;
 
-            self.client
-                .embeddings()
-                .create(embedding)
-                .await?
+            self.client.embeddings().create(embedding).await?
         };
 
         Ok(response)
@@ -89,9 +86,7 @@ impl NervoLlm {
             .messages(messages)
             .build()?;
 
-        let chat_response = self.client.chat()
-            .create(request)
-            .await?;
+        let chat_response = self.client.chat().create(request).await?;
 
         let maybe_reply = chat_response
             .choices
@@ -106,11 +101,7 @@ impl NervoLlm {
         Ok(reply.0)
     }
 
-    pub async fn send_msg(
-        &self,
-        message: LlmMessage,
-        chat_id: u64,
-    ) -> Result<String> {
+    pub async fn send_msg(&self, message: LlmMessage, chat_id: u64) -> Result<String> {
         let chat = LlmChat {
             chat_id,
             messages: vec![message],
@@ -128,10 +119,7 @@ impl NervoLlm {
         Ok(!response.results.iter().any(|property| property.flagged) && (text.len() < 10000))
     }
 
-    pub async fn voice_transcription(
-        &self,
-        request: CreateTranscriptionRequest,
-    ) -> Result<String> {
+    pub async fn voice_transcription(&self, request: CreateTranscriptionRequest) -> Result<String> {
         let response = self.client.audio().transcribe(request).await?;
         Ok(response.text)
     }

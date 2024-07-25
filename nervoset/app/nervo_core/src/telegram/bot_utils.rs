@@ -1,11 +1,16 @@
 use crate::common::AppState;
+use crate::common_utils::common_utils::llm_conversation;
 use crate::models::nervo_message_model::TelegramMessage;
 use crate::models::system_messages::SystemMessages;
 use crate::models::user_model::TelegramUser;
 use anyhow::bail;
 use chrono::Utc;
+use nervo_api::{LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use openai_dive::v1::api::Client;
-use openai_dive::v1::resources::audio::{AudioOutputFormat, AudioSpeechParameters, AudioSpeechResponseFormat, AudioTranscriptionFile, AudioTranscriptionParameters, AudioVoice};
+use openai_dive::v1::resources::audio::{
+    AudioOutputFormat, AudioSpeechParameters, AudioSpeechResponseFormat, AudioTranscriptionFile,
+    AudioTranscriptionParameters, AudioVoice,
+};
 use std::sync::Arc;
 use teloxide::net::Download;
 use teloxide::prelude::ChatId;
@@ -16,8 +21,6 @@ use teloxide::types::{
 use teloxide::Bot;
 use tokio::fs;
 use tracing::{error, info};
-use nervo_api::{LlmMessageContent, SendMessageRequest, UserLlmMessage};
-use crate::common_utils::common_utils::{llm_conversation};
 
 pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Result<()> {
     info!("Start chat...");
@@ -96,14 +99,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                     },
                 };
 
-                chat_gpt_conversation(
-                    &bot,
-                    &msg,
-                    &app_state,
-                    question_msg,
-                    parser.is_voice,
-                    false,
-                )
+                chat_gpt_conversation(&bot, &msg, &app_state, question_msg, parser.is_voice, false)
                     .await?
             } else {
                 // Moderation is not passed
@@ -125,7 +121,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                         parser.is_voice,
                         true,
                     )
-                        .await?
+                    .await?
                 } else {
                     return Ok(());
                 }
@@ -228,7 +224,7 @@ impl<'a> MessageParser<'a> {
                 temperature: None,
                 timestamp_granularities: None,
             };
-            
+
             // let parameters = AudioTranscriptionParameters {
             //     file: file_path.to_string(),
             //     model: "whisper-1".to_string(),
@@ -378,7 +374,9 @@ async fn create_speech(bot: &Bot, text: &str, chat_id: u64, app_state: &AppState
         }
         Err(err) => {
             error!("ERROR: {:?}", err);
-            let _ = bot.send_message(ChatId(chat_id as i64), err.to_string()).await;
+            let _ = bot
+                .send_message(ChatId(chat_id as i64), err.to_string())
+                .await;
         }
     }
 }

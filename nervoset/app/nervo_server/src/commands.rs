@@ -1,11 +1,14 @@
-use std::sync::Arc;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
-use tracing::{error, info};
-use nervo_api::{LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole, SendMessageRequest};
+use nervo_api::{
+    LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole,
+    SendMessageRequest,
+};
 use nervo_bot_core::common::AppState;
-use nervo_bot_core::common_utils::common_utils::{llm_conversation};
+use nervo_bot_core::common_utils::common_utils::llm_conversation;
+use std::sync::Arc;
+use tracing::{error, info};
 
 pub async fn send_message(
     State(state): State<Arc<AppState>>,
@@ -16,7 +19,9 @@ pub async fn send_message(
 
     let LlmMessageContent(content) = &msg_request.llm_message.content;
 
-    let is_moderation_passed = state.nervo_llm.moderate(content.as_str())
+    let is_moderation_passed = state
+        .nervo_llm
+        .moderate(content.as_str())
         .await
         .map_err(|err| {
             error!("Error {:?}", err);
@@ -27,8 +32,7 @@ pub async fn send_message(
     if is_moderation_passed {
         happy_path_of_moderation(state, msg_request).await
     } else {
-        fail_path_of_moderation(state, content.as_str(), user_id_number, chat_id_number)
-            .await
+        fail_path_of_moderation(state, content.as_str(), user_id_number, chat_id_number).await
     }
 }
 
@@ -59,9 +63,12 @@ async fn fail_path_of_moderation(
     info!("SERVER: FAIL PATH");
     let user_question = {
         // Moderation is not passed
-        let question = format!("I have a message from the user, I know the message is unacceptable, \
+        let question = format!(
+            "I have a message from the user, I know the message is unacceptable, \
         can you please read the message and reply that the message is not acceptable. \
-        Reply using the same language the massage uses. Here is the message: {:?}", &msg_text);
+        Reply using the same language the massage uses. Here is the message: {:?}",
+            &msg_text
+        );
 
         let content = LlmMessageContent::from(question.as_str());
         LlmMessage {
@@ -92,6 +99,6 @@ async fn fail_path_of_moderation(
         },
         content: LlmMessageContent(reply_text),
     };
-    
+
     Ok(Json(llm_response))
 }
