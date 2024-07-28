@@ -107,9 +107,10 @@ tasks:
     requires:
       vars:
         - SERVER_PORT
+        - APP_TYPE
     cmds:
       - task: nervo_web_build
-      - "cd nervo-web && VITE_SERVER_PORT={{.SERVER_PORT}} npm run dev"
+      - "cd nervo-web && VITE_SERVER_PORT={{.SERVER_PORT}} VITE_APP_TYPE={{.APP_TYPE}} npm run dev"
 
   test:
     cmds:

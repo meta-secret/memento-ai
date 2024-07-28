@@ -1,5 +1,36 @@
 use serde_derive::{Deserialize, Serialize};
+use wasm_bindgen::JsError;
 use wasm_bindgen::prelude::wasm_bindgen;
+
+#[wasm_bindgen]
+pub enum AppType {
+    Probiot,
+    Prodavanya,
+    None,
+}
+
+#[derive(Copy, Clone, Debug)]
+#[wasm_bindgen]
+pub struct NervoAppType {}
+
+#[wasm_bindgen]
+impl NervoAppType {
+    pub fn try_from(name: &str) -> AppType {
+        match name {
+            "probiot" => AppType::Probiot,
+            "prodavanya" => AppType::Prodavanya,
+            _ => AppType::None
+        }
+    }
+    
+    pub fn getName(appType: AppType) -> String {
+        match appType {
+            AppType::Probiot => String::from("probiot"),
+            AppType::Prodavanya => String::from("prodavanya"),
+            AppType::None => String::from(""),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

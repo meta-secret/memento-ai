@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, ChangeEvent, FormEvent, Component } from 'react';
-import {ApiUrl, LlmChat, LlmMessage, LlmMessageRole, NervoClient} from "nervo-wasm";
+import {ApiUrl, LlmChat, LlmMessage, LlmMessageRole, NervoAppType, NervoClient} from "nervo-wasm";
 import Cookies from 'js-cookie';
 
 function App() {
@@ -16,6 +16,9 @@ function App() {
         console.log("port: " + serverPort);
         apiUrl = ApiUrl.dev(serverPort);
     }
+
+    //Need to use it to send to server
+    const apptype = NervoAppType.try_from(import.meta.env.VITE_APP_TYPE);
 
     const nervoClient = NervoClient.new(apiUrl);
     nervoClient.configure();

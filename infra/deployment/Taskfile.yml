@@ -53,6 +53,7 @@ tasks:
 
   # k3d installation has to be done outside of this task
   infra:
+    internal: true
     requires:
       vars:
         - INFRA
