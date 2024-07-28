@@ -1,8 +1,15 @@
 use crate::common::{AppState, QdrantParams};
 use anyhow::bail;
 use async_openai::types::Embedding;
-use qdrant_client::client::QdrantClient;
-use qdrant_client::prelude::{CreateCollection, Distance, PointStruct, SearchPoints};
+use qdrant_client::Qdrant;
+use qdrant_client::qdrant::{
+    CreateCollection,
+    Distance,
+    PointStruct,
+    SearchParamsBuilder,
+    SearchPointsBuilder,
+    UpsertPointsBuilder
+};
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::{SearchResponse, VectorParams, VectorsConfig};
 use qdrant_client::Payload;
@@ -10,21 +17,24 @@ use rand::rngs::OsRng;
 use rand::Rng;
 use serde_json::json;
 
+
 pub struct QdrantDb {
-    pub qdrant_client: QdrantClient,
+    pub qdrant_client: Qdrant,
 }
+
 
 impl TryFrom<&QdrantParams> for QdrantDb {
     type Error = anyhow::Error;
 
     fn try_from(config: &QdrantParams) -> anyhow::Result<Self, Self::Error> {
-        let qdrant_client = QdrantClient::from_url(config.server_url.as_str())
-            .with_api_key(config.api_key.clone())
+        let qdrant_client = Qdrant::from_url(config.server_url.as_str())
+            .api_key(config.api_key.clone())
             .build()?;
 
         Ok(QdrantDb { qdrant_client })
     }
 }
+
 
 impl QdrantDb {
     pub async fn save_to_qdrant_db(
@@ -59,7 +69,7 @@ impl QdrantDb {
                 ..Default::default()
             };
 
-            self.qdrant_client.create_collection(&details).await?;
+            self.qdrant_client.create_collection(details).await?;
         }
 
         let points = {
@@ -70,17 +80,18 @@ impl QdrantDb {
         };
 
         self.qdrant_client
-            .upsert_points_blocking(collection_name, None, points, None)
+            .upsert_points(UpsertPointsBuilder::new(collection_name, points))
             .await?;
         Ok(())
     }
+
 
     pub async fn search_in_qdrant_db(
         &self,
         app_state: &AppState,
         collection_name: String,
         search_text: String,
-        vectors_limit: u64,
+        search_vectors_limit: u64,
     ) -> anyhow::Result<SearchResponse> {
         let maybe_vec_data = self.text_to_embeddings(app_state, &search_text).await?;
 
@@ -91,18 +102,24 @@ impl QdrantDb {
             Some(vec_data) => {
                 let search_result = self
                     .qdrant_client
-                    .search_points(&SearchPoints {
-                        collection_name: collection_name.into(),
-                        vector: vec_data.embedding.clone(),
-                        limit: vectors_limit,
-                        with_payload: Some(true.into()),
-                        ..Default::default()
-                    })
+                    .search_points(
+                        SearchPointsBuilder::new(
+                            collection_name,
+                            vec_data.embedding
+                                .clone(),
+                            search_vectors_limit
+                        )
+                            .with_payload(true)
+                            .params(SearchParamsBuilder::default()
+                                .exact(true))
+                    )
                     .await?;
                 Ok(search_result)
             }
         }
     }
+
+
     async fn text_to_embeddings(
         &self,
         app_state: &AppState,

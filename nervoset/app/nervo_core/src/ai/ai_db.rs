@@ -25,7 +25,7 @@ impl NervoAiDb {
         search_text: String,
         vectors_limit: u64,
     ) -> Result<SearchResponse> {
-        info!("search in QDrant");
+        info!("Starting QDrant db search...");
         self.qdrant
             .search_in_qdrant_db(app_state, collection_name, search_text, vectors_limit)
             .await
