@@ -89,7 +89,10 @@ tasks:
             --quiet \
             imgName
 
-  nervo_web_build:
+  build_nervo_web_component:
+    requires:
+      vars:
+        - APP_TYPE
     vars:
       NERVO_WASM_DIR: 'app/nervo_wasm'
       NERVO_WEB_DIR: 'nervo-web'
@@ -101,7 +104,24 @@ tasks:
 
       - mkdir -p {{.NERVO_WEB_DIR}}/pkg
       - cp -r {{.NERVO_WASM_DIR}}/pkg {{.NERVO_WEB_DIR}}
-      - cd {{.NERVO_WEB_DIR}} && npm install && npm run build:app
+      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_APP_TYPE={{.APP_TYPE}} npm run build:lib"
+
+  nervo_web_build:
+    requires:
+      vars:
+        - APP_TYPE
+    vars:
+      NERVO_WASM_DIR: 'app/nervo_wasm'
+      NERVO_WEB_DIR: 'nervo-web'
+    cmds:
+      - cd {{.NERVO_WASM_DIR}} && wasm-pack build
+
+      - rm -rf {{.NERVO_WEB_DIR}}/pkg
+      - rm -rf {{.NERVO_WEB_DIR}}/dist
+
+      - mkdir -p {{.NERVO_WEB_DIR}}/pkg
+      - cp -r {{.NERVO_WASM_DIR}}/pkg {{.NERVO_WEB_DIR}}
+      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_APP_TYPE={{.APP_TYPE}} npm run build:app"
 
   nervo_web_run:
     requires:

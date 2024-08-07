@@ -18,7 +18,8 @@ function App() {
     }
 
     //Need to use it to send to server
-    const apptype = NervoAppType.try_from(import.meta.env.VITE_APP_TYPE);
+    const appType = NervoAppType.try_from(import.meta.env.VITE_APP_TYPE);
+    console.log("Application type: ", appType)
 
     const nervoClient = NervoClient.new(apiUrl);
     nervoClient.configure();
