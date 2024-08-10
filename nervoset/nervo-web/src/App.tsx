@@ -215,7 +215,7 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
                     id="chat-input"
                     name="chat-input"
                     rows={1}
-                    className="block w-full resize-none border-none bg-slate-200 p-4 pl-16 pr-20 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-400 dark:focus:ring-blue-500 sm:text-base"
+                    className="block w-full resize-none border-none bg-slate-200 p-4 pl-16 pr-20 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:focus:ring-blue-500 sm:text-base"
                     placeholder="Enter your prompt"
                     value={messageText}
                     onChange={handleMessageChange}
