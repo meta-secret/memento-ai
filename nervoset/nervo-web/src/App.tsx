@@ -183,12 +183,12 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
     };
 
     return (
-        <form className="mt-2" onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit}>
             <label htmlFor="chat-input" className="sr-only">Enter your prompt</label>
             <div className="relative">
                 <button
                     type="button"
-                    className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-500"
+                    className="absolute rounded-none inset-y-0 left-0 flex items-center pl-3 text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-500"
                 >
                     <svg
                         aria-hidden="true"
@@ -215,7 +215,7 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
                     id="chat-input"
                     name="chat-input"
                     rows={1}
-                    className="block w-full resize-none rounded-xl border-none bg-slate-200 p-4 pl-16 pr-20 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-400 dark:focus:ring-blue-500 sm:text-base"
+                    className="block w-full resize-none border-none bg-slate-200 p-4 pl-16 pr-20 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-400 dark:focus:ring-blue-500 sm:text-base"
                     placeholder="Enter your prompt"
                     value={messageText}
                     onChange={handleMessageChange}
