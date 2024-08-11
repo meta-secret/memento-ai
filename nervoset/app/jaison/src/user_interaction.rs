@@ -1,7 +1,7 @@
 use crate::ask_question::ask_question;
 use crate::creation::creation_mode_processing;
 use crate::edu_conv::edu_conv;
-use crate::utils::{llm_processing_creation_utility, qdrant_upsert, save_data_for_local_use, send_creation_menu, send_db_operation_menu, send_db_topping_up_menu, send_edu_menu, send_main_menu, send_question_menu, send_system_role_creation_menu, text_to_speech};
+use crate::utils::{qdrant_upsert, save_data_for_local_use, send_creation_menu, send_db_operation_menu, send_db_topping_up_menu, send_edu_menu, send_main_menu, send_question_menu, send_system_role_creation_menu, text_to_speech};
 use crate::AppState;
 use std::fs;
 use std::sync::Arc;
@@ -35,7 +35,7 @@ pub async fn user_interaction(
                     state.awaiting_start_option_choice = false;
                     state.awaiting_question = true;
 
-                    bot.send_message(msg.chat.id, "Пожалуйста, введите ваш вопрос:")
+                    bot.send_message(msg.chat.id, "Пожалуйста, задай вопрос...")
                         .await?;
 
                     send_question_menu(&bot, msg.chat.id, language_code).await?;
@@ -60,7 +60,7 @@ pub async fn user_interaction(
                     bot.send_message(
                         msg.chat.id,
                         "До скорых встреч!\n\nНажми /start чтобы \
-                    запустить программу обучения.",
+                    запустить программу снова.",
                     )
                     .reply_markup(ReplyMarkup::kb_remove())
                     .await?;
@@ -90,7 +90,7 @@ pub async fn user_interaction(
                     state.education = false;
                     state.awaiting_question = true;
 
-                    bot.send_message(msg.chat.id, "Пожалуйста, введите ваш вопрос:")
+                    bot.send_message(msg.chat.id, "Пожалуйста, задай вопрос...")
                         .await?;
 
                     send_question_menu(&bot, msg.chat.id, language_code).await?;
@@ -136,7 +136,7 @@ pub async fn user_interaction(
                         bot.send_message(
                             msg.chat.id,
                             "Мне пока нечего сказать, задай вопрос, \
-                        я с радостью отвечу на него голосом.",
+                        я с радостью отвечу на него голосовым сообщением.",
                         )
                         .await?;
                     }

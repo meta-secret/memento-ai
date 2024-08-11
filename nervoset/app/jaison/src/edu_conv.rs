@@ -8,6 +8,7 @@ use teloxide::Bot;
 use teloxide::types::ParseMode;
 use tracing::info;
 
+// Legacy code, will be deleted after new version integration
 // pub async fn edu_conv_main(
 //     bot: Bot,
 //     msg: Message,
