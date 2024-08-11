@@ -28,3 +28,4 @@ k8s/nervo-server/.kclvm
 nervo-web/package-lock.json
 
 
+/app/jaison/.env
