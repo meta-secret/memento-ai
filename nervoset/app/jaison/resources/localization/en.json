@@ -1,0 +1,46 @@
+{
+  "main_menu": {
+    "education": "To Education!",
+    "ask_question": "Ask a Question",
+    "agent_creation": "Create an Agent",
+    "exit": "Exit",
+    "menu_prompt": "______________________________________\n\nYou are in the \"Main menu\"\nChoose an option below:"
+  },
+  "edu_menu": {
+    "previous_chapter": "Previous chapter",
+    "next_chapter": "Next chapter",
+    "ask_question": "Ask a Question",
+    "exit": "Exit",
+    "menu_prompt": "______________________________________\n\nYou are in the \"Education\" menu \nChoose an option below:"
+  },
+  "question_menu": {
+    "back_to_edu": "Back to Education",
+    "voice_response": "Voice Response",
+    "exit": "Exit",
+    "menu_prompt": "______________________________________\n\nYou are in the \"Ask a Question\" menu\nChoose an option below:"
+  },
+  "creation_menu": {
+    "specify_sphere": "1. Add sphere of Agent's knowledge description",
+    "specify_behaviour_model": "2. Add Agent's role description",
+    "create_system_role": "3. Create system role for Agent",
+    "top_up_db": "4. Edit Agent's database",
+    "exit": "Exit",
+    "menu_prompt": "______________________________________\n\nYou are in the \"Agent creation\" menu\nChoose an option below:"
+  },
+  "system_role_creation_menu": {
+    "confirm": "Yes",
+    "decline": "No, go back to creation menu",
+    "exit": "Exit",
+    "menu_prompt": "______________________________________\n\nCreate system role for your Agent?"
+  },
+  "db_operation_menu": {
+    "top_up": "Top-up db",
+    "edit": "Edit db",
+    "exit": "Exit",
+    "menu_prompt": "______________________________________\n\nYou are in the \"Dataset operation\" menu\nChoose an option below:"
+  },
+  "db_topping_up_menu": {
+    "exit": "Exit",
+    "menu_prompt": "Please, provide your data to save: "
+  }
+}

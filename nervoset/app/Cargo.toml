@@ -10,7 +10,8 @@ members = [
     "walle",
     "nervo_server",
     "nervo_api",
-    "nervo_wasm"
+    "nervo_wasm",
+    "jaison"
 ]
 
 [workspace.dependencies]
