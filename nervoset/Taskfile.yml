@@ -18,18 +18,6 @@ includes:
       IMAGE_NAME:
         sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
-  docker_jarvis:
-    taskfile: .task/docker.yml
-    requires:
-      vars:
-        - INFRA #'dev' or 'prod'
-    vars:
-      APP_NAME: 'r2d2'
-      K8S_APP_NAME: "r2d2"
-      VERSION: '{{.APP_VERSION}}'
-      IMAGE_NAME:
-        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
-
   docker_groot:
     taskfile: .task/docker.yml
     requires:
@@ -38,18 +26,6 @@ includes:
     vars:
       APP_NAME: 'groot'
       K8S_APP_NAME: 'groot'
-      VERSION: '{{.APP_VERSION}}'
-      IMAGE_NAME:
-        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
-
-  docker_walle:
-    taskfile: .task/docker.yml
-    requires:
-      vars:
-        - INFRA #'dev' or 'prod'
-    vars:
-      APP_NAME: 'walle'
-      K8S_APP_NAME: "walle"
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
         sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}

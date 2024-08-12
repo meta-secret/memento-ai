@@ -34,9 +34,6 @@ k8s/probiot-t1000/build
 k8s/groot/.kclvm/
 k8s/groot/build
 
-k8s/r2d2/.kclvm
-k8s/r2d/build
-
 k8s/nervo-server/.kclvm
 k8s/nervo-server/build
 

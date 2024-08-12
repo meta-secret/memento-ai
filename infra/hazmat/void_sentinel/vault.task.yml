@@ -22,11 +22,6 @@ includes:
     vars:
       KEY_NAME: groot.config.yaml
 
-  r2d2:
-    taskfile: nervobot.vault.task.yml
-    vars:
-      KEY_NAME: r2d2.config.yaml
-
 tasks:
 
   get_prod_host:
