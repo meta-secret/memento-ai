@@ -1,27 +1,23 @@
 use std::sync::Arc;
 
 use anyhow::bail;
-use openai_dive::v1::api::Client;
-use openai_dive::v1::resources::chat::{ChatCompletionParameters, ChatMessage, ChatMessageContent};
 use qdrant_client::qdrant::ScoredPoint;
 use qdrant_client::qdrant::value::Kind;
 use tiktoken_rs::cl100k_base;
 use tokio::fs;
-use tracing::{error, info};
+use tracing::{info};
 
-use nervo_api::{
-    LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole,
-    SendMessageRequest,
-};
-
-use crate::common::AppState;
+use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole, SendMessageRequest};
+use crate::ai::nervo_llm::NervoLlm;
+use crate::config::nervo_server::NervoServerAppState;
+use crate::db::local_db::LocalDb;
 use crate::models::qdrant_search_layers::{
     QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType,
 };
 
 //Common entry point for WEB and TG
 pub async fn llm_conversation(
-    app_state: &Arc<AppState>,
+    app_state: Arc<NervoServerAppState>,
     msg_request: SendMessageRequest,
     table_name: String,
 ) -> anyhow::Result<LlmMessage> {
@@ -30,7 +26,7 @@ pub async fn llm_conversation(
     info!("COMMON: content: {:?} and user_id: {:?}", &content, user_id);
 
     // First, detect the request type. Will we use Qdrant or a simple LLM going forward?
-    let initial_user_request = detecting_crap_request(app_state, content, user_id.as_str()).await?;
+    let initial_user_request = detecting_crap_request(app_state.clone(), content, user_id.as_str(), msg_request.chat_id).await?;
 
     if initial_user_request == "SKIP" {
         let llm_user_message = LlmMessage {
@@ -99,8 +95,11 @@ pub async fn llm_conversation(
         };
 
         // Save to DB to restore chat history, and for history context
-        let all_messages: Vec<LlmMessage> =
-            app_state.local_db.read_from_local_db(&table_name).await?;
+        let all_messages: Vec<LlmMessage> = app_state
+            .local_db
+            .read_from_local_db(&table_name)
+            .await?;
+        
         let messages_count = all_messages.len();
         let table_name_start_index = format!("{}_start_index", table_name.clone());
         app_state
@@ -114,7 +113,7 @@ pub async fn llm_conversation(
 
         // Need to ask Qdrant
         let llm_response_text =
-            openai_chat_preparations(app_state, &initial_user_request, table_name.clone()).await?;
+            openai_chat_preparations(app_state.clone(), &initial_user_request, table_name.clone(), msg_request.chat_id).await?;
 
         let llm_response = LlmMessage {
             meta_info: LlmMessageMetaInfo {
@@ -141,19 +140,22 @@ pub async fn llm_conversation(
 }
 
 async fn detecting_crap_request(
-    app_state: &Arc<AppState>,
+    app_state: Arc<NervoServerAppState>,
     prompt: &str,
     user_id: &str,
+    chat_id: u64
 ) -> anyhow::Result<String> {
     info!("COMMON: CRAP DETECTION");
     let layers_info = get_all_search_layers().await?;
     let layer_content = create_layer_content(
-        &app_state,
+        &app_state.nervo_llm,
+        &app_state.local_db,
         prompt,
         user_id,
         layers_info.crap_detecting_layer,
         String::new(),
         String::new(),
+        chat_id
     )
     .await?;
     Ok(layer_content)
@@ -168,27 +170,31 @@ pub async fn get_all_search_layers() -> anyhow::Result<QDrantSearchInfo> {
 }
 
 async fn create_layer_content(
-    app_state: &AppState,
+    nervo_llm: &NervoLlm,
+    local_db: &LocalDb,
     prompt: &str,
     db_table_name: &str,
     layer: QDrantSearchLayer,
     rephrased_prompt: String,
     search_result_content: String,
+    chat_id: u64
 ) -> anyhow::Result<String> {
     info!("COMMON: create_layer_content");
-    let client = Client::new(app_state.nervo_llm.api_key().to_string());
-    let all_saved_messages: Vec<LlmMessage> =
-        app_state.local_db.read_from_local_db(db_table_name).await?;
+    let all_saved_messages: Vec<LlmMessage> = local_db
+        .read_from_local_db(db_table_name)
+        .await?;
+    
     let start_index_table_name = format!("{}_start_index", db_table_name);
     info!("COMMON: start_index_table_name {}", start_index_table_name);
-    let context_messages_indexes: Vec<i64> = app_state
-        .local_db
+    let context_messages_indexes: Vec<i64> = local_db
         .read_from_local_db(&start_index_table_name)
         .await?;
+    
     info!(
         "COMMON: context_messages_indexes len {:?}",
         context_messages_indexes.len()
     );
+    
     let mut cached_messages: Vec<LlmMessage> = vec![];
     for index in context_messages_indexes {
         if let Some(content_message) = all_saved_messages.get(index as usize) {
@@ -197,7 +203,6 @@ async fn create_layer_content(
         }
     }
 
-    let model_name = app_state.nervo_config.llm.model_name.clone();
     let system_role_content = layer.system_role_text;
 
     //Create user request role text
@@ -217,64 +222,40 @@ async fn create_layer_content(
         let part = format!("{:?}{:?}\n", parameter.param_value, value);
         user_role_full_text.push_str(&part)
     }
+    
+    let mut messages: Vec<LlmMessage> = Vec::new();
 
-    let mut messages: Vec<ChatMessage> = Vec::new();
-    let system_role_msg = ChatMessage {
-        role: openai_dive::v1::resources::chat::Role::System,
-        content: ChatMessageContent::Text(String::from(system_role_content)),
-        tool_calls: None,
-        name: None,
-        tool_call_id: None,
+    let system_role_msg = LlmMessage {
+        meta_info: LlmMessageMetaInfo {
+            sender_id: None,
+            role: LlmMessageRole::System,
+            persistence: LlmMessagePersistence::Persistent,
+        },
+        content: LlmMessageContent::from(system_role_content.as_str()),
     };
-    let user_role_msg = ChatMessage {
-        role: openai_dive::v1::resources::chat::Role::User,
-        content: ChatMessageContent::Text(String::from(user_role_full_text)),
-        tool_calls: None,
-        name: None,
-        tool_call_id: None,
+
+    let user_role_msg = LlmMessage {
+        meta_info: LlmMessageMetaInfo {
+            sender_id: None,
+            role: LlmMessageRole::User,
+            persistence: LlmMessagePersistence::Persistent,
+        },
+        content: LlmMessageContent::from(user_role_full_text.as_str())
     };
 
     messages.push(system_role_msg);
     messages.push(user_role_msg);
 
-    let params = ChatCompletionParameters {
-        messages,
-        model: model_name,
-        frequency_penalty: None,
-        logit_bias: None,
-        logprobs: None,
-        top_logprobs: None,
-        max_tokens: Some(layer.max_tokens),
-        n: None,
-        presence_penalty: None,
-        response_format: None,
-        seed: None,
-        stop: None,
-        stream: None,
-        temperature: Some(layer.temperature),
-        top_p: None,
-        tools: None,
-        tool_choice: None,
-        user: None,
-    };
-    let layer_processing_content = match client.chat().create(params).await {
-        Ok(value) => value.choices[0].message.content.to_owned(),
-        Err(err) => {
-            error!("Error {:?}", err);
-            bail!("Error {:?}", err)
-        }
-    };
-    let layer_content_text = match layer_processing_content {
-        ChatMessageContent::Text(text) => text,
-        _ => String::new(),
-    };
-    Ok(layer_content_text)
+    let chat: LlmChat = LlmChat { chat_id, messages };
+    
+    nervo_llm.send_msg_batch(chat).await
 }
 
 async fn openai_chat_preparations(
-    app_state: &AppState,
+    app_state: Arc<NervoServerAppState>,
     prompt: &str,
     table_name: String,
+    chat_id: u64
 ) -> anyhow::Result<String> {
     let mut rephrased_prompt = String::from(prompt);
     let layers_info = get_all_search_layers().await?;
@@ -293,7 +274,6 @@ async fn openai_chat_preparations(
                 let db_search = &app_state
                     .nervo_ai_db
                     .search(
-                        app_state,
                         collection_param.name.clone(),
                         rephrased_prompt.clone(),
                         collection_param.vectors_limit,
@@ -320,12 +300,14 @@ async fn openai_chat_preparations(
         }
 
         rephrased_prompt = create_layer_content(
-            app_state,
+            &app_state.nervo_llm,
+            &app_state.local_db,
             prompt,
             &table_name,
             processing_layer.clone(),
             rephrased_prompt.clone(),
             search_content.clone(),
+            chat_id
         )
         .await?;
     }

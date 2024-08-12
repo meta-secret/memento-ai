@@ -1,39 +1,38 @@
-use crate::ai::qdrant_utils::QdrantDb;
-use crate::common::{AppState, QdrantParams};
+use crate::ai::qdrant_db::QdrantDb;
 use anyhow::Result;
 use qdrant_client::qdrant::SearchResponse;
 use tracing::log::info;
+use crate::ai::nervo_llm::NervoLlm;
+use crate::config::common::QdrantParams;
 
 pub struct NervoAiDb {
     pub qdrant: QdrantDb,
+    pub nervo_llm: NervoLlm
 }
 
-impl TryFrom<&QdrantParams> for NervoAiDb {
-    type Error = anyhow::Error;
-
-    fn try_from(config: &QdrantParams) -> Result<Self, Self::Error> {
-        let qdrant = QdrantDb::try_from(config)?;
-        Ok(NervoAiDb { qdrant })
+impl NervoAiDb {
+    pub fn build(config: &QdrantParams, nervo_llm: NervoLlm) -> Result<Self> {
+        let qdrant = QdrantDb::try_from(config, nervo_llm.clone())?;
+        Ok(NervoAiDb { qdrant, nervo_llm })
     }
 }
 
 impl NervoAiDb {
     pub async fn search(
         &self,
-        app_state: &AppState,
         collection_name: String,
         search_text: String,
         vectors_limit: u64,
     ) -> Result<SearchResponse> {
         info!("Starting QDrant db search...");
         self.qdrant
-            .search_in_qdrant_db(app_state, collection_name, search_text, vectors_limit)
+            .search_in_qdrant_db(collection_name, search_text, vectors_limit)
             .await
     }
 
-    pub async fn save(&self, app_state: &AppState, user_id: u64, text: String) -> Result<()> {
+    pub async fn save(&self, user_id: u64, text: String) -> Result<()> {
         self.qdrant
-            .save_to_qdrant_db(app_state, user_id.to_string(), text)
+            .save_to_qdrant_db(user_id.to_string(), text)
             .await
     }
 }

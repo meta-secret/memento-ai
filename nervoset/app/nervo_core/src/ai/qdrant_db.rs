@@ -1,6 +1,4 @@
-use crate::common::{AppState, QdrantParams};
 use anyhow::bail;
-use async_openai::types::Embedding;
 use qdrant_client::Qdrant;
 use qdrant_client::qdrant::{
     CreateCollection,
@@ -16,22 +14,21 @@ use qdrant_client::Payload;
 use rand::rngs::OsRng;
 use rand::Rng;
 use serde_json::json;
-
+use crate::ai::nervo_llm::NervoLlm;
+use crate::config::common::QdrantParams;
 
 pub struct QdrantDb {
     pub qdrant_client: Qdrant,
+    pub nervo_llm: NervoLlm,
 }
 
-
-impl TryFrom<&QdrantParams> for QdrantDb {
-    type Error = anyhow::Error;
-
-    fn try_from(config: &QdrantParams) -> anyhow::Result<Self, Self::Error> {
+impl QdrantDb {
+    pub fn try_from(config: &QdrantParams, nervo_llm: NervoLlm) -> anyhow::Result<Self> {
         let qdrant_client = Qdrant::from_url(config.server_url.as_str())
             .api_key(config.api_key.clone())
             .build()?;
 
-        Ok(QdrantDb { qdrant_client })
+        Ok(QdrantDb { qdrant_client, nervo_llm })
     }
 }
 
@@ -39,13 +36,14 @@ impl TryFrom<&QdrantParams> for QdrantDb {
 impl QdrantDb {
     pub async fn save_to_qdrant_db(
         &self,
-        app_state: &AppState,
         collection_name: String,
         text: String,
     ) -> anyhow::Result<()> {
         let mut rng = OsRng;
 
-        let maybe_vec_data = self.text_to_embeddings(app_state, &text).await?;
+        let maybe_vec_data = self.nervo_llm
+            .text_to_embeddings(text.as_str())
+            .await?;
 
         let Some(vec_data) = maybe_vec_data else {
             bail!("No embedding data found.");
@@ -88,44 +86,31 @@ impl QdrantDb {
 
     pub async fn search_in_qdrant_db(
         &self,
-        app_state: &AppState,
         collection_name: String,
         search_text: String,
         search_vectors_limit: u64,
     ) -> anyhow::Result<SearchResponse> {
-        let maybe_vec_data = self.text_to_embeddings(app_state, &search_text).await?;
+        let maybe_vec_data = self.nervo_llm.text_to_embeddings(&search_text).await?;
 
         match maybe_vec_data {
             None => {
                 bail!("No embedding data found.");
             }
             Some(vec_data) => {
-                let search_result = self
-                    .qdrant_client
-                    .search_points(
-                        SearchPointsBuilder::new(
-                            collection_name,
-                            vec_data.embedding
-                                .clone(),
-                            search_vectors_limit
-                        )
-                            .with_payload(true)
-                            .params(SearchParamsBuilder::default()
-                                .exact(true))
-                    )
+                let builder = SearchPointsBuilder::new(
+                    collection_name,
+                    vec_data.embedding.clone(),
+                    search_vectors_limit
+                )
+                    .with_payload(true)
+                    .params(SearchParamsBuilder::default().exact(true));
+                
+                let search_result = self.qdrant_client
+                    .search_points(builder)
                     .await?;
+                
                 Ok(search_result)
             }
         }
-    }
-
-
-    async fn text_to_embeddings(
-        &self,
-        app_state: &AppState,
-        text: &str,
-    ) -> anyhow::Result<Option<Embedding>> {
-        let embedding = app_state.nervo_llm.embedding(text).await?;
-        Ok(embedding.data.first().cloned())
     }
 }

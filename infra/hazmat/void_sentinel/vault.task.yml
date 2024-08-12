@@ -7,20 +7,10 @@ includes:
     taskfile: crypto.task.yaml
     internal: true
 
-  nervo-server:
+  config:
     taskfile: nervobot.vault.task.yml
     vars:
-      KEY_NAME: nervo-server.config.yaml
-
-  probiot-t1000:
-    taskfile: nervobot.vault.task.yml
-    vars:
-      KEY_NAME: probiot-t1000.config.yaml
-
-  groot:
-    taskfile: nervobot.vault.task.yml
-    vars:
-      KEY_NAME: groot.config.yaml
+      KEY_NAME: config.yaml
 
 tasks:
 

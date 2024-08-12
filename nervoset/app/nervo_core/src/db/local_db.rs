@@ -1,5 +1,3 @@
-use crate::common::DatabaseParams;
-
 use anyhow::bail;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -8,6 +6,7 @@ use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
 use tracing::{error, info};
+use crate::config::common::DatabaseParams;
 
 pub struct LocalDb {
     db_params: DatabaseParams,

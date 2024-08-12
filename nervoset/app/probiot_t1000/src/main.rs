@@ -1,10 +1,11 @@
-use nervo_bot_core::common::{AppState, NervoConfig};
 use nervo_bot_core::telegram::probiot_t1000;
 
 use std::sync::Arc;
 
 use tracing::{debug_span, info, Instrument, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
+use nervo_bot_core::config::common::NervoConfig;
+use nervo_bot_core::config::nervo_server::NervoServerAppState;
 
 #[tokio::main]
 
@@ -33,22 +34,12 @@ async fn main() -> anyhow::Result<()> {
     info!("Starting Probiot...");
     start_probiot().instrument(debug_span!("probiot")).await?;
     Ok(())
-    // match start_probiot().instrument(debug_span!("probiot")).await {
-    //     Ok(_) => {
-    //         info!("OK");
-    //         Ok(())
-    //     }
-    //     Err(err) => {
-    //         info!("fuck! {:?}", err);
-    //         Ok(())
-    //     }
-    // }
 }
 
 pub async fn start_probiot() -> anyhow::Result<()> {
     let nervo_config = NervoConfig::load()?;
-    let bot_token = nervo_config.telegram.token.clone();
-    let app_state = Arc::from(AppState::try_from(nervo_config)?);
+    let bot_token = nervo_config.probiot.telegram.token.clone();
+    let app_state = Arc::from(NervoServerAppState::try_from(nervo_config.nervo_server)?);
 
     probiot_t1000::start(bot_token, app_state).await?;
 

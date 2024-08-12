@@ -1,4 +1,3 @@
-use crate::common::AppState;
 use crate::common_utils::common_utils::llm_conversation;
 use crate::models::nervo_message_model::TelegramMessage;
 use crate::models::system_messages::SystemMessages;
@@ -21,8 +20,9 @@ use teloxide::types::{
 use teloxide::Bot;
 use tokio::fs;
 use tracing::{error, info};
+use crate::config::nervo_server::NervoServerAppState;
 
-pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::Result<()> {
+pub async fn chat(bot: Bot, msg: Message, app_state: Arc<NervoServerAppState>) -> anyhow::Result<()> {
     info!("Start chat...");
     let mut parser = MessageParser {
         bot: &bot,
@@ -99,7 +99,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                     },
                 };
 
-                chat_gpt_conversation(&bot, &msg, &app_state, question_msg, parser.is_voice, false)
+                chat_gpt_conversation(&bot, &msg, app_state.clone(), question_msg, parser.is_voice, false)
                     .await?
             } else {
                 // Moderation is not passed
@@ -116,7 +116,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
                     chat_gpt_conversation(
                         &bot,
                         &msg,
-                        &app_state,
+                        app_state.clone(),
                         question_msg,
                         parser.is_voice,
                         true,
@@ -136,7 +136,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<AppState>) -> anyhow::R
 pub struct MessageParser<'a> {
     pub bot: &'a Bot,
     pub(crate) msg: &'a Message,
-    pub app_state: &'a Arc<AppState>,
+    pub app_state: &'a Arc<NervoServerAppState>,
     pub is_voice: bool,
 }
 
@@ -295,8 +295,8 @@ impl SystemMessage {
 }
 
 // Work with User Ids
-async fn save_user_id(app_state: Arc<AppState>, user_id: String) -> anyhow::Result<()> {
-    let user_ids = load_user_ids(&app_state).await?;
+async fn save_user_id(app_state: Arc<NervoServerAppState>, user_id: String) -> anyhow::Result<()> {
+    let user_ids = load_user_ids(app_state.clone()).await?;
 
     let contains_id = user_ids.iter().any(|user| user.id == user_id);
     if !contains_id {
@@ -311,7 +311,7 @@ async fn save_user_id(app_state: Arc<AppState>, user_id: String) -> anyhow::Resu
     Ok(())
 }
 
-async fn load_user_ids(app_state: &AppState) -> anyhow::Result<Vec<TelegramUser>> {
+async fn load_user_ids(app_state: Arc<NervoServerAppState>) -> anyhow::Result<Vec<TelegramUser>> {
     match app_state
         .local_db
         .read_from_local_db("all_users_list")
@@ -325,7 +325,7 @@ async fn load_user_ids(app_state: &AppState) -> anyhow::Result<Vec<TelegramUser>
 pub async fn chat_gpt_conversation(
     bot: &Bot,
     message: &Message,
-    app_state: &Arc<AppState>,
+    app_state: Arc<NervoServerAppState>,
     msg: SendMessageRequest,
     is_voice: bool,
     direct_message: bool,
@@ -336,7 +336,7 @@ pub async fn chat_gpt_conversation(
     let user_final_question = if direct_message {
         msg.llm_message.content.text()
     } else {
-        llm_conversation(app_state, msg, table_name)
+        llm_conversation(app_state.clone(), msg, table_name)
             .await?
             .content
             .text()
@@ -354,7 +354,7 @@ pub async fn chat_gpt_conversation(
     Ok(())
 }
 
-async fn create_speech(bot: &Bot, text: &str, chat_id: u64, app_state: &AppState) {
+async fn create_speech(bot: &Bot, text: &str, chat_id: u64, app_state: Arc<NervoServerAppState>) {
     let client = Client::new(app_state.nervo_llm.api_key().to_string());
 
     let parameters = AudioSpeechParameters {

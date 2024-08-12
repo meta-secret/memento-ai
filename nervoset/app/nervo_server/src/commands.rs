@@ -5,13 +5,13 @@ use nervo_api::{
     LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole,
     SendMessageRequest,
 };
-use nervo_bot_core::common::AppState;
 use nervo_bot_core::common_utils::common_utils::llm_conversation;
 use std::sync::Arc;
 use tracing::{error, info};
+use nervo_bot_core::config::nervo_server::NervoServerAppState;
 
 pub async fn send_message(
-    State(state): State<Arc<AppState>>,
+    State(state): State<Arc<NervoServerAppState>>,
     Json(msg_request): Json<SendMessageRequest>,
 ) -> Result<Json<LlmMessage>, StatusCode> {
     let user_id_number: u64 = msg_request.llm_message.sender_id;
@@ -37,13 +37,13 @@ pub async fn send_message(
 }
 
 async fn happy_path_of_moderation(
-    app_state: Arc<AppState>,
+    app_state: Arc<NervoServerAppState>,
     msg_request: SendMessageRequest,
 ) -> Result<Json<LlmMessage>, StatusCode> {
     info!("SERVER: HAPPY PATH");
     let table_name = msg_request.chat_id.to_string();
 
-    let llm_reply = llm_conversation(&app_state, msg_request, table_name)
+    let llm_reply = llm_conversation(app_state, msg_request, table_name)
         .await
         .map_err(|err| {
             error!("Error2 {:?}", err);
@@ -55,7 +55,7 @@ async fn happy_path_of_moderation(
 }
 
 async fn fail_path_of_moderation(
-    app_state: Arc<AppState>,
+    app_state: Arc<NervoServerAppState>,
     msg_text: &str,
     user_id: u64,
     chat_id: u64,

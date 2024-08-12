@@ -1,11 +1,18 @@
 use serde_derive::{Deserialize, Serialize};
-use wasm_bindgen::JsError;
 use wasm_bindgen::prelude::wasm_bindgen;
+use crate::app_type::{GROOT, JAISON, PROBIOT};
+
+pub mod app_type {
+    pub const GROOT: &str = "groot";
+    pub const PROBIOT: &str = "probiot";
+    pub const JAISON: &str = "jaison";
+}
 
 #[wasm_bindgen]
 pub enum AppType {
+    Groot,
     Probiot,
-    Prodavanya,
+    Jaison,
     None,
 }
 
@@ -17,16 +24,18 @@ pub struct NervoAppType {}
 impl NervoAppType {
     pub fn try_from(name: &str) -> AppType {
         match name {
-            "probiot" => AppType::Probiot,
-            "prodavanya" => AppType::Prodavanya,
+            GROOT => AppType::Groot,
+            PROBIOT => AppType::Probiot,
+            JAISON => AppType::Jaison,
             _ => AppType::None
         }
     }
     
-    pub fn getName(appType: AppType) -> String {
-        match appType {
-            AppType::Probiot => String::from("probiot"),
-            AppType::Prodavanya => String::from("prodavanya"),
+    pub fn get_name(app_type: AppType) -> String {
+        match app_type {
+            AppType::Groot => String::from(GROOT),
+            AppType::Probiot => String::from(PROBIOT),
+            AppType::Jaison => String::from(JAISON),
             AppType::None => String::from(""),
         }
     }
@@ -64,6 +73,14 @@ pub struct LlmMessageMetaInfo {
     pub persistence: LlmMessagePersistence,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[wasm_bindgen(getter_with_clone)]
+pub struct LlmMessage {
+    pub meta_info: LlmMessageMetaInfo,
+    pub content: LlmMessageContent,
+}
+
 impl LlmMessage {
     pub fn role_str(&self) -> String {
         match self.meta_info.role {
@@ -72,14 +89,6 @@ impl LlmMessage {
             LlmMessageRole::Assistant => String::from("assistant"),
         }
     }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[wasm_bindgen(getter_with_clone)]
-pub struct LlmMessage {
-    pub meta_info: LlmMessageMetaInfo,
-    pub content: LlmMessageContent,
 }
 
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]

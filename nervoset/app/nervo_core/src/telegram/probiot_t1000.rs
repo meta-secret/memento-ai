@@ -5,8 +5,7 @@ use anyhow::Result;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
 use teloxide::Bot as TelegramBot;
-
-use crate::common::AppState;
+use crate::config::nervo_server::NervoServerAppState;
 use crate::telegram::bot_utils::{chat, system_message, SystemMessage};
 use crate::telegram::roles_and_permissions::{has_role, PROBIOT_MEMBER, PROBIOT_OWNER};
 
@@ -46,7 +45,7 @@ static WHITELIST_MEMBERS: [&str; 0] = [
 ];
 
 /// Start telegram bot
-pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
+pub async fn start(token: String, app_state: Arc<NervoServerAppState>) -> Result<()> {
     let bot = TelegramBot::new(token);
 
     app_state.local_db.init_db().await?;
@@ -71,23 +70,23 @@ pub async fn start(token: String, app_state: Arc<AppState>) -> Result<()> {
 
         Update::filter_message()
             .branch(
-                dptree::filter_async(|msg: Message, app_state: Arc<AppState>| async move {
-                    has_role(app_state, msg.from().clone(), &PROBIOT_OWNER)
+                dptree::filter_async(|msg: Message, app_state: Arc<NervoServerAppState>| async move {
+                    has_role(&app_state.local_db, msg.from().clone(), &PROBIOT_OWNER)
                         .await
                         .unwrap_or(false)
                 })
                 .chain(owner_handler),
             )
             .branch(
-                dptree::filter_async(|msg: Message, app_state: Arc<AppState>| async move {
-                    has_role(app_state, msg.from().clone(), &PROBIOT_MEMBER.to_string())
+                dptree::filter_async(|msg: Message, app_state: Arc<NervoServerAppState>| async move {
+                    has_role(&app_state.local_db, msg.from().clone(), &PROBIOT_MEMBER.to_string())
                         .await
                         .unwrap_or(false)
                 })
                 .chain(authorized_user_handler.clone()),
             )
             .branch(
-                dptree::filter(|msg: Message, _app_state: Arc<AppState>| {
+                dptree::filter(|msg: Message, _app_state: Arc<NervoServerAppState>| {
                     msg.from()
                         .map(|user| {
                             WHITELIST_MEMBERS
@@ -115,7 +114,7 @@ async fn command_handler(
     bot: Bot,
     msg: Message,
     cmd: ProbiotCommands,
-    app_state: Arc<AppState>,
+    app_state: Arc<NervoServerAppState>,
 ) -> Result<()> {
     match cmd {
         ProbiotCommands::Model => {

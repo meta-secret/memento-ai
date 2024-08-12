@@ -33,6 +33,7 @@ teloxide.workspace = true
 
 reqwest.workspace = true
 
+# Async OpenAi library is not working with audio, we have to use the openai_dive library 
 openai_dive = "0.4.5"
 tiktoken-rs = "0.5.8"
 

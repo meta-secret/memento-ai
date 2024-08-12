@@ -1,21 +1,21 @@
 use anyhow::bail;
 use anyhow::Result;
+use async_openai::Client;
 use async_openai::config::OpenAIConfig;
-use async_openai::types::ChatCompletionRequestUserMessage;
+use async_openai::types::{ChatCompletionRequestUserMessage, Embedding};
+use async_openai::types::{
+    ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
+    ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent,
+};
 use async_openai::types::CreateChatCompletionRequestArgs;
 use async_openai::types::CreateEmbeddingRequestArgs;
 use async_openai::types::CreateEmbeddingResponse;
 use async_openai::types::CreateModerationRequest;
 use async_openai::types::CreateTranscriptionRequest;
 use async_openai::types::ModerationInput;
-use async_openai::types::{
-    ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
-    ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent, Role,
-};
-use async_openai::Client;
 use serde_derive::Deserialize;
 
-use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageRole, UserLlmMessage};
+use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageRole};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct NervoLlmConfig {
@@ -33,6 +33,7 @@ impl NervoLlmConfig {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct NervoLlm {
     llm_config: NervoLlmConfig,
     client: Client<OpenAIConfig>,
@@ -68,6 +69,11 @@ impl NervoLlm {
         };
 
         Ok(response)
+    }
+
+    pub async fn text_to_embeddings(&self, text: &str) -> Result<Option<Embedding>> {
+        let embedding = self.embedding(text).await?;
+        Ok(embedding.data.first().cloned())
     }
 }
 

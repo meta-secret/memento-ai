@@ -1,5 +1,4 @@
 mod commands;
-mod cors;
 mod queries;
 
 use crate::commands::send_message;
@@ -9,7 +8,6 @@ use axum::{
     Json, Router,
 };
 use http::{StatusCode, Uri};
-use nervo_bot_core::common::{AppState, NervoConfig};
 use serde_derive::Serialize;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -17,6 +15,8 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing::{info, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
+use nervo_bot_core::config::common::NervoConfig;
+use nervo_bot_core::config::nervo_server::NervoServerAppState;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -44,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
     let app_state = {
         info!("Loading config...");
         let nervo_config = NervoConfig::load()?;
-        Arc::from(AppState::try_from(nervo_config)?)
+        Arc::from(NervoServerAppState::try_from(nervo_config.nervo_server)?)
     };
 
     info!("Creating router...");
