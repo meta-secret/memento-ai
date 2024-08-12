@@ -9,6 +9,8 @@ pub mod app_type {
 }
 
 #[wasm_bindgen]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum AppType {
     Groot,
     Probiot,
@@ -58,6 +60,7 @@ pub struct LlmChat {
 }
 
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub enum LlmMessageRole {
     System,
@@ -66,6 +69,7 @@ pub enum LlmMessageRole {
 }
 
 #[derive(Clone, Debug, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[wasm_bindgen]
 pub struct LlmMessageMetaInfo {
     pub sender_id: Option<u64>,
