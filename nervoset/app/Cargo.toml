@@ -9,7 +9,8 @@ members = [
     "nervo_server",
     "nervo_api",
     "nervo_wasm",
-    "jaison"
+    "jaison",
+    "nervo-migrant"
 ]
 
 [workspace.dependencies]

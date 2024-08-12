@@ -26,7 +26,6 @@ RUN cargo build --release
 
 FROM ubuntu:24.04
 
-ARG APP_NAME
 WORKDIR /app/nervoset
 
 # Install ca-certificates https://github.com/telegram-rs/telegram-bot/issues/236
@@ -35,6 +34,7 @@ RUN apt-get update && apt-get install -y ca-certificates curl iputils-ping && up
 # install sqlite3
 RUN apt-get install -y sqlite3
 
-COPY --from=builder /app/nervoset/target/release/${APP_NAME} /app/nervoset/nervobot
-COPY --from=builder /app/nervoset/${APP_NAME}/resources/ /app/nervoset/resources
-CMD ./nervobot
+COPY dataset/ /app/nervoset/dataset
+COPY --from=builder /app/nervoset/target/release/nervo-migrant /app/nervoset/nervo-migrant
+
+CMD ./nervo-migrant

@@ -1,21 +1,16 @@
 use anyhow::bail;
 use qdrant_client::Qdrant;
-use qdrant_client::qdrant::{
-    CreateCollection,
-    Distance,
-    PointStruct,
-    SearchParamsBuilder,
-    SearchPointsBuilder,
-    UpsertPointsBuilder
-};
+use qdrant_client::qdrant::{CreateCollection, DeletePointsBuilder, Distance, PointStruct, SearchParamsBuilder, SearchPointsBuilder, UpsertPointsBuilder};
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::{SearchResponse, VectorParams, VectorsConfig};
 use qdrant_client::Payload;
 use rand::rngs::OsRng;
 use rand::Rng;
 use serde_json::json;
+use tracing::info;
 use crate::ai::nervo_llm::NervoLlm;
 use crate::config::common::QdrantParams;
+use crate::config::nervo_server::NervoServerAppState;
 
 pub struct QdrantDb {
     pub qdrant_client: Qdrant,
@@ -113,4 +108,59 @@ impl QdrantDb {
             }
         }
     }
+
+    pub async fn delete_from_qdrant_db(
+        &self,
+        app_state: &NervoServerAppState,
+        collection_name: String,
+        text: String,
+    ) -> anyhow::Result<DeleteResult> {
+        let maybe_vec_data = app_state.nervo_llm.text_to_embeddings(&text).await?;
+
+        let Some(vec_data) = maybe_vec_data else {
+            bail!("No embedding data found.");
+        };
+
+        let builder = SearchPointsBuilder::new(
+            collection_name.clone(),
+            vec_data.embedding.clone(),
+            1,
+        )
+            .with_payload(true)
+            .params(SearchParamsBuilder::default().exact(true));
+        
+        let search_result = self
+            .qdrant_client
+            .search_points(builder)
+            .await?;
+
+        if search_result.result.is_empty() {
+            info!("No matching points found.");
+            return Ok(DeleteResult::Success);
+        }
+
+        let Some(point_id) = search_result.result[0].id.clone() else {
+            info!("Couldn't find points");
+            return Ok(DeleteResult::Fail);
+        };
+
+        let delete_request = DeletePointsBuilder::new(collection_name)
+            .points(vec![point_id])
+            .build();
+
+        let delete_response = self.qdrant_client
+            .delete_points(delete_request)
+            .await?;
+
+        if delete_response.result.is_some() {
+            Ok(DeleteResult::Success)
+        } else {
+            Ok(DeleteResult::Fail)
+        }
+    }
 }
+
+pub enum DeleteResult {
+    Success,
+    Fail,
+} 

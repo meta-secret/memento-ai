@@ -1,7 +1,6 @@
-use log::{info, Level};
+use log::{info};
 use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use reqwest::Client;
-use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsError, JsValue};
 

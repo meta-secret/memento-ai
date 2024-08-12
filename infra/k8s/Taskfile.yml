@@ -13,6 +13,17 @@ includes:
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
+  w3a:
+    taskfile: app.task.yml
+    dir: probiot_t1000
+    vars:
+      K8S_APP_NAME: 'w3a'
+      APP_NAME: 'w3a'
+      CONFIGS: pvc.k statefulset.k
+      IMAGE_NAME:
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+
+
   groot:
     taskfile: app.task.yml
     dir: groot

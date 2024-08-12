@@ -122,3 +122,11 @@ tasks:
       - task: docker_probiot:push
       - task: docker_jarvis:push
       - task: docker_nervo_server:push
+
+  nervo_migrant_build:
+    vars:
+      PWD:
+        sh: pwd
+    cmds:
+      - docker build -t nervo-migrant:latest -f migration.dockerfile .
+      - docker run -ti --rm -v {{.PWD}}/config/migrant/config.yaml:/app/nervoset/config.yaml nervo-migrant:latest
