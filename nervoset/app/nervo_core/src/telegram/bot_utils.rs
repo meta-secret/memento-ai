@@ -1,4 +1,4 @@
-use crate::common_utils::common_utils::llm_conversation;
+use crate::utils::ai_utils::llm_conversation;
 use crate::models::nervo_message_model::TelegramMessage;
 use crate::models::system_messages::SystemMessages;
 use crate::models::user_model::TelegramUser;

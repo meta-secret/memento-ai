@@ -99,7 +99,7 @@ pub async fn llm_conversation(
             .local_db
             .read_from_local_db(&table_name)
             .await?;
-        
+
         let messages_count = all_messages.len();
         let table_name_start_index = format!("{}_start_index", table_name.clone());
         app_state
@@ -143,7 +143,7 @@ async fn detecting_crap_request(
     app_state: Arc<NervoServerAppState>,
     prompt: &str,
     user_id: &str,
-    chat_id: u64
+    chat_id: u64,
 ) -> anyhow::Result<String> {
     info!("COMMON: CRAP DETECTION");
     let layers_info = get_all_search_layers().await?;
@@ -155,9 +155,9 @@ async fn detecting_crap_request(
         layers_info.crap_detecting_layer,
         String::new(),
         String::new(),
-        chat_id
+        chat_id,
     )
-    .await?;
+        .await?;
     Ok(layer_content)
 }
 
@@ -177,24 +177,24 @@ async fn create_layer_content(
     layer: QDrantSearchLayer,
     rephrased_prompt: String,
     search_result_content: String,
-    chat_id: u64
+    chat_id: u64,
 ) -> anyhow::Result<String> {
     info!("COMMON: create_layer_content");
     let all_saved_messages: Vec<LlmMessage> = local_db
         .read_from_local_db(db_table_name)
         .await?;
-    
+
     let start_index_table_name = format!("{}_start_index", db_table_name);
     info!("COMMON: start_index_table_name {}", start_index_table_name);
     let context_messages_indexes: Vec<i64> = local_db
         .read_from_local_db(&start_index_table_name)
         .await?;
-    
+
     info!(
         "COMMON: context_messages_indexes len {:?}",
         context_messages_indexes.len()
     );
-    
+
     let mut cached_messages: Vec<LlmMessage> = vec![];
     for index in context_messages_indexes {
         if let Some(content_message) = all_saved_messages.get(index as usize) {
@@ -222,7 +222,7 @@ async fn create_layer_content(
         let part = format!("{:?}{:?}\n", parameter.param_value, value);
         user_role_full_text.push_str(&part)
     }
-    
+
     let mut messages: Vec<LlmMessage> = Vec::new();
 
     let system_role_msg = LlmMessage {
@@ -240,14 +240,14 @@ async fn create_layer_content(
             role: LlmMessageRole::User,
             persistence: LlmMessagePersistence::Persistent,
         },
-        content: LlmMessageContent::from(user_role_full_text.as_str())
+        content: LlmMessageContent::from(user_role_full_text.as_str()),
     };
 
     messages.push(system_role_msg);
     messages.push(user_role_msg);
 
     let chat: LlmChat = LlmChat { chat_id, messages };
-    
+
     nervo_llm.send_msg_batch(chat).await
 }
 
@@ -255,7 +255,7 @@ async fn openai_chat_preparations(
     app_state: Arc<NervoServerAppState>,
     prompt: &str,
     table_name: String,
-    chat_id: u64
+    chat_id: u64,
 ) -> anyhow::Result<String> {
     let mut rephrased_prompt = String::from(prompt);
     let layers_info = get_all_search_layers().await?;
@@ -307,9 +307,9 @@ async fn openai_chat_preparations(
             processing_layer.clone(),
             rephrased_prompt.clone(),
             search_content.clone(),
-            chat_id
+            chat_id,
         )
-        .await?;
+            .await?;
     }
 
     let all_saved_messages: Vec<LlmMessage> =
@@ -350,9 +350,9 @@ fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyh
 }
 
 
-fn concatenate_results (all_search_results: Vec<ScoredPoint>) -> anyhow::Result<String> {
+fn concatenate_results(all_search_results: Vec<ScoredPoint>) -> anyhow::Result<String> {
     let mut concatenated_texts: String = String::new();
-    
+
     for search_result in all_search_results {
         let Some(Kind::StringValue(text)) = &search_result.payload["text"].kind else {
             bail!("Oooops! Error")
@@ -368,7 +368,7 @@ mod test {
 
     use qdrant_client::qdrant::ScoredPoint;
 
-    use crate::common_utils::common_utils::{concatenate_results, update_search_content};
+    use crate::utils::ai_utils::{concatenate_results, update_search_content};
 
     #[test]
     fn test_update_search_content() -> anyhow::Result<()> {
@@ -382,9 +382,9 @@ mod test {
         let mut data = HashMap::new();
         data.insert(
             "text".to_string(),
-            qdrant_client::qdrant::Value::from("lala-ley".to_string())
+            qdrant_client::qdrant::Value::from("lala-ley".to_string()),
         );
-        let vector = vec![ScoredPoint{
+        let vector = vec![ScoredPoint {
             id: None,
             payload: data,
             score: 0.5,

@@ -1,9 +1,7 @@
 mod models;
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufWriter;
-use std::process::exit;
 use std::sync::Arc;
 use anyhow::bail;
 use tokio::fs;
@@ -54,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
     info!("Start migrant app");
     // General Preparations. Getting QDrant DB client, app name
     let app_state = initial_setup().await?;
-    
+
     //parse cli arguments
     let cli = Cli::parse();
 
@@ -64,20 +62,18 @@ async fn main() -> anyhow::Result<()> {
             // - update json files with embeddings
             // - commit and push changes to GitHub (manually)
             info!("Dataset preparation has been started");
-            let migration_plan = collect_jsons_content("../../dataset".to_string()).await?;
-            update_json_structure(app_state, migration_plan).await?;
+            let migration_plan = collect_jsons_content("dataset".to_string()).await?;
+            enrich_datasets_with_embeddings(app_state, migration_plan).await?;
             info!("Dataset preparation step has been finished");
         }
         Commands::Migration => {
-            // Update QDrant collection (remove old records in qdrant if needed)
-            let app_state = initial_setup().await?;
-            let datasets = collect_jsons_content("dataset".to_string()).await?;
-            //let update_models = update_collection_with_json(datasets, &app_state).await?;
+            // Update qdrant collection (remove old records in qdrant if needed)
+            let migration_plan = collect_jsons_content("dataset".to_string()).await?;
+            migrate_qdrant_db(migration_plan, app_state).await?;
         }
     }
 
     Ok(())
-
 }
 
 async fn initial_setup() -> anyhow::Result<Arc<NervoServerAppState>> {
@@ -125,7 +121,7 @@ async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<Migra
                         let migration_model: MigrationModel = serde_json::from_str(json_content.as_str())?;
                         let migration_data_model = MigrationMetaData {
                             json_path: file_path,
-                            migration_model
+                            migration_model,
                         };
 
                         data_models.push(migration_data_model);
@@ -142,70 +138,57 @@ async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<Migra
     Ok(result_vec)
 }
 
-async fn update_collection_with_json(
-    migration_models: Vec<MigrationPlan>,
+async fn migrate_qdrant_db(
+    plans: Vec<MigrationPlan>,
     app_state: Arc<NervoServerAppState>,
-) -> anyhow::Result<HashMap<String, MigrationModel>> {
+) -> anyhow::Result<()> {
     info!("Start updating QDrant collection");
 
-    let mut result_dictionary: HashMap<String, MigrationModel> = HashMap::new();
     let qdrant_db = &app_state.nervo_ai_db.qdrant;
 
-    /*
-    for migration_model in migration_models.iter() {
-        for data_model in migration_model.data_models.iter() {
-            match serde_json::from_str::<MigrationModel>(&data_model.json_content) {
-                Ok(mut migration_model) => {
-                    // Need to delete an old version at first
-                    /*if !migration_model.delete.is_empty() {
-                        info!("Found old data. Need to delete");
-                        delete_collection_content_in_qdrant(&migration_model, migration_model.app_name(), app_state).await?;
-                    }*/
+    for migration_plan in plans.iter() {
+        for migration_info in migration_plan.data_models.iter() {
+            let migration_model = &migration_info.migration_model;
 
-                    /*{
-                        info!("Save text of json to qdrant collection");
-                        let text = migration_model.clone().create.text;
-                        let app_name = migration_model.app_name();
-                        qdrant_db
-                            .save_to_qdrant_db(app_name, text)
-                            .await?;
-                    }*/
+            // Need to delete an old version at first
+            delete_action(migration_model, migration_plan.app_type, app_state.clone())
+                .await?;
+            
+            let text = migration_model.clone().create.text;
+            let app_name = migration_plan.app_name();
 
-                    if let Some(str_value) = data_model.json_path.to_str() {
-                        result_dictionary.insert(String::from(str_value), migration_model);
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Failed to parse JSON. Err {}", e);
-                }
+            //check if qdrant already has this record
+            let records = qdrant_db.find_by_idd(app_name.as_str(), text.as_str()).await?;
+            if records.result.is_empty() {
+                info!("Save text of json to qdrant: {:?}", app_name);
+                qdrant_db.save(app_name, text.as_str()).await?;
             }
         }
     }
-     */
 
-    Ok(result_dictionary)
+    Ok(())
 }
 
-async fn delete_collection_content_in_qdrant(
+async fn delete_action(
     migration_model: &MigrationModel,
-    app_name: String,
-    app_state: &Arc<NervoServerAppState>,
+    app_type: AppType,
+    app_state: Arc<NervoServerAppState>,
 ) -> anyhow::Result<()> {
     for delete_item in migration_model.delete.iter() {
         let qdrant_db = &app_state.nervo_ai_db.qdrant;
 
-        let _ = qdrant_db.delete_from_qdrant_db(
-            app_state,
-            app_name.clone(),
-            delete_item.text.clone(),
-        ).await?;
+        let app_type = NervoAppType::get_name(app_type);
+        let text = delete_item.text.as_str();
+        let _ = qdrant_db.delete_by_idd(app_type.as_str(), text).await?;
     }
     Ok(())
 }
 
-async fn update_json_structure(app_state: Arc<NervoServerAppState>, migration_plans: Vec<MigrationPlan>) -> anyhow::Result<()> {
+async fn enrich_datasets_with_embeddings(
+    app_state: Arc<NervoServerAppState>, migration_plans: Vec<MigrationPlan>,
+) -> anyhow::Result<()> {
     let qdrant_db = &app_state.nervo_ai_db.qdrant;
-    
+
     for migration in migration_plans.iter() {
         for data_model in &migration.data_models {
             if data_model.migration_model.create.embedding.is_none() {
@@ -214,14 +197,14 @@ async fn update_json_structure(app_state: Arc<NervoServerAppState>, migration_pl
                     .nervo_llm
                     .text_to_embeddings(&data_model.migration_model.create.text)
                     .await?;
-                
+
                 let mut updated_model = data_model.migration_model.clone();
                 updated_model.create.embedding = embedding;
 
                 let json_file = File::create(data_model.json_path.clone())?;
                 let writer = BufWriter::new(json_file);
                 serde_json::to_writer_pretty(writer, &updated_model)?;
-                
+
                 info!("Embedding has been created for: {:?}", data_model.json_path);
             }
         }
@@ -232,7 +215,7 @@ async fn update_json_structure(app_state: Arc<NervoServerAppState>, migration_pl
 
 #[cfg(test)]
 mod test {
-    use nervo_api::app_type;
+    use nervo_api::{app_type, AppType};
     use crate::{collect_jsons_content};
 
     #[tokio::test]
@@ -245,8 +228,13 @@ mod test {
     #[tokio::test]
     async fn test_collect_jsons_content_one() -> anyhow::Result<()> {
         let jsons_content = collect_jsons_content("../../dataset".to_string()).await?;
-        assert_eq!(jsons_content[0].app_name(), app_type::PROBIOT);
-        assert_eq!(jsons_content[1].app_name(), app_type::JAISON);
+        let apps: Vec<AppType> = jsons_content.iter()
+            .map(|plan| plan.app_type)
+            .collect();
+        
+        assert!(apps.contains(&AppType::W3a));
+        assert!(apps.contains(&AppType::Probiot));
+        
         Ok(())
     }
 }

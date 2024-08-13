@@ -5,7 +5,7 @@ use nervo_api::{
     LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole,
     SendMessageRequest,
 };
-use nervo_bot_core::common_utils::common_utils::llm_conversation;
+use nervo_bot_core::utils::ai_utils::llm_conversation;
 use std::sync::Arc;
 use tracing::{error, info};
 use nervo_bot_core::config::nervo_server::NervoServerAppState;

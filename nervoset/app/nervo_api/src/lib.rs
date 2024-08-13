@@ -1,10 +1,11 @@
 use serde_derive::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::app_type::{GROOT, PROBIOT};
+use crate::app_type::{GROOT, PROBIOT, W3A};
 
 pub mod app_type {
     pub const GROOT: &str = "groot";
     pub const PROBIOT: &str = "probiot";
+    pub const W3A: &str = "w3a";
 }
 
 #[wasm_bindgen]
@@ -13,6 +14,7 @@ pub mod app_type {
 pub enum AppType {
     Groot,
     Probiot,
+    W3a,
     None,
 }
 
@@ -26,6 +28,7 @@ impl NervoAppType {
         match name {
             GROOT => AppType::Groot,
             PROBIOT => AppType::Probiot,
+            W3A => AppType::W3a,
             _ => AppType::None
         }
     }
@@ -34,6 +37,7 @@ impl NervoAppType {
         match app_type {
             AppType::Groot => String::from(GROOT),
             AppType::Probiot => String::from(PROBIOT),
+            AppType::W3a => String::from(W3A),
             AppType::None => String::from(""),
         }
     }

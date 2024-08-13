@@ -26,13 +26,13 @@ impl NervoAiDb {
     ) -> Result<SearchResponse> {
         info!("Starting QDrant db search...");
         self.qdrant
-            .search_in_qdrant_db(collection_name, search_text, vectors_limit)
+            .vector_search(collection_name, search_text, vectors_limit)
             .await
     }
 
-    pub async fn save(&self, user_id: u64, text: String) -> Result<()> {
+    pub async fn save(&self, user_id: u64, text: &str) -> Result<()> {
         self.qdrant
-            .save_to_qdrant_db(user_id.to_string(), text)
+            .save(user_id.to_string(), text)
             .await
     }
 }

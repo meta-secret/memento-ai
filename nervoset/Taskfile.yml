@@ -128,5 +128,5 @@ tasks:
       PWD:
         sh: pwd
     cmds:
-      - docker build -t nervo-migrant:latest -f migration.dockerfile .
+      - docker buildx build --tag nervo-migrant:latest --file migration.dockerfile .
       - docker run -ti --rm -v {{.PWD}}/config/migrant/config.yaml:/app/nervoset/config.yaml nervo-migrant:latest

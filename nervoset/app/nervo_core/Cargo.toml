@@ -26,6 +26,8 @@ tracing-attributes.workspace = true
 qdrant-client.workspace = true
 
 rand.workspace = true
+uuid.workspace = true
+sha2.workspace = true
 
 tokio.workspace = true
 

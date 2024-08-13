@@ -1,16 +1,16 @@
 use anyhow::bail;
 use qdrant_client::Qdrant;
-use qdrant_client::qdrant::{CreateCollection, DeletePointsBuilder, Distance, PointStruct, SearchParamsBuilder, SearchPointsBuilder, UpsertPointsBuilder};
+use qdrant_client::qdrant::{Condition, CreateCollection, DeletePointsBuilder, Distance, Filter, PointStruct, ScrollPointsBuilder, ScrollResponse, SearchParamsBuilder, SearchPointsBuilder, UpsertPointsBuilder};
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::{SearchResponse, VectorParams, VectorsConfig};
 use qdrant_client::Payload;
-use rand::rngs::OsRng;
-use rand::Rng;
 use serde_json::json;
 use tracing::info;
 use crate::ai::nervo_llm::NervoLlm;
 use crate::config::common::QdrantParams;
-use crate::config::nervo_server::NervoServerAppState;
+use uuid::Uuid;
+use crate::utils::cryptography;
+use anyhow::Result;
 
 pub struct QdrantDb {
     pub qdrant_client: Qdrant,
@@ -29,15 +29,9 @@ impl QdrantDb {
 
 
 impl QdrantDb {
-    pub async fn save_to_qdrant_db(
-        &self,
-        collection_name: String,
-        text: String,
-    ) -> anyhow::Result<()> {
-        let mut rng = OsRng;
-
+    pub async fn save(&self, collection_name: String, text: &str) -> Result<()> {
         let maybe_vec_data = self.nervo_llm
-            .text_to_embeddings(text.as_str())
+            .text_to_embeddings(text)
             .await?;
 
         let Some(vec_data) = maybe_vec_data else {
@@ -66,9 +60,13 @@ impl QdrantDb {
         }
 
         let points = {
-            let id: u64 = rng.gen();
-            let payload: Payload = json!({"text": text}).try_into().unwrap();
-            let point = PointStruct::new(id, vec_data.embedding.clone(), payload);
+            // Generate a UUID
+            let point_id = Uuid::new_v4().to_string();
+            let idd = cryptography::generate_uuid(text)?;
+            let idd = idd.to_string();
+
+            let payload: Payload = json!({"idd": idd, "text": text}).try_into()?;
+            let point = PointStruct::new(point_id, vec_data.embedding.clone(), payload);
             vec![point]
         };
 
@@ -79,12 +77,12 @@ impl QdrantDb {
     }
 
 
-    pub async fn search_in_qdrant_db(
+    pub async fn vector_search(
         &self,
         collection_name: String,
         search_text: String,
         search_vectors_limit: u64,
-    ) -> anyhow::Result<SearchResponse> {
+    ) -> Result<SearchResponse> {
         let maybe_vec_data = self.nervo_llm.text_to_embeddings(&search_text).await?;
 
         match maybe_vec_data {
@@ -95,56 +93,45 @@ impl QdrantDb {
                 let builder = SearchPointsBuilder::new(
                     collection_name,
                     vec_data.embedding.clone(),
-                    search_vectors_limit
+                    search_vectors_limit,
                 )
                     .with_payload(true)
                     .params(SearchParamsBuilder::default().exact(true));
-                
+
                 let search_result = self.qdrant_client
                     .search_points(builder)
                     .await?;
-                
+
                 Ok(search_result)
             }
         }
     }
 
-    pub async fn delete_from_qdrant_db(
-        &self,
-        app_state: &NervoServerAppState,
-        collection_name: String,
-        text: String,
-    ) -> anyhow::Result<DeleteResult> {
-        let maybe_vec_data = app_state.nervo_llm.text_to_embeddings(&text).await?;
+    pub async fn find_by_idd(&self, col_name: &str, text: &str) -> Result<ScrollResponse> {
+        let idd = cryptography::generate_uuid(text)?;
+        let idd = idd.to_string();
 
-        let Some(vec_data) = maybe_vec_data else {
-            bail!("No embedding data found.");
-        };
+        let filter = ScrollPointsBuilder::new(col_name)
+            .filter(Filter::must([Condition::matches("idd", idd)]));
 
-        let builder = SearchPointsBuilder::new(
-            collection_name.clone(),
-            vec_data.embedding.clone(),
-            1,
-        )
-            .with_payload(true)
-            .params(SearchParamsBuilder::default().exact(true));
+        let search_result = self.qdrant_client.scroll(filter).await?;
+        Ok(search_result)
+    }
+
+    pub async fn delete_by_idd(&self, col_name: &str, text: &str) -> Result<DeleteResult> {
+        let search_result = self.find_by_idd(col_name, text).await?;
         
-        let search_result = self
-            .qdrant_client
-            .search_points(builder)
-            .await?;
-
         if search_result.result.is_empty() {
             info!("No matching points found.");
             return Ok(DeleteResult::Success);
         }
 
         let Some(point_id) = search_result.result[0].id.clone() else {
-            info!("Couldn't find points");
-            return Ok(DeleteResult::Fail);
+            info!("Couldn't find any points");
+            return Ok(DeleteResult::Success);
         };
 
-        let delete_request = DeletePointsBuilder::new(collection_name)
+        let delete_request = DeletePointsBuilder::new(col_name)
             .points(vec![point_id])
             .build();
 

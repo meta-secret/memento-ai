@@ -12,13 +12,15 @@ RUN wget https://github.com/mozilla/sccache/releases/download/v0.7.7/sccache-v0.
     && chmod +x /usr/local/bin/sccache
 ENV RUSTC_WRAPPER=sccache
 
-WORKDIR /app/nervoset/
+WORKDIR /nervoset/app
 
 # Build dependencies - this is the caching Docker layer!
-COPY target/chef/recipe.json /app/nervoset/recipe.json
+COPY target/chef/recipe.json /nervoset/app/recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # Build application
-COPY app/ /app/nervoset
+COPY app/ /nervoset/app
+COPY dataset/ /nervoset/dataset
+
 RUN cargo build --release
 
