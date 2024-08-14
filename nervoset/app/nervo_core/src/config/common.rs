@@ -2,6 +2,7 @@ use config::Config as AppConfig;
 use serde::Deserialize;
 
 use crate::config::groot::GrootConfig;
+use crate::config::leo::LeoConfig;
 use crate::config::nervo_server::NervoServerConfig;
 use crate::config::probiot::ProbiotConfig;
 
@@ -10,6 +11,7 @@ pub struct NervoConfig {
     pub nervo_server: NervoServerConfig,
     pub probiot: ProbiotConfig,
     pub groot: GrootConfig,
+    pub leo: LeoConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
