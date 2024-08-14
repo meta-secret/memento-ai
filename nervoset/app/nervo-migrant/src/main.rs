@@ -1,19 +1,21 @@
-mod models;
-
 use std::fs::File;
 use std::io::BufWriter;
 use std::sync::Arc;
+
 use anyhow::bail;
+use clap::{Parser, Subcommand};
 use tokio::fs;
-use crate::models::migration_model::MigrationModel;
 use tracing::{info, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
+
 use nervo_api::{AppType, NervoAppType};
 use nervo_bot_core::config::common::NervoConfig;
 use nervo_bot_core::config::nervo_server::NervoServerAppState;
-use crate::models::migration_path_model::{MigrationPlan, MigrationMetaData};
 
-use clap::{Parser, Subcommand};
+use crate::models::migration_model::MigrationModel;
+use crate::models::migration_path_model::{MigrationMetaData, MigrationPlan};
+
+mod models;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -50,7 +52,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     info!("Start migrant app");
-    // General Preparations. Getting QDrant DB client, app name
+    // General Preparations. Getting qdrant DB client, app name
     let app_state = initial_setup().await?;
 
     //parse cli arguments
@@ -62,13 +64,13 @@ async fn main() -> anyhow::Result<()> {
             // - update json files with embeddings
             // - commit and push changes to GitHub (manually)
             info!("Dataset preparation has been started");
-            let migration_plan = collect_jsons_content("dataset".to_string()).await?;
+            let migration_plan = collect_jsons_content("../../dataset".to_string()).await?;
             enrich_datasets_with_embeddings(app_state, migration_plan).await?;
             info!("Dataset preparation step has been finished");
         }
         Commands::Migration => {
             // Update qdrant collection (remove old records in qdrant if needed)
-            let migration_plan = collect_jsons_content("dataset".to_string()).await?;
+            let migration_plan = collect_jsons_content("../../dataset".to_string()).await?;
             migrate_qdrant_db(migration_plan, app_state).await?;
         }
     }
@@ -215,8 +217,9 @@ async fn enrich_datasets_with_embeddings(
 
 #[cfg(test)]
 mod test {
-    use nervo_api::{app_type, AppType};
-    use crate::{collect_jsons_content};
+    use nervo_api::AppType;
+
+    use crate::collect_jsons_content;
 
     #[tokio::test]
     async fn test_collect_jsons_content() -> anyhow::Result<()> {
