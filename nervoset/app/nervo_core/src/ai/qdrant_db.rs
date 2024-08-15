@@ -1,3 +1,4 @@
+use std::ptr::null;
 use crate::ai::nervo_llm::NervoLlm;
 use crate::config::common::QdrantParams;
 use crate::utils::cryptography;
@@ -114,15 +115,25 @@ impl QdrantDb {
     }
 
     pub async fn find_by_idd(&self, agent_type: AgentType, text: &str) -> Result<ScrollResponse> {
-        let col_name = NervoAgentType::get_name(agent_type);
+        let mut search_result = ScrollResponse::default();
+        
+        let collection_name = NervoAgentType::get_name(agent_type);
+        let col_exists = self
+            .qdrant_client
+            .collection_exists(&collection_name)
+            .await?;
+        
+        if col_exists {
+            let col_name = NervoAgentType::get_name(agent_type);
 
-        let idd = cryptography::generate_uuid(text)?;
-        let idd = idd.to_string();
+            let idd = cryptography::generate_uuid(text)?;
+            let idd = idd.to_string();
 
-        let filter = ScrollPointsBuilder::new(col_name)
-            .filter(Filter::must([Condition::matches("idd", idd)]));
+            let filter = ScrollPointsBuilder::new(col_name)
+                .filter(Filter::must([Condition::matches("idd", idd)]));
 
-        let search_result = self.qdrant_client.scroll(filter).await?;
+            search_result = self.qdrant_client.scroll(filter).await?;
+        }
         Ok(search_result)
     }
 

@@ -68,6 +68,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Commands::Migration => {
             // Update qdrant collection (remove old records in qdrant if needed)
+            info!("Migration preparation has been started");
             let migration_plan = collect_jsons_content("../../dataset".to_string()).await?;
             migrate_qdrant_db(migration_plan, app_state).await?;
         }
@@ -161,7 +162,7 @@ async fn migrate_qdrant_db(
                 app_state.clone(),
             )
             .await?;
-
+            
             let text = migration_model.clone().create.text;
 
             //check if qdrant already has this record
