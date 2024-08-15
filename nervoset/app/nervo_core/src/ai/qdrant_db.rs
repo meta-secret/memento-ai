@@ -1,16 +1,21 @@
-use anyhow::bail;
-use qdrant_client::Qdrant;
-use qdrant_client::qdrant::{Condition, CreateCollection, DeletePointsBuilder, Distance, Filter, PointStruct, ScrollPointsBuilder, ScrollResponse, SearchParamsBuilder, SearchPointsBuilder, UpsertPointsBuilder};
-use qdrant_client::qdrant::vectors_config::Config;
-use qdrant_client::qdrant::{SearchResponse, VectorParams, VectorsConfig};
-use qdrant_client::Payload;
-use serde_json::json;
-use tracing::info;
 use crate::ai::nervo_llm::NervoLlm;
 use crate::config::common::QdrantParams;
-use uuid::Uuid;
 use crate::utils::cryptography;
+use anyhow::bail;
 use anyhow::Result;
+use nervo_api::agent_type::{AgentType, NervoAgentType};
+use qdrant_client::qdrant::vectors_config::Config;
+use qdrant_client::qdrant::{
+    Condition, CreateCollection, DeletePointsBuilder, Distance, Filter, PointStruct,
+    ScrollPointsBuilder, ScrollResponse, SearchParamsBuilder, SearchPointsBuilder,
+    UpsertPointsBuilder,
+};
+use qdrant_client::qdrant::{SearchResponse, VectorParams, VectorsConfig};
+use qdrant_client::Payload;
+use qdrant_client::Qdrant;
+use serde_json::json;
+use tracing::info;
+use uuid::Uuid;
 
 pub struct QdrantDb {
     pub qdrant_client: Qdrant,
@@ -18,21 +23,23 @@ pub struct QdrantDb {
 }
 
 impl QdrantDb {
-    pub fn try_from(config: &QdrantParams, nervo_llm: NervoLlm) -> anyhow::Result<Self> {
+    pub fn try_from(config: &QdrantParams, nervo_llm: NervoLlm) -> Result<Self> {
         let qdrant_client = Qdrant::from_url(config.server_url.as_str())
             .api_key(config.api_key.clone())
             .build()?;
 
-        Ok(QdrantDb { qdrant_client, nervo_llm })
+        Ok(QdrantDb {
+            qdrant_client,
+            nervo_llm,
+        })
     }
 }
 
-
 impl QdrantDb {
-    pub async fn save(&self, collection_name: String, text: &str) -> Result<()> {
-        let maybe_vec_data = self.nervo_llm
-            .text_to_embeddings(text)
-            .await?;
+    pub async fn save(&self, agent_type: AgentType, text: &str) -> Result<()> {
+        let collection_name = NervoAgentType::get_name(agent_type);
+
+        let maybe_vec_data = self.nervo_llm.text_to_embeddings(text).await?;
 
         let Some(vec_data) = maybe_vec_data else {
             bail!("No embedding data found.");
@@ -76,13 +83,14 @@ impl QdrantDb {
         Ok(())
     }
 
-
     pub async fn vector_search(
         &self,
-        collection_name: String,
+        agent_type: AgentType,
         search_text: String,
         search_vectors_limit: u64,
     ) -> Result<SearchResponse> {
+        let collection_name = NervoAgentType::get_name(agent_type);
+
         let maybe_vec_data = self.nervo_llm.text_to_embeddings(&search_text).await?;
 
         match maybe_vec_data {
@@ -95,19 +103,19 @@ impl QdrantDb {
                     vec_data.embedding.clone(),
                     search_vectors_limit,
                 )
-                    .with_payload(true)
-                    .params(SearchParamsBuilder::default().exact(true));
+                .with_payload(true)
+                .params(SearchParamsBuilder::default().exact(true));
 
-                let search_result = self.qdrant_client
-                    .search_points(builder)
-                    .await?;
+                let search_result = self.qdrant_client.search_points(builder).await?;
 
                 Ok(search_result)
             }
         }
     }
 
-    pub async fn find_by_idd(&self, col_name: &str, text: &str) -> Result<ScrollResponse> {
+    pub async fn find_by_idd(&self, agent_type: AgentType, text: &str) -> Result<ScrollResponse> {
+        let col_name = NervoAgentType::get_name(agent_type);
+
         let idd = cryptography::generate_uuid(text)?;
         let idd = idd.to_string();
 
@@ -118,9 +126,10 @@ impl QdrantDb {
         Ok(search_result)
     }
 
-    pub async fn delete_by_idd(&self, col_name: &str, text: &str) -> Result<DeleteResult> {
-        let search_result = self.find_by_idd(col_name, text).await?;
-        
+    pub async fn delete_by_idd(&self, agent_type: AgentType, text: &str) -> Result<DeleteResult> {
+        let col_name = NervoAgentType::get_name(agent_type);
+        let search_result = self.find_by_idd(agent_type, text).await?;
+
         if search_result.result.is_empty() {
             info!("No matching points found.");
             return Ok(DeleteResult::Success);
@@ -135,9 +144,7 @@ impl QdrantDb {
             .points(vec![point_id])
             .build();
 
-        let delete_response = self.qdrant_client
-            .delete_points(delete_request)
-            .await?;
+        let delete_response = self.qdrant_client.delete_points(delete_request).await?;
 
         if delete_response.result.is_some() {
             Ok(DeleteResult::Success)
@@ -150,4 +157,4 @@ impl QdrantDb {
 pub enum DeleteResult {
     Success,
     Fail,
-} 
+}

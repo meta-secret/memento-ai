@@ -5,18 +5,15 @@ use nervo_api::{
     LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole,
     SendMessageRequest,
 };
+use nervo_bot_core::config::jarvis::JarvisAppState;
 use nervo_bot_core::utils::ai_utils::llm_conversation;
 use std::sync::Arc;
 use tracing::{error, info};
-use nervo_bot_core::config::nervo_server::NervoServerAppState;
 
 pub async fn send_message(
-    State(state): State<Arc<NervoServerAppState>>,
+    State(state): State<Arc<JarvisAppState>>,
     Json(msg_request): Json<SendMessageRequest>,
 ) -> Result<Json<LlmMessage>, StatusCode> {
-    let user_id_number: u64 = msg_request.llm_message.sender_id;
-    let chat_id_number: u64 = msg_request.chat_id;
-
     let LlmMessageContent(content) = &msg_request.llm_message.content;
 
     let is_moderation_passed = state
@@ -32,18 +29,19 @@ pub async fn send_message(
     if is_moderation_passed {
         happy_path_of_moderation(state, msg_request).await
     } else {
-        fail_path_of_moderation(state, content.as_str(), user_id_number, chat_id_number).await
+        fail_path_of_moderation(state, msg_request).await
     }
 }
 
 async fn happy_path_of_moderation(
-    app_state: Arc<NervoServerAppState>,
+    app_state: Arc<JarvisAppState>,
     msg_request: SendMessageRequest,
 ) -> Result<Json<LlmMessage>, StatusCode> {
     info!("SERVER: HAPPY PATH");
     let table_name = msg_request.chat_id.to_string();
-
-    let llm_reply = llm_conversation(app_state, msg_request, table_name)
+    let agent_type = msg_request.agent_type;
+    
+    let llm_reply = llm_conversation(app_state, msg_request, table_name, agent_type)
         .await
         .map_err(|err| {
             error!("Error2 {:?}", err);
@@ -55,10 +53,8 @@ async fn happy_path_of_moderation(
 }
 
 async fn fail_path_of_moderation(
-    app_state: Arc<NervoServerAppState>,
-    msg_text: &str,
-    user_id: u64,
-    chat_id: u64,
+    app_state: Arc<JarvisAppState>,
+    msg: SendMessageRequest,
 ) -> Result<Json<LlmMessage>, StatusCode> {
     info!("SERVER: FAIL PATH");
     let user_question = {
@@ -67,13 +63,13 @@ async fn fail_path_of_moderation(
             "I have a message from the user, I know the message is unacceptable, \
         can you please read the message and reply that the message is not acceptable. \
         Reply using the same language the massage uses. Here is the message: {:?}",
-            &msg_text
+            &msg.llm_message.content.text()
         );
 
         let content = LlmMessageContent::from(question.as_str());
         LlmMessage {
             meta_info: LlmMessageMetaInfo {
-                sender_id: Some(user_id),
+                sender_id: Some(msg.llm_message.sender_id),
                 role: LlmMessageRole::User,
                 persistence: LlmMessagePersistence::Temporal,
             },
@@ -83,7 +79,7 @@ async fn fail_path_of_moderation(
 
     let reply_text = app_state
         .nervo_llm
-        .send_msg(user_question, chat_id)
+        .send_msg(user_question, msg.chat_id)
         .await
         .map_err(|err| {
             error!("Error {:?}", err);

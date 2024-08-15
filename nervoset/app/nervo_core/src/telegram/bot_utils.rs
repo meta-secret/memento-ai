@@ -1,9 +1,11 @@
-use crate::utils::ai_utils::llm_conversation;
+use crate::config::jarvis::JarvisAppState;
 use crate::models::nervo_message_model::TelegramMessage;
 use crate::models::system_messages::SystemMessages;
 use crate::models::user_model::TelegramUser;
+use crate::utils::ai_utils::llm_conversation;
 use anyhow::bail;
 use chrono::Utc;
+use nervo_api::agent_type::{AgentType, NervoAgentType};
 use nervo_api::{LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::audio::{
@@ -20,9 +22,13 @@ use teloxide::types::{
 use teloxide::Bot;
 use tokio::fs;
 use tracing::{error, info};
-use crate::config::nervo_server::NervoServerAppState;
 
-pub async fn chat(bot: Bot, msg: Message, app_state: Arc<NervoServerAppState>) -> anyhow::Result<()> {
+pub async fn chat(
+    bot: Bot,
+    msg: Message,
+    app_state: Arc<JarvisAppState>,
+    agent_type: AgentType,
+) -> anyhow::Result<()> {
     info!("Start chat...");
     let mut parser = MessageParser {
         bot: &bot,
@@ -93,20 +99,30 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<NervoServerAppState>) -
                 // Create question for LLM
                 let question_msg = SendMessageRequest {
                     chat_id: msg.chat.id.0 as u64,
+                    agent_type,
                     llm_message: UserLlmMessage {
                         sender_id: user_id,
                         content: LlmMessageContent::from(tg_message.message.as_str()),
                     },
                 };
 
-                chat_gpt_conversation(&bot, &msg, app_state.clone(), question_msg, parser.is_voice, false)
-                    .await?
+                chat_gpt_conversation(
+                    &bot,
+                    &msg,
+                    app_state.clone(),
+                    question_msg,
+                    parser.is_voice,
+                    false,
+                    agent_type,
+                )
+                .await?
             } else {
                 // Moderation is not passed
                 if let Some(_) = &user.username {
                     let question = format!("I have a message from the user, I know the message is unacceptable, can you please read the message and reply that the message is not acceptable. Reply using the same language the massage uses. Here is the message: {:?}", &message_text);
                     let question_msg = SendMessageRequest {
                         chat_id: msg.chat.id.0 as u64,
+                        agent_type,
                         llm_message: UserLlmMessage {
                             sender_id: user_id,
                             content: LlmMessageContent::from(question.as_str()),
@@ -120,6 +136,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<NervoServerAppState>) -
                         question_msg,
                         parser.is_voice,
                         true,
+                        agent_type,
                     )
                     .await?
                 } else {
@@ -136,7 +153,7 @@ pub async fn chat(bot: Bot, msg: Message, app_state: Arc<NervoServerAppState>) -
 pub struct MessageParser<'a> {
     pub bot: &'a Bot,
     pub(crate) msg: &'a Message,
-    pub app_state: &'a Arc<NervoServerAppState>,
+    pub app_state: &'a Arc<JarvisAppState>,
     pub is_voice: bool,
 }
 
@@ -266,7 +283,7 @@ pub async fn system_message(
     msg: &Message,
     message_type: SystemMessage,
 ) -> anyhow::Result<()> {
-    let introduction_msg = message_type.as_str().await;
+    let introduction_msg = message_type.as_str().await?;
     bot.send_message(msg.chat.id, introduction_msg)
         .reply_to_message_id(msg.id.clone())
         .await?;
@@ -275,33 +292,41 @@ pub async fn system_message(
 }
 
 pub enum SystemMessage {
-    Start,
-    Manual,
+    Start(AgentType),
+    Manual(AgentType),
 }
 
 impl SystemMessage {
-    pub async fn as_str(&self) -> String {
-        let json_string = fs::read_to_string("resources/system_messages.json")
-            .await
-            .unwrap();
-        let system_messages_models: SystemMessages =
-            serde_json::from_str(&json_string).expect("Failed to parse JSON");
+    fn agent_type(&self) -> AgentType {
+        match self {
+            SystemMessage::Start(agent_type) => agent_type.clone(),
+            SystemMessage::Manual(agent_type) => agent_type.clone()
+        }
+    }
+    
+    pub async fn as_str(&self) -> anyhow::Result<String> {
+        let agent = NervoAgentType::get_name(self.agent_type());
+        let system_msg_file = format!("resources/agent/{}/system_messages.json",  agent);
+        
+        let json_string = fs::read_to_string(system_msg_file)
+            .await?;
+        let system_messages_models: SystemMessages = serde_json::from_str(&json_string)?;
 
         match self {
-            SystemMessage::Start => system_messages_models.start.clone(),
-            SystemMessage::Manual => system_messages_models.manual.clone(),
+            SystemMessage::Start(_) => Ok(system_messages_models.start.clone()),
+            SystemMessage::Manual(_) => Ok(system_messages_models.manual.clone()),
         }
     }
 }
 
 // Work with User Ids
-async fn save_user_id(app_state: Arc<NervoServerAppState>, user_id: String) -> anyhow::Result<()> {
+async fn save_user_id(app_state: Arc<JarvisAppState>, user_id: String) -> anyhow::Result<()> {
     let user_ids = load_user_ids(app_state.clone()).await?;
 
     let contains_id = user_ids.iter().any(|user| user.id == user_id);
     if !contains_id {
         let user = TelegramUser {
-            id: user_id.parse().unwrap(),
+            id: user_id.parse()?,
         };
         app_state
             .local_db
@@ -311,7 +336,7 @@ async fn save_user_id(app_state: Arc<NervoServerAppState>, user_id: String) -> a
     Ok(())
 }
 
-async fn load_user_ids(app_state: Arc<NervoServerAppState>) -> anyhow::Result<Vec<TelegramUser>> {
+async fn load_user_ids(app_state: Arc<JarvisAppState>) -> anyhow::Result<Vec<TelegramUser>> {
     match app_state
         .local_db
         .read_from_local_db("all_users_list")
@@ -325,10 +350,11 @@ async fn load_user_ids(app_state: Arc<NervoServerAppState>) -> anyhow::Result<Ve
 pub async fn chat_gpt_conversation(
     bot: &Bot,
     message: &Message,
-    app_state: Arc<NervoServerAppState>,
+    app_state: Arc<JarvisAppState>,
     msg: SendMessageRequest,
     is_voice: bool,
     direct_message: bool,
+    agent_type: AgentType,
 ) -> anyhow::Result<()> {
     let chat_id = msg.chat_id;
     let table_name = msg.llm_message.sender_id.to_string();
@@ -336,7 +362,7 @@ pub async fn chat_gpt_conversation(
     let user_final_question = if direct_message {
         msg.llm_message.content.text()
     } else {
-        llm_conversation(app_state.clone(), msg, table_name)
+        llm_conversation(app_state.clone(), msg, table_name, agent_type)
             .await?
             .content
             .text()
@@ -354,7 +380,7 @@ pub async fn chat_gpt_conversation(
     Ok(())
 }
 
-async fn create_speech(bot: &Bot, text: &str, chat_id: u64, app_state: Arc<NervoServerAppState>) {
+async fn create_speech(bot: &Bot, text: &str, chat_id: u64, app_state: Arc<JarvisAppState>) {
     let client = Client::new(app_state.nervo_llm.api_key().to_string());
 
     let parameters = AudioSpeechParameters {

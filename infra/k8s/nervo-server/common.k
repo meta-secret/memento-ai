@@ -9,4 +9,4 @@ schema Labels:
 
 projectName = "nervo-server"
 volumeName = "${projectName}-vol"
-appPath = "/app/nervoset"
+appPath = "/nervoset/app"

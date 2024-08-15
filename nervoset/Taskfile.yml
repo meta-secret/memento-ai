@@ -6,14 +6,14 @@ includes:
   base_vars: .task/base.vars.yml
   common: .task/common.yml
 
-  docker_probiot:
+  docker_jarvis:
     taskfile: .task/docker.yml
     requires:
       vars:
         - INFRA #'dev' or 'prod'
     vars:
-      APP_NAME: 'probiot_t1000'
-      K8S_APP_NAME: 'probiot-t1000'
+      APP_NAME: 'jarvis'
+      K8S_APP_NAME: 'jarvis'
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
         sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
@@ -26,6 +26,18 @@ includes:
     vars:
       APP_NAME: 'groot'
       K8S_APP_NAME: 'groot'
+      VERSION: '{{.APP_VERSION}}'
+      IMAGE_NAME:
+        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
+
+  docker_nervo_migrant:
+    taskfile: .task/docker.yml
+    requires:
+      vars:
+        - INFRA #'dev' or 'prod'
+    vars:
+      APP_NAME: 'nervo-migrant'
+      K8S_APP_NAME: 'nervo-migrant'
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
         sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
@@ -68,7 +80,7 @@ tasks:
   build_nervo_web_component:
     requires:
       vars:
-        - APP_TYPE
+        - AGENT_TYPE
     vars:
       NERVO_WASM_DIR: 'app/nervo_wasm'
       NERVO_WEB_DIR: 'nervo-web'
@@ -80,12 +92,12 @@ tasks:
 
       - mkdir -p {{.NERVO_WEB_DIR}}/pkg
       - cp -r {{.NERVO_WASM_DIR}}/pkg {{.NERVO_WEB_DIR}}
-      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_APP_TYPE={{.APP_TYPE}} npm run build:lib"
+      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run build:lib"
 
   nervo_web_build:
     requires:
       vars:
-        - APP_TYPE
+        - AGENT_TYPE
     vars:
       NERVO_WASM_DIR: 'app/nervo_wasm'
       NERVO_WEB_DIR: 'nervo-web'
@@ -97,16 +109,16 @@ tasks:
 
       - mkdir -p {{.NERVO_WEB_DIR}}/pkg
       - cp -r {{.NERVO_WASM_DIR}}/pkg {{.NERVO_WEB_DIR}}
-      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_APP_TYPE={{.APP_TYPE}} npm run build:app"
+      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run build:app"
 
   nervo_web_run:
     requires:
       vars:
         - SERVER_PORT
-        - APP_TYPE
+        - AGENT_TYPE
     cmds:
       - task: nervo_web_build
-      - "cd nervo-web && VITE_SERVER_PORT={{.SERVER_PORT}} VITE_APP_TYPE={{.APP_TYPE}} npm run dev"
+      - "cd nervo-web && VITE_SERVER_PORT={{.SERVER_PORT}} VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run dev"
 
   test:
     cmds:
@@ -119,14 +131,6 @@ tasks:
         - INFRA #'dev' or 'prod'
     cmds:
       - task: docker_groot:push
-      - task: docker_probiot:push
       - task: docker_jarvis:push
       - task: docker_nervo_server:push
-
-  nervo_migrant_build:
-    vars:
-      PWD:
-        sh: pwd
-    cmds:
-      - docker buildx build --tag nervo-migrant:latest --file migration.dockerfile .
-      - docker run -ti --rm -v {{.PWD}}/config/migrant/config.yaml:/app/nervoset/config.yaml nervo-migrant:latest
+      - task: docker_nervo_migrant:push

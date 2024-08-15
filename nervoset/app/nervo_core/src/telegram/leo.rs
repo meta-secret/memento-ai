@@ -1,12 +1,11 @@
+use crate::config::jarvis::JarvisAppState;
 use std::sync::Arc;
-use teloxide::{Bot, dptree};
+use teloxide::dispatching::{Dispatcher, HandlerExt, UpdateFilterExt};
+use teloxide::error_handlers::LoggingErrorHandler;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::{Message, Requester, Update};
 use teloxide::Bot as TelegramBot;
-use teloxide::dispatching::{Dispatcher, HandlerExt, UpdateFilterExt};
-use teloxide::error_handlers::LoggingErrorHandler;
-use crate::config::nervo_server::NervoServerAppState;
-
+use teloxide::{dptree, Bot};
 
 #[derive(BotCommands, Clone)]
 #[command(
@@ -17,13 +16,11 @@ enum LeoCommands {
     Start,
 }
 
-
-pub async fn start (token: String, app_state: Arc<NervoServerAppState>) -> anyhow::Result<()> {
-
+pub async fn start(token: String, app_state: Arc<JarvisAppState>) -> anyhow::Result<()> {
     let bot = TelegramBot::new(token);
 
     app_state.local_db.init_db().await?;
-    
+
     let cmd_handler = Update::filter_message()
         .filter_command::<LeoCommands>()
         .endpoint(command_handler);
@@ -45,12 +42,7 @@ pub async fn start (token: String, app_state: Arc<NervoServerAppState>) -> anyho
     Ok(())
 }
 
-
-async fn command_handler(
-    bot: Bot,
-    msg: Message,
-    cmd: LeoCommands,
-) -> anyhow::Result<()> {
+async fn command_handler(bot: Bot, msg: Message, cmd: LeoCommands) -> anyhow::Result<()> {
     match cmd {
         LeoCommands::Start => {
             let start_message = "hello...";
@@ -59,4 +51,3 @@ async fn command_handler(
     }
     Ok(())
 }
-

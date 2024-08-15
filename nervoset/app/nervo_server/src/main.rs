@@ -8,6 +8,8 @@ use axum::{
     Json, Router,
 };
 use http::{StatusCode, Uri};
+use nervo_bot_core::config::common::NervoConfig;
+use nervo_bot_core::config::jarvis::JarvisAppState;
 use serde_derive::Serialize;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -15,8 +17,6 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing::{info, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
-use nervo_bot_core::config::common::NervoConfig;
-use nervo_bot_core::config::nervo_server::NervoServerAppState;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -44,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
     let app_state = {
         info!("Loading config...");
         let nervo_config = NervoConfig::load()?;
-        Arc::from(NervoServerAppState::try_from(nervo_config.nervo_server)?)
+        Arc::from(JarvisAppState::try_from(nervo_config.apps.jarvis)?)
     };
 
     info!("Creating router...");

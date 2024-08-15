@@ -11,9 +11,11 @@ includes:
   hazmat:
     taskfile: hazmat/Taskfile.yml
     dir: hazmat
+  
   deployment:
     taskfile: deployment/Taskfile.yml
     dir: deployment
+  
   k8s:
     taskfile: k8s/Taskfile.yml
     dir: k8s

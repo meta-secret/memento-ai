@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, ChangeEvent, FormEvent, Component } from 'react';
-import {ApiUrl, LlmChat, LlmMessage, LlmMessageRole, NervoAppType, NervoClient} from "nervo-wasm";
+import {ApiUrl, LlmChat, LlmMessage, LlmMessageRole, NervoAgentType, NervoClient} from "nervo-wasm";
 import Cookies from 'js-cookie';
 
 function App() {
@@ -18,10 +18,10 @@ function App() {
     }
 
     //Need to use it to send to server
-    const appType = NervoAppType.try_from(import.meta.env.VITE_APP_TYPE);
-    console.log("Application type: ", appType)
+    const agentType = NervoAgentType.try_from(import.meta.env.VITE_AGENT_TYPE);
+    console.log("Agent type: ", agentType)
 
-    const nervoClient = NervoClient.new(apiUrl);
+    const nervoClient = NervoClient.new(apiUrl, agentType);
     nervoClient.configure();
 
     useEffect(() => { fetchChat().catch(console.error); }, []);

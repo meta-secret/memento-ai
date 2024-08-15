@@ -1,10 +1,10 @@
+use crate::db::local_db::LocalDb;
 use anyhow::Result;
 use teloxide::types::User;
-use crate::db::local_db::LocalDb;
 
 pub const SUPER_ADMIN: &str = "SUPERADMIN";
-pub const PROBIOT_OWNER: &str = "PROBOT_OWNER";
-pub const PROBIOT_MEMBER: &str = "PROBIOT_MEMBER";
+pub const OWNER: &str = "OWNER";
+pub const MEMBER: &str = "MEMBER";
 
 async fn get_roles(local_db: &LocalDb, maybe_user: Option<&User>) -> Result<Vec<String>> {
     let Some(User { id, .. }) = maybe_user else {

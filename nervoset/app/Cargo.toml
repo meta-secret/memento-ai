@@ -5,12 +5,11 @@ resolver = "2"
 members = [
     "groot",
     "nervo_core",
-    "probiot_t1000",
+    "jarvis",
     "nervo_server",
     "nervo_api",
     "nervo_wasm",
-    "nervo-migrant",
-    "leo"
+    "nervo-migrant"
 ]
 
 [workspace.dependencies]
@@ -19,6 +18,7 @@ thiserror = "1.0"
 anyhow = "1.0"
 
 config = { version = "0.14", features = ["yaml"] }
+clap = { version = "4.5.15", features = ["derive"] }
 
 rand = "0.8.5"
 uuid = { version = "1.10.0", features = ["v4"] }

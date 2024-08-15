@@ -1,44 +1,87 @@
+use crate::agent_type::AgentType;
 use serde_derive::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::app_type::{GROOT, PROBIOT, W3A};
 
 pub mod app_type {
+    use serde_derive::{Deserialize, Serialize};
+    use wasm_bindgen::prelude::wasm_bindgen;
+
     pub const GROOT: &str = "groot";
-    pub const PROBIOT: &str = "probiot";
-    pub const W3A: &str = "w3a";
-}
+    pub const JARVIS: &str = "jarvis";
 
-#[wasm_bindgen]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum AppType {
-    Groot,
-    Probiot,
-    W3a,
-    None,
-}
+    #[wasm_bindgen]
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub enum AppType {
+        Groot,
+        Jarvis,
+        None,
+    }
 
-#[derive(Copy, Clone, Debug)]
-#[wasm_bindgen]
-pub struct NervoAppType {}
+    #[derive(Copy, Clone, Debug)]
+    #[wasm_bindgen]
+    pub struct NervoAppType {}
 
-#[wasm_bindgen]
-impl NervoAppType {
-    pub fn try_from(name: &str) -> AppType {
-        match name {
-            GROOT => AppType::Groot,
-            PROBIOT => AppType::Probiot,
-            W3A => AppType::W3a,
-            _ => AppType::None
+    #[wasm_bindgen]
+    impl NervoAppType {
+        pub fn try_from(name: &str) -> AppType {
+            match name {
+                GROOT => AppType::Groot,
+                JARVIS => AppType::Jarvis,
+                _ => AppType::None,
+            }
+        }
+
+        pub fn get_name(app_type: AppType) -> String {
+            match app_type {
+                AppType::Groot => String::from(GROOT),
+                AppType::Jarvis => String::from(JARVIS),
+                AppType::None => String::from(""),
+            }
         }
     }
-    
-    pub fn get_name(app_type: AppType) -> String {
-        match app_type {
-            AppType::Groot => String::from(GROOT),
-            AppType::Probiot => String::from(PROBIOT),
-            AppType::W3a => String::from(W3A),
-            AppType::None => String::from(""),
+}
+
+pub mod agent_type {
+    use serde_derive::{Deserialize, Serialize};
+    use wasm_bindgen::prelude::wasm_bindgen;
+
+    pub const PROBIOT: &str = "probiot";
+    pub const W3A: &str = "w3a";
+    pub const LEO: &str = "leo";
+
+    #[wasm_bindgen]
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub enum AgentType {
+        Probiot,
+        W3a,
+        Leo,
+        None,
+    }
+
+    #[derive(Copy, Clone, Debug)]
+    #[wasm_bindgen]
+    pub struct NervoAgentType {}
+
+    #[wasm_bindgen]
+    impl NervoAgentType {
+        pub fn try_from(name: &str) -> AgentType {
+            match name {
+                PROBIOT => AgentType::Probiot,
+                W3A => AgentType::W3a,
+                LEO => AgentType::Leo,
+                _ => AgentType::None,
+            }
+        }
+
+        pub fn get_name(agent_type: AgentType) -> String {
+            match agent_type {
+                AgentType::Probiot => String::from(PROBIOT),
+                AgentType::W3a => String::from(W3A),
+                AgentType::Leo => String::from(LEO),
+                AgentType::None => String::from(""),
+            }
         }
     }
 }
@@ -48,6 +91,7 @@ impl NervoAppType {
 #[wasm_bindgen(getter_with_clone)]
 pub struct SendMessageRequest {
     pub chat_id: u64,
+    pub agent_type: AgentType,
     pub llm_message: UserLlmMessage,
 }
 

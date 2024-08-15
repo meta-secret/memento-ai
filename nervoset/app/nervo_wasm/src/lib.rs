@@ -1,4 +1,5 @@
-use log::{info};
+use log::info;
+use nervo_api::agent_type::AgentType;
 use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use reqwest::Client;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -40,14 +41,16 @@ impl ApiUrl {
 #[wasm_bindgen]
 pub struct NervoClient {
     pub api_url: ApiUrl,
+    pub agent_type: AgentType,
     client: Client,
 }
 
 #[wasm_bindgen]
 impl NervoClient {
-    pub fn new(api_url: ApiUrl) -> Self {
+    pub fn new(api_url: ApiUrl, agent_type: AgentType) -> Self {
         NervoClient {
             api_url,
+            agent_type,
             client: Client::new(),
         }
     }
@@ -58,7 +61,7 @@ impl NervoClient {
 
     #[wasm_bindgen]
     pub async fn get_chat(&self, chat_id: u64) -> Result<LlmChat, JsValue> {
-        // console_log::init_with_level(Level::Debug).expect("TODO: panic message");
+        // console_log::init_with_level(Level::Debug)?;
         info!("LIB: get_chat");
 
         let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
@@ -85,6 +88,7 @@ impl NervoClient {
     ) -> Result<LlmMessage, JsValue> {
         let json = SendMessageRequest {
             chat_id,
+            agent_type: self.agent_type,
             llm_message: UserLlmMessage {
                 sender_id: user_id,
                 content: LlmMessageContent(content),

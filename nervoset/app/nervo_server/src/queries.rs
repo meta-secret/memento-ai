@@ -2,13 +2,13 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
 use nervo_api::{LlmChat, LlmMessage};
+use nervo_bot_core::config::jarvis::JarvisAppState;
 use std::sync::Arc;
 use tracing::{error, info};
-use nervo_bot_core::config::nervo_server::NervoServerAppState;
 
 pub async fn chat(
     Path(chat_id): Path<u64>,
-    State(state): State<Arc<NervoServerAppState>>,
+    State(state): State<Arc<JarvisAppState>>,
 ) -> Result<Json<LlmChat>, StatusCode> {
     // LLM interacting
     info!("Read messages from DB");

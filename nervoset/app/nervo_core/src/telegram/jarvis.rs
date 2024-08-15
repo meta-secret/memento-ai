@@ -1,20 +1,22 @@
 use std::string::ToString;
 use std::sync::Arc;
 
+use crate::config::common::TelegramBotParams;
+use crate::config::jarvis::JarvisAppState;
+use crate::telegram::bot_utils::{chat, system_message, SystemMessage};
+use crate::telegram::roles_and_permissions::{has_role, MEMBER, OWNER};
 use anyhow::Result;
+use nervo_api::agent_type::AgentType;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
 use teloxide::Bot as TelegramBot;
-use crate::config::nervo_server::NervoServerAppState;
-use crate::telegram::bot_utils::{chat, system_message, SystemMessage};
-use crate::telegram::roles_and_permissions::{has_role, PROBIOT_MEMBER, PROBIOT_OWNER};
 
 #[derive(BotCommands, Clone)]
 #[command(
     rename_rule = "lowercase",
     description = "These commands are supported:"
 )]
-enum ProbiotCommands {
+enum JarvisCommands {
     #[command(description = "Ai model name.")]
     Model,
     Start,
@@ -26,7 +28,7 @@ enum ProbiotCommands {
     rename_rule = "lowercase",
     description = "These commands are supported:"
 )]
-enum ProbiotOwnerCommands {
+enum JarvisOwnerCommands {
     #[command(description = "Get whitelisted users list")]
     GetWhiteListMembers,
 }
@@ -45,18 +47,22 @@ static WHITELIST_MEMBERS: [&str; 0] = [
 ];
 
 /// Start telegram bot
-pub async fn start(token: String, app_state: Arc<NervoServerAppState>) -> Result<()> {
-    let bot = TelegramBot::new(token);
+pub async fn start(
+    params: TelegramBotParams,
+    app_state: Arc<JarvisAppState>,
+    agent_type: AgentType,
+) -> Result<()> {
+    let bot = TelegramBot::new(params.token.as_str());
 
     app_state.local_db.init_db().await?;
 
     let handler = {
         let owner_handler = Update::filter_message()
-            .filter_command::<ProbiotOwnerCommands>()
+            .filter_command::<JarvisOwnerCommands>()
             .endpoint(owner_command_handler);
 
         let cmd_handler = Update::filter_message()
-            .filter_command::<ProbiotCommands>()
+            .filter_command::<JarvisCommands>()
             .endpoint(command_handler);
 
         let msg_handler = Update::filter_message().endpoint(chat);
@@ -70,23 +76,27 @@ pub async fn start(token: String, app_state: Arc<NervoServerAppState>) -> Result
 
         Update::filter_message()
             .branch(
-                dptree::filter_async(|msg: Message, app_state: Arc<NervoServerAppState>| async move {
-                    has_role(&app_state.local_db, msg.from().clone(), &PROBIOT_OWNER)
-                        .await
-                        .unwrap_or(false)
-                })
+                dptree::filter_async(
+                    |msg: Message, app_state: Arc<JarvisAppState>| async move {
+                        has_role(&app_state.local_db, msg.from().clone(), &OWNER)
+                            .await
+                            .unwrap_or(false)
+                    },
+                )
                 .chain(owner_handler),
             )
             .branch(
-                dptree::filter_async(|msg: Message, app_state: Arc<NervoServerAppState>| async move {
-                    has_role(&app_state.local_db, msg.from().clone(), &PROBIOT_MEMBER.to_string())
-                        .await
-                        .unwrap_or(false)
-                })
+                dptree::filter_async(
+                    |msg: Message, app_state: Arc<JarvisAppState>| async move {
+                        has_role(&app_state.local_db, msg.from().clone(), &MEMBER.to_string())
+                            .await
+                            .unwrap_or(false)
+                    },
+                )
                 .chain(authorized_user_handler.clone()),
             )
             .branch(
-                dptree::filter(|msg: Message, _app_state: Arc<NervoServerAppState>| {
+                dptree::filter(|msg: Message, _app_state: Arc<JarvisAppState>| {
                     msg.from()
                         .map(|user| {
                             WHITELIST_MEMBERS
@@ -101,7 +111,7 @@ pub async fn start(token: String, app_state: Arc<NervoServerAppState>) -> Result
 
     Dispatcher::builder(bot, handler)
         // Pass the shared state to the handler as a dependency.
-        .dependencies(dptree::deps![app_state])
+        .dependencies(dptree::deps![app_state, agent_type])
         .enable_ctrlc_handler()
         .build()
         .dispatch()
@@ -113,11 +123,12 @@ pub async fn start(token: String, app_state: Arc<NervoServerAppState>) -> Result
 async fn command_handler(
     bot: Bot,
     msg: Message,
-    cmd: ProbiotCommands,
-    app_state: Arc<NervoServerAppState>,
+    cmd: JarvisCommands,
+    app_state: Arc<JarvisAppState>,
+    agent_type: AgentType
 ) -> Result<()> {
     match cmd {
-        ProbiotCommands::Model => {
+        JarvisCommands::Model => {
             bot.send_message(
                 msg.chat.id,
                 format!("LLM model: {}", app_state.nervo_llm.model_name()),
@@ -125,20 +136,20 @@ async fn command_handler(
             .await?;
             Ok(())
         }
-        ProbiotCommands::Start => {
-            system_message(&bot, &msg, SystemMessage::Start).await?;
+        JarvisCommands::Start => {
+            system_message(&bot, &msg, SystemMessage::Start(agent_type)).await?;
             Ok(())
         }
-        ProbiotCommands::Manual => {
-            system_message(&bot, &msg, SystemMessage::Manual).await?;
+        JarvisCommands::Manual => {
+            system_message(&bot, &msg, SystemMessage::Manual(agent_type)).await?;
             Ok(())
         }
     }
 }
 
-async fn owner_command_handler(bot: Bot, msg: Message, cmd: ProbiotOwnerCommands) -> Result<()> {
+async fn owner_command_handler(bot: Bot, msg: Message, cmd: JarvisOwnerCommands) -> Result<()> {
     match cmd {
-        ProbiotOwnerCommands::GetWhiteListMembers => {
+        JarvisOwnerCommands::GetWhiteListMembers => {
             let formatted_usernames = WHITELIST_MEMBERS
                 .iter()
                 .map(|username| format!("@{}", username).to_string())

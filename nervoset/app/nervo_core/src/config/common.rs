@@ -1,17 +1,30 @@
+use crate::config::groot::GrootConfig;
+use crate::config::jarvis::JarvisConfig;
 use config::Config as AppConfig;
 use serde::Deserialize;
 
-use crate::config::groot::GrootConfig;
-use crate::config::leo::LeoConfig;
-use crate::config::nervo_server::NervoServerConfig;
-use crate::config::probiot::ProbiotConfig;
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct NervoConfig {
-    pub nervo_server: NervoServerConfig,
-    pub probiot: ProbiotConfig,
+    pub apps: AppsConfig,
+    pub telegram: TelegramConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AppsConfig {
+    pub jarvis: JarvisConfig,
     pub groot: GrootConfig,
-    pub leo: LeoConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TelegramConfig {
+    pub agent: TelegramAgent,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TelegramAgent {
+    pub probiot: TelegramBotParams,
+    pub w3a: TelegramBotParams,
+    pub leo: TelegramBotParams,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -32,12 +45,9 @@ pub struct DatabaseParams {
 
 impl NervoConfig {
     pub fn load() -> anyhow::Result<NervoConfig> {
-        let config_file = config::File::with_name("config")
-            .format(config::FileFormat::Yaml);
+        let config_file = config::File::with_name("config").format(config::FileFormat::Yaml);
 
-        let app_config = AppConfig::builder()
-            .add_source(config_file)
-            .build()?;
+        let app_config = AppConfig::builder().add_source(config_file).build()?;
 
         let cfg = app_config.try_deserialize()?;
 

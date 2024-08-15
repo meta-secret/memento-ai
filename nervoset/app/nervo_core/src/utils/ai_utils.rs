@@ -1,32 +1,44 @@
 use std::sync::Arc;
 
 use anyhow::bail;
-use qdrant_client::qdrant::ScoredPoint;
 use qdrant_client::qdrant::value::Kind;
+use qdrant_client::qdrant::ScoredPoint;
 use tiktoken_rs::cl100k_base;
 use tokio::fs;
-use tracing::{info};
+use tracing::info;
 
-use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole, SendMessageRequest};
 use crate::ai::nervo_llm::NervoLlm;
-use crate::config::nervo_server::NervoServerAppState;
+use crate::config::jarvis::JarvisAppState;
 use crate::db::local_db::LocalDb;
 use crate::models::qdrant_search_layers::{
-    QDrantSearchInfo, QDrantSearchLayer, QDrantUserRoleTextType,
+    QdrantSearchInfo, QdrantSearchLayer, QdrantUserRoleTextType,
+};
+use nervo_api::agent_type::{AgentType, NervoAgentType};
+use nervo_api::{
+    LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence,
+    LlmMessageRole, SendMessageRequest,
 };
 
 //Common entry point for WEB and TG
 pub async fn llm_conversation(
-    app_state: Arc<NervoServerAppState>,
+    app_state: Arc<JarvisAppState>,
     msg_request: SendMessageRequest,
     table_name: String,
+    agent_type: AgentType,
 ) -> anyhow::Result<LlmMessage> {
     let content = msg_request.llm_message.content.0.as_str();
     let user_id = msg_request.llm_message.sender_id.to_string();
     info!("COMMON: content: {:?} and user_id: {:?}", &content, user_id);
 
     // First, detect the request type. Will we use Qdrant or a simple LLM going forward?
-    let initial_user_request = detecting_crap_request(app_state.clone(), content, user_id.as_str(), msg_request.chat_id).await?;
+    let initial_user_request = detecting_crap_request(
+        app_state.clone(),
+        content,
+        user_id.as_str(),
+        msg_request.chat_id,
+        agent_type,
+    )
+    .await?;
 
     if initial_user_request == "SKIP" {
         let llm_user_message = LlmMessage {
@@ -44,8 +56,12 @@ pub async fn llm_conversation(
             .await?;
 
         // Prepare System Role anf User question to ask a simple LLM
-        let crap_system_role = std::fs::read_to_string("resources/crap_request_system_role.txt")
-            .expect("Failed to read system message from file");
+        let agent_type_name = NervoAgentType::get_name(agent_type);
+        let resource_path = format!(
+            "resources/agent/{}/crap_request_system_role.txt",
+            agent_type_name
+        );
+        let crap_system_role = std::fs::read_to_string(resource_path)?;
 
         let user_request_text = format!(
             "{:?}\nТекущий запрос пользователя: {:?}",
@@ -95,10 +111,8 @@ pub async fn llm_conversation(
         };
 
         // Save to DB to restore chat history, and for history context
-        let all_messages: Vec<LlmMessage> = app_state
-            .local_db
-            .read_from_local_db(&table_name)
-            .await?;
+        let all_messages: Vec<LlmMessage> =
+            app_state.local_db.read_from_local_db(&table_name).await?;
 
         let messages_count = all_messages.len();
         let table_name_start_index = format!("{}_start_index", table_name.clone());
@@ -111,9 +125,14 @@ pub async fn llm_conversation(
             .save_to_local_db(llm_user_message, &table_name, None)
             .await?;
 
-        // Need to ask Qdrant
-        let llm_response_text =
-            openai_chat_preparations(app_state.clone(), &initial_user_request, table_name.clone(), msg_request.chat_id).await?;
+        let llm_response_text = openai_chat_preparations(
+            app_state.clone(),
+            &initial_user_request,
+            table_name.clone(),
+            msg_request.chat_id,
+            agent_type,
+        )
+        .await?;
 
         let llm_response = LlmMessage {
             meta_info: LlmMessageMetaInfo {
@@ -140,13 +159,14 @@ pub async fn llm_conversation(
 }
 
 async fn detecting_crap_request(
-    app_state: Arc<NervoServerAppState>,
+    app_state: Arc<JarvisAppState>,
     prompt: &str,
     user_id: &str,
     chat_id: u64,
+    agent_type: AgentType,
 ) -> anyhow::Result<String> {
     info!("COMMON: CRAP DETECTION");
-    let layers_info = get_all_search_layers().await?;
+    let layers_info = get_all_search_layers(agent_type).await?;
     let layer_content = create_layer_content(
         &app_state.nervo_llm,
         &app_state.local_db,
@@ -157,16 +177,20 @@ async fn detecting_crap_request(
         String::new(),
         chat_id,
     )
-        .await?;
+    .await?;
     Ok(layer_content)
 }
 
-pub async fn get_all_search_layers() -> anyhow::Result<QDrantSearchInfo> {
+pub async fn get_all_search_layers(agent_type: AgentType) -> anyhow::Result<QdrantSearchInfo> {
     info!("COMMON: get_all_search_layers");
-    let json_string = fs::read_to_string("resources/vectorisation_roles.json").await?;
-    let layers_info: QDrantSearchInfo =
-        serde_json::from_str(&json_string).expect("Failed to parse JSON");
-    Ok(layers_info)
+    let agent_type_name = NervoAgentType::get_name(agent_type);
+    let resource_path = format!(
+        "resources/agent/{}/vectorisation_roles.txt",
+        agent_type_name
+    );
+    let json_string = fs::read_to_string(resource_path).await?;
+    let all_layers_data: QdrantSearchInfo = serde_json::from_str(&json_string)?;
+    Ok(all_layers_data)
 }
 
 async fn create_layer_content(
@@ -174,21 +198,18 @@ async fn create_layer_content(
     local_db: &LocalDb,
     prompt: &str,
     db_table_name: &str,
-    layer: QDrantSearchLayer,
+    layer: QdrantSearchLayer,
     rephrased_prompt: String,
     search_result_content: String,
     chat_id: u64,
 ) -> anyhow::Result<String> {
     info!("COMMON: create_layer_content");
-    let all_saved_messages: Vec<LlmMessage> = local_db
-        .read_from_local_db(db_table_name)
-        .await?;
+    let all_saved_messages: Vec<LlmMessage> = local_db.read_from_local_db(db_table_name).await?;
 
     let start_index_table_name = format!("{}_start_index", db_table_name);
     info!("COMMON: start_index_table_name {}", start_index_table_name);
-    let context_messages_indexes: Vec<i64> = local_db
-        .read_from_local_db(&start_index_table_name)
-        .await?;
+    let context_messages_indexes: Vec<i64> =
+        local_db.read_from_local_db(&start_index_table_name).await?;
 
     info!(
         "COMMON: context_messages_indexes len {:?}",
@@ -209,15 +230,15 @@ async fn create_layer_content(
     let mut user_role_full_text = String::new();
     for parameter in layer.user_role_params {
         let value = match parameter.param_type {
-            QDrantUserRoleTextType::History => cached_messages
+            QdrantUserRoleTextType::History => cached_messages
                 .clone()
                 .iter()
                 .map(|msg| msg.content.text())
                 .collect::<Vec<String>>()
                 .join("\n"),
-            QDrantUserRoleTextType::UserPromt => prompt.to_string().clone(),
-            QDrantUserRoleTextType::RephrasedPromt => rephrased_prompt.clone(),
-            QDrantUserRoleTextType::DbSearch => search_result_content.clone(),
+            QdrantUserRoleTextType::UserPrompt => prompt.to_string().clone(),
+            QdrantUserRoleTextType::RephrasedPrompt => rephrased_prompt.clone(),
+            QdrantUserRoleTextType::DbSearch => search_result_content.clone(),
         };
         let part = format!("{:?}{:?}\n", parameter.param_value, value);
         user_role_full_text.push_str(&part)
@@ -252,51 +273,43 @@ async fn create_layer_content(
 }
 
 async fn openai_chat_preparations(
-    app_state: Arc<NervoServerAppState>,
+    app_state: Arc<JarvisAppState>,
     prompt: &str,
     table_name: String,
     chat_id: u64,
+    agent_type: AgentType,
 ) -> anyhow::Result<String> {
     let mut rephrased_prompt = String::from(prompt);
-    let layers_info = get_all_search_layers().await?;
-    let processing_layers = layers_info.layers;
+    let all_layers_data = get_all_search_layers(agent_type).await?;
+    let processing_layers = all_layers_data.layers;
     let mut search_content = String::new();
 
     for processing_layer in processing_layers {
-        if !processing_layer.collection_params.is_empty() {
-            info!(
-                "COMMON: QDrant collections count is {:?}",
-                &processing_layer.collection_params.len()
-            );
-
+        if processing_layer.layer_for_search {
             let mut all_search_results = vec![];
-            for collection_param in &processing_layer.collection_params {
-                let db_search = &app_state
-                    .nervo_ai_db
-                    .search(
-                        collection_param.name.clone(),
-                        rephrased_prompt.clone(),
-                        collection_param.vectors_limit,
-                    )
-                    .await?;
+            let db_search_response = &app_state
+                .nervo_ai_db
+                .search(
+                    agent_type,
+                    rephrased_prompt.clone(),
+                    processing_layer.vectors_limit,
+                )
+                .await?;
 
-                for search_result in &db_search.result {
-                    if search_result.score >= 0.3 {
-                        all_search_results.push(search_result.clone());
-                    }
+            for search_result in &db_search_response.result {
+                if search_result.score >= 0.3 {
+                    all_search_results.push(search_result.clone());
                 }
             }
 
             all_search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
             all_search_results.truncate(10);
 
-            {
-                let concatenated_texts = concatenate_results(all_search_results)?;
+            let concatenated_texts = concatenate_results(all_search_results)?;
 
-                let token_limit = processing_layer.common_token_limit as usize;
-                let updated_content = update_search_content(token_limit, concatenated_texts)?;
-                search_content.push_str(updated_content.as_str());
-            }
+            let token_limit = processing_layer.common_token_limit as usize;
+            let updated_content = update_search_content(token_limit, concatenated_texts)?;
+            search_content.push_str(updated_content.as_str());
         }
 
         rephrased_prompt = create_layer_content(
@@ -309,7 +322,7 @@ async fn openai_chat_preparations(
             search_content.clone(),
             chat_id,
         )
-            .await?;
+        .await?;
     }
 
     let all_saved_messages: Vec<LlmMessage> =
@@ -327,7 +340,7 @@ async fn openai_chat_preparations(
         }
     }
     if cached_messages.len() % 5 == 0 {
-        rephrased_prompt.push_str(&layers_info.info_message);
+        rephrased_prompt.push_str(&all_layers_data.info_message);
     };
 
     Ok(rephrased_prompt)
@@ -339,7 +352,11 @@ fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyh
     let bpe = cl100k_base()?;
     let mut tokens = bpe.split_by_token(&concatenated_texts, true)?;
 
-    info!("COMMON: tokens len {:?} and token limit {:?}",tokens.len(),token_limit);
+    info!(
+        "COMMON: tokens len {:?} and token limit {:?}",
+        tokens.len(),
+        token_limit
+    );
     if tokens.len() > token_limit {
         tokens.truncate(token_limit);
         Ok(tokens.join(""))
@@ -348,7 +365,6 @@ fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyh
     }
     //info!("COMMON: search content result: {}", search_content);
 }
-
 
 fn concatenate_results(all_search_results: Vec<ScoredPoint>) -> anyhow::Result<String> {
     let mut concatenated_texts: String = String::new();

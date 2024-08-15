@@ -1,13 +1,14 @@
+use crate::ai::nervo_llm::NervoLlm;
 use crate::ai::qdrant_db::QdrantDb;
+use crate::config::common::QdrantParams;
 use anyhow::Result;
+use nervo_api::agent_type::AgentType;
 use qdrant_client::qdrant::SearchResponse;
 use tracing::log::info;
-use crate::ai::nervo_llm::NervoLlm;
-use crate::config::common::QdrantParams;
 
 pub struct NervoAiDb {
     pub qdrant: QdrantDb,
-    pub nervo_llm: NervoLlm
+    pub nervo_llm: NervoLlm,
 }
 
 impl NervoAiDb {
@@ -20,19 +21,13 @@ impl NervoAiDb {
 impl NervoAiDb {
     pub async fn search(
         &self,
-        collection_name: String,
+        agent_type: AgentType,
         search_text: String,
         vectors_limit: u64,
     ) -> Result<SearchResponse> {
         info!("Starting QDrant db search...");
         self.qdrant
-            .vector_search(collection_name, search_text, vectors_limit)
-            .await
-    }
-
-    pub async fn save(&self, user_id: u64, text: &str) -> Result<()> {
-        self.qdrant
-            .save(user_id.to_string(), text)
+            .vector_search(agent_type, search_text, vectors_limit)
             .await
     }
 }

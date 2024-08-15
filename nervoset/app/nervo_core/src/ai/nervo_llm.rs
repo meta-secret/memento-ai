@@ -1,18 +1,18 @@
 use anyhow::bail;
 use anyhow::Result;
-use async_openai::Client;
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{ChatCompletionRequestUserMessage, Embedding};
-use async_openai::types::{
-    ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
-    ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent,
-};
 use async_openai::types::CreateChatCompletionRequestArgs;
 use async_openai::types::CreateEmbeddingRequestArgs;
 use async_openai::types::CreateEmbeddingResponse;
 use async_openai::types::CreateModerationRequest;
 use async_openai::types::CreateTranscriptionRequest;
 use async_openai::types::ModerationInput;
+use async_openai::types::{
+    ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
+    ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent,
+};
+use async_openai::types::{ChatCompletionRequestUserMessage, Embedding};
+use async_openai::Client;
 use serde_derive::Deserialize;
 
 use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageRole};

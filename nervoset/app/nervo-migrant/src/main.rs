@@ -1,21 +1,19 @@
+mod models;
+
+use crate::models::migration_model::MigrationModel;
+use crate::models::migration_path_model::{MigrationMetaData, MigrationPlan};
+use anyhow::bail;
+use nervo_bot_core::config::common::NervoConfig;
+use nervo_bot_core::config::jarvis::JarvisAppState;
 use std::fs::File;
 use std::io::BufWriter;
 use std::sync::Arc;
-
-use anyhow::bail;
-use clap::{Parser, Subcommand};
 use tokio::fs;
 use tracing::{info, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-use nervo_api::{AppType, NervoAppType};
-use nervo_bot_core::config::common::NervoConfig;
-use nervo_bot_core::config::nervo_server::NervoServerAppState;
-
-use crate::models::migration_model::MigrationModel;
-use crate::models::migration_path_model::{MigrationMetaData, MigrationPlan};
-
-mod models;
+use clap::{Parser, Subcommand};
+use nervo_api::agent_type::{AgentType, NervoAgentType};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -52,7 +50,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     info!("Start migrant app");
-    // General Preparations. Getting qdrant DB client, app name
+    // General Preparations. Getting QDrant DB client, app name
     let app_state = initial_setup().await?;
 
     //parse cli arguments
@@ -78,9 +76,9 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn initial_setup() -> anyhow::Result<Arc<NervoServerAppState>> {
+async fn initial_setup() -> anyhow::Result<Arc<JarvisAppState>> {
     let config = NervoConfig::load()?;
-    let app_state = NervoServerAppState::try_from(config.nervo_server)?;
+    let app_state = JarvisAppState::try_from(config.apps.jarvis)?;
     let app_state = Arc::from(app_state);
     Ok(app_state)
 }
@@ -101,9 +99,9 @@ async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<Migra
             bail!("Invalid app name")
         };
 
-        let app_type = NervoAppType::try_from(app_name_str);
+        let agent_type = NervoAgentType::try_from(app_name_str);
 
-        if app_type == AppType::None {
+        if agent_type == AgentType::None {
             bail!("Empty app name")
         }
 
@@ -120,7 +118,8 @@ async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<Migra
 
                     if file_path.extension().and_then(|s| s.to_str()) == Some("json") {
                         let json_content = fs::read_to_string(&file_path).await?;
-                        let migration_model: MigrationModel = serde_json::from_str(json_content.as_str())?;
+                        let migration_model: MigrationModel =
+                            serde_json::from_str(json_content.as_str())?;
                         let migration_data_model = MigrationMetaData {
                             json_path: file_path,
                             migration_model,
@@ -132,7 +131,10 @@ async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<Migra
             }
         }
 
-        let migration_config = MigrationPlan { app_type, data_models };
+        let migration_config = MigrationPlan {
+            agent_type,
+            data_models,
+        };
 
         result_vec.push(migration_config);
     }
@@ -142,7 +144,7 @@ async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<Migra
 
 async fn migrate_qdrant_db(
     plans: Vec<MigrationPlan>,
-    app_state: Arc<NervoServerAppState>,
+    app_state: Arc<JarvisAppState>,
 ) -> anyhow::Result<()> {
     info!("Start updating QDrant collection");
 
@@ -153,17 +155,27 @@ async fn migrate_qdrant_db(
             let migration_model = &migration_info.migration_model;
 
             // Need to delete an old version at first
-            delete_action(migration_model, migration_plan.app_type, app_state.clone())
-                .await?;
-            
+            delete_action(
+                migration_model,
+                migration_plan.agent_type,
+                app_state.clone(),
+            )
+            .await?;
+
             let text = migration_model.clone().create.text;
-            let app_name = migration_plan.app_name();
 
             //check if qdrant already has this record
-            let records = qdrant_db.find_by_idd(app_name.as_str(), text.as_str()).await?;
+            let records = qdrant_db
+                .find_by_idd(migration_plan.agent_type, text.as_str())
+                .await?;
             if records.result.is_empty() {
-                info!("Save text of json to qdrant: {:?}", app_name);
-                qdrant_db.save(app_name, text.as_str()).await?;
+                info!(
+                    "Save text of json to qdrant: {:?}",
+                    migration_plan.agent_type
+                );
+                qdrant_db
+                    .save(migration_plan.agent_type, text.as_str())
+                    .await?;
             }
         }
     }
@@ -173,21 +185,21 @@ async fn migrate_qdrant_db(
 
 async fn delete_action(
     migration_model: &MigrationModel,
-    app_type: AppType,
-    app_state: Arc<NervoServerAppState>,
+    agent_type: AgentType,
+    app_state: Arc<JarvisAppState>,
 ) -> anyhow::Result<()> {
     for delete_item in migration_model.delete.iter() {
         let qdrant_db = &app_state.nervo_ai_db.qdrant;
 
-        let app_type = NervoAppType::get_name(app_type);
         let text = delete_item.text.as_str();
-        let _ = qdrant_db.delete_by_idd(app_type.as_str(), text).await?;
+        let _ = qdrant_db.delete_by_idd(agent_type, text).await?;
     }
     Ok(())
 }
 
 async fn enrich_datasets_with_embeddings(
-    app_state: Arc<NervoServerAppState>, migration_plans: Vec<MigrationPlan>,
+    app_state: Arc<JarvisAppState>,
+    migration_plans: Vec<MigrationPlan>,
 ) -> anyhow::Result<()> {
     let qdrant_db = &app_state.nervo_ai_db.qdrant;
 
@@ -217,9 +229,8 @@ async fn enrich_datasets_with_embeddings(
 
 #[cfg(test)]
 mod test {
-    use nervo_api::AppType;
-
     use crate::collect_jsons_content;
+    use nervo_api::agent_type::AgentType;
 
     #[tokio::test]
     async fn test_collect_jsons_content() -> anyhow::Result<()> {
@@ -231,13 +242,11 @@ mod test {
     #[tokio::test]
     async fn test_collect_jsons_content_one() -> anyhow::Result<()> {
         let jsons_content = collect_jsons_content("../../dataset".to_string()).await?;
-        let apps: Vec<AppType> = jsons_content.iter()
-            .map(|plan| plan.app_type)
-            .collect();
-        
-        assert!(apps.contains(&AppType::W3a));
-        assert!(apps.contains(&AppType::Probiot));
-        
+        let apps: Vec<AgentType> = jsons_content.iter().map(|plan| plan.agent_type).collect();
+
+        assert!(apps.contains(&AgentType::Probiot));
+        assert!(apps.contains(&AgentType::W3a));
+
         Ok(())
     }
 }

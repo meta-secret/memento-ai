@@ -34,8 +34,9 @@ spec = {
             containers = [
                 {
                     name = common.projectName
-                    image = option("imageName")
                     imagePullPolicy = "Always"
+                    image = option("imageName")
+                    command = ["/bin/sh", "-c", "./nervo_server"]
                     ports = [
                         {
                             containerPort = 3000

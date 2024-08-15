@@ -1,1 +1,2 @@
 app/target/**
+app/Cargo.lock
