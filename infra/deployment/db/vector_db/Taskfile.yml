@@ -10,7 +10,7 @@ tasks:
     cmds:
       - helm repo add qdrant https://qdrant.github.io/qdrant-helm || true
       - helm repo update
-      - helm upgrade -i qdrant qdrant/qdrant
+      - helm upgrade -i qdrant qdrant/qdrant --version 1.11.0
       - kubectl wait --for=jsonpath='{.status.phase}'=Running pod/qdrant-0 --timeout=180s
 
   qdrant_delete:
