@@ -1,0 +1,15 @@
+name: Setup sccache
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set Rust caching env vars
+      run: |
+        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
+        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
+        echo "SCCACHE_VERSION=$(cat .github/workflows/utils/sccache.version)" >> $GITHUB_ENV
+
+    - name: Sccache Action
+      uses: Mozilla-Actions/sccache-action@v0.0.5
+      with:
+        version: ${{ env.SCCACHE_VERSION }}

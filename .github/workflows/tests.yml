@@ -25,17 +25,23 @@ jobs:
     - name: Install Task
       uses: arduino/setup-task@v2
 
-    - name: Set Rust caching env vars
-      run: |
-        echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-        echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-        echo "SCCACHE_VERSION=$(cat .github/workflows/sccache.version)" >> $GITHUB_ENV
-
-    - name: Sccache Action
-      uses: Mozilla-Actions/sccache-action@v0.0.4
-      with:
-        version: ${{ env.SCCACHE_VERSION }}
+    - uses: .github/workflows/actions/setup_sccache.yml
 
     - name: Run tests
       working-directory: nervoset/app
       run: cargo test
+
+  deployment_test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install devbox
+        uses: jetpack-io/devbox-install-action@v0.8.0
+        with:
+          project-path: 'nervoset'
+          enable-cache: 'true'

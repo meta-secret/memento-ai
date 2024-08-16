@@ -49,16 +49,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - name: Set Rust caching env vars
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-          echo "SCCACHE_VERSION=$(cat .github/workflows/sccache.version)" >> $GITHUB_ENV
-
-      - name: Sccache Action
-        uses: Mozilla-Actions/sccache-action@v0.0.4
-        with:
-          version: ${{ env.SCCACHE_VERSION }}
+      - uses: .github/workflows/actions/setup_sccache.yml
 
       - name: Set cloudflare credentials
         working-directory: infra
