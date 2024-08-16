@@ -185,7 +185,7 @@ pub async fn get_all_search_layers(agent_type: AgentType) -> anyhow::Result<Qdra
     info!("COMMON: get_all_search_layers");
     let agent_type_name = NervoAgentType::get_name(agent_type);
     let resource_path = format!(
-        "resources/agent/{}/vectorisation_roles.txt",
+        "resources/agent/{}/vectorisation_roles.json",
         agent_type_name
     );
     let json_string = fs::read_to_string(resource_path).await?;
