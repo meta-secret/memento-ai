@@ -26,3 +26,4 @@ nervoset/app/nervo-migrant/Cargo.lock
 
 
 /app/jaison/.env
+/app/nervo-migrant/config.yaml
