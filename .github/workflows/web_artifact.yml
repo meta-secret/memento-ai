@@ -49,7 +49,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - uses: ./.github/actions/sccache_setup
+      - uses: .github/actions/sccache_setup
 
       - name: Set cloudflare credentials
         working-directory: infra
