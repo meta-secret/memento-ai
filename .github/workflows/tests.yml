@@ -25,7 +25,7 @@ jobs:
     - name: Install Task
       uses: arduino/setup-task@v2
 
-    - uses: .github/workflows/actions/setup_sccache.yml
+    - uses: ./.github/actions/sccache_setup
 
     - name: Run tests
       working-directory: nervoset/app
