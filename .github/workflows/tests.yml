@@ -31,7 +31,7 @@ jobs:
       working-directory: nervoset/app
       run: cargo test
 
-  deployment_test:
+  k8s_deployment_test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -42,4 +42,11 @@ jobs:
 
       - uses: ./.github/actions/devbox_setup
         with:
-          devbox-path: 'nervoset'
+          devbox-path: 'infra'
+
+      - uses: ./.github/actions/void_sentinel_auth
+        with:
+          main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
+
+
+

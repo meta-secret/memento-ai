@@ -1,0 +1,17 @@
+name: Void Sentinel authentication
+
+inputs:
+  main-password:
+    required: true
+    description: "Void sentinel's main password"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Auth
+      working-directory: infra
+      shell: bash
+      env:
+        SENTINEL_MASTER_PASSWORD: ${{ inputs.main-password }}
+      run: |
+        devbox run task hazmat:void_sentinel:gpg_decrypt_sentinel_key

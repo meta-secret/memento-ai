@@ -49,12 +49,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      - uses: ./.github/actions/void_sentinel_auth
+        with:
+          main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
+
       - name: Set cloudflare credentials
-        working-directory: infra
-        env:
-          SENTINEL_MASTER_PASSWORD: ${{ secrets.NERVOSET_VOID_SENTINEL }}
         run: |
-          devbox run task hazmat:void_sentinel:gpg_decrypt_sentinel_key
           echo "CLOUD_FLARE_API_TOKEN=$(devbox run task hazmat:void_sentinel:vault:get_cloudflare_api_token)" >> $GITHUB_ENV
           echo "CLOUD_FLARE_ACCOUNT_ID=$(devbox run task hazmat:void_sentinel:vault:get_cloudflare_account_id)" >> $GITHUB_ENV
 
