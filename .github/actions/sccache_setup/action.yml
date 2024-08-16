@@ -1,5 +1,7 @@
 name: Setup sccache
 
+# https://github.com/orgs/community/discussions/26245#discussioncomment-5962450
+
 runs:
   using: "composite"
   steps:
