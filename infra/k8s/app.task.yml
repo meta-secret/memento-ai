@@ -54,10 +54,15 @@ tasks:
       - task: generate_config_maps
       - task: generate_manifests
 
-  redeploy:
+  redeploy_job:
     cmds:
       - task: delete
       - task: apply
+
+  redeploy:
+    cmds:
+      - task: delete
+      - task: apply_stateful_set
 
   apply:
     requires:
@@ -67,6 +72,13 @@ tasks:
       - task -t ../../../nervoset/Taskfile.yml docker_{{.APP_NAME}}:push INFRA={{.INFRA}}
       - task: generate
       - kubectl apply -f {{ .BUILD_DIR }}
+
+  apply_stateful_set:
+    requires:
+      vars:
+        - APP_NAME
+    cmds:
+      - task: apply
       - kubectl wait --for=jsonpath='{.status.phase}'=Running pod/{{.K8S_APP_NAME}}-0 --timeout=180s
 
   delete:

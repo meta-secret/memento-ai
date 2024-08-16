@@ -7,6 +7,6 @@ schema Labels:
     location: str
 
 
-projectName = "nervo-server"
+projectName = "nervo-migrant"
 volumeName = "${projectName}-vol"
-appPath = "/nervoset/app/nervo-server"
+appPath = "/nervoset/app/nervo-migrant"

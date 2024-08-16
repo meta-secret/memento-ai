@@ -171,7 +171,8 @@ async fn migrate_qdrant_db(
                 .await?;
             if records.result.is_empty() {
                 info!(
-                    "Save text of json to qdrant: {:?}",
+                    "Save text of {:?} to qdrant: {:?}",
+                    migration_info.json_path,
                     migration_plan.agent_type
                 );
                 qdrant_db
