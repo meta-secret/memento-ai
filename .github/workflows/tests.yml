@@ -31,7 +31,7 @@ jobs:
       working-directory: nervoset/app
       run: cargo test
 
-  k8s_deployment_test:
+  infra_deployment_test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,5 +48,8 @@ jobs:
         with:
           main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
 
+      - name: deploying k8s infra
+        working-directory: infra
+        run: devbox run task deployment:infra_dev
 
 

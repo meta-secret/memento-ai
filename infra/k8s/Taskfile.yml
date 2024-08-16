@@ -49,7 +49,7 @@ includes:
     vars:
       K8S_APP_NAME: "nervo-migrant"
       APP_NAME: "nervo-migrant"
-      CONFIGS: pvc.k statefulset.k
+      CONFIGS: pvc.k job.k
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 

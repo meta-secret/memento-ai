@@ -35,6 +35,10 @@ jobs:
 
       - uses: ./.github/actions/sccache_setup
 
+      - uses: ./.github/actions/void_sentinel_auth
+        with:
+          main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
+
       - name: Get npm cache directory
         id: npm-cache-dir
         run: |
@@ -49,9 +53,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-      - uses: ./.github/actions/void_sentinel_auth
-        with:
-          main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
+      - name: Set cloudflare credentials
+        working-directory: infra
+        run: |
+          echo "CLOUD_FLARE_API_TOKEN=$(devbox run task hazmat:void_sentinel:vault:get_cloudflare_api_token)" >> $GITHUB_ENV
+          echo "CLOUD_FLARE_ACCOUNT_ID=$(devbox run task hazmat:void_sentinel:vault:get_cloudflare_account_id)" >> $GITHUB_ENV
 
       ### Probiot Deployment ###
       - name: Build nervo-web for probiot
@@ -62,8 +68,8 @@ jobs:
       - name: Deploy nervo-web-probiot on cloudflare pages
         uses: cloudflare/pages-action@1
         with:
-          apiToken: $(devbox run task hazmat:void_sentinel:vault:get_cloudflare_api_token)
-          accountId: $(devbox run task hazmat:void_sentinel:vault:get_cloudflare_account_id)
+          apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
+          accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
           projectName: nervo-web-probiot
           directory: nervoset/nervo-web/dist/app
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -77,8 +83,8 @@ jobs:
       - name: Deploy nervo-web-w3a on cloudflare pages
         uses: cloudflare/pages-action@1
         with:
-          apiToken: $(devbox run task hazmat:void_sentinel:vault:get_cloudflare_api_token)
-          accountId: $(devbox run task hazmat:void_sentinel:vault:get_cloudflare_account_id)
+          apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
+          accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
           projectName: nervo-web-w3a
           directory: nervoset/nervo-web/dist/app
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}

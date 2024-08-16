@@ -61,8 +61,6 @@ tasks:
       K8S_CLUSTER_NAME:
         sh: "echo $(whoami)-nervoset-{{.INFRA}}"
     cmds:
-      - task -t ../Taskfile.yml auth
-
       # deploy k8s cluster with k3d
       - task: "k3d_{{.INFRA}}:k8s_deploy"
         vars:

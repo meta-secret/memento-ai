@@ -58,6 +58,22 @@ tasks:
     cmds:
       - task: delete
       - task: apply
+      - |
+        pod_name=$(kubectl get pods --selector=job-name={{.K8S_APP_NAME}} --output=jsonpath='{.items[0].metadata.name}')
+        while true; do
+          pod_status=$(kubectl get pod $pod_name --output=jsonpath='{.status.phase}')
+    
+          if [ "$pod_status" == "Running" ]; then
+            kubectl logs --tail=1 $(kubectl get pods --selector=job-name={{.K8S_APP_NAME}} -o jsonpath='{.items[0].metadata.name}')
+            continue
+          fi
+        
+          completed=$(kubectl wait --for=condition=complete job/{{.K8S_APP_NAME}} --timeout=5s || true)
+          if [[ $completed == "job.batch/{{.K8S_APP_NAME}} condition met" ]]; then
+            echo "Job {{.K8S_APP_NAME}} has completed!"
+            break
+          fi
+        done
 
   redeploy:
     cmds:
