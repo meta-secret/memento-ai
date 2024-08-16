@@ -10,7 +10,7 @@ runs:
       run: |
         echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
         echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-        echo "SCCACHE_VERSION=$(cat .github/workflows/utils/sccache.version)" >> $GITHUB_ENV
+        echo "SCCACHE_VERSION=v0.8.1" >> $GITHUB_ENV
 
     - name: Sccache Action
       uses: Mozilla-Actions/sccache-action@v0.0.5

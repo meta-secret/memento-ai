@@ -29,11 +29,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install devbox
-        uses: jetpack-io/devbox-install-action@v0.8.0
+      - uses: ./.github/actions/devbox_setup
         with:
-          project-path: 'nervoset'
-          enable-cache: 'true'
+          devbox-path: 'nervoset'
+
+      - uses: ./.github/actions/sccache_setup
 
       - name: Get npm cache directory
         id: npm-cache-dir
@@ -48,8 +48,6 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
-
-      - uses: ./.github/actions/sccache_setup
 
       - name: Set cloudflare credentials
         working-directory: infra

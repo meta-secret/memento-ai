@@ -40,8 +40,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install devbox
-        uses: jetpack-io/devbox-install-action@v0.8.0
+      - uses: ./.github/actions/devbox_setup
         with:
-          project-path: 'nervoset'
-          enable-cache: 'true'
+          devbox-path: 'nervoset'
