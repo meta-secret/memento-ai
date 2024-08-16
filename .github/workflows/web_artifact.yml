@@ -53,11 +53,6 @@ jobs:
         with:
           main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
 
-      - name: Set cloudflare credentials
-        run: |
-          echo "CLOUD_FLARE_API_TOKEN=$(devbox run task hazmat:void_sentinel:vault:get_cloudflare_api_token)" >> $GITHUB_ENV
-          echo "CLOUD_FLARE_ACCOUNT_ID=$(devbox run task hazmat:void_sentinel:vault:get_cloudflare_account_id)" >> $GITHUB_ENV
-
       ### Probiot Deployment ###
       - name: Build nervo-web for probiot
         working-directory: nervoset
@@ -67,8 +62,8 @@ jobs:
       - name: Deploy nervo-web-probiot on cloudflare pages
         uses: cloudflare/pages-action@1
         with:
-          apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
-          accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
+          apiToken: $(devbox run task hazmat:void_sentinel:vault:get_cloudflare_api_token)
+          accountId: $(devbox run task hazmat:void_sentinel:vault:get_cloudflare_account_id)
           projectName: nervo-web-probiot
           directory: nervoset/nervo-web/dist/app
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -82,8 +77,8 @@ jobs:
       - name: Deploy nervo-web-w3a on cloudflare pages
         uses: cloudflare/pages-action@1
         with:
-          apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
-          accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
+          apiToken: $(devbox run task hazmat:void_sentinel:vault:get_cloudflare_api_token)
+          accountId: $(devbox run task hazmat:void_sentinel:vault:get_cloudflare_account_id)
           projectName: nervo-web-w3a
           directory: nervoset/nervo-web/dist/app
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
