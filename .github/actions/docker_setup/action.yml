@@ -1,0 +1,12 @@
+name: Docker setup
+
+runs:
+  using: "composite"
+  steps:
+    - name: Enable docker
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      shell: bash
+      working-directory: infra
+      run: devbox run 'task deployment:docker_registry:docker_login'

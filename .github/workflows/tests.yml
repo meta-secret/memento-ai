@@ -48,6 +48,8 @@ jobs:
         with:
           main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
 
+      - uses: ./.github/actions/docker_setup
+
       - name: deploying k8s infra
         working-directory: infra
         run: devbox run task deployment:infra_dev
