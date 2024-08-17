@@ -1,6 +1,6 @@
 mod models;
 
-use crate::models::migration_model::{MigrationModel, VectorData};
+use crate::models::migration_model::{DataSample, MigrationModel, VectorData};
 use crate::models::migration_path_model::{MigrationMetaData, MigrationPlan};
 use anyhow::bail;
 use nervo_bot_core::config::common::NervoConfig;
@@ -159,6 +159,7 @@ async fn migrate_qdrant_db(
 
     let qdrant_db = &app_state.nervo_ai_db.qdrant;
 
+    // delete old records
     for migration_plan in plans.iter() {
         for migration_info in migration_plan.data_models.iter() {
             let migration_model = &migration_info.migration_model;
@@ -171,8 +172,10 @@ async fn migrate_qdrant_db(
             )
             .await?;
 
-            let id = migration_model.clone().create.id.unwrap();
-            let text = migration_model.clone().create.text;
+            let data_sample = migration_model.clone().create;
+            let id = data_sample.id.unwrap();
+            let text = data_sample.text;
+            let embedding = data_sample.vector.unwrap().embedding;
 
             //check if qdrant already has this record
             let records = qdrant_db
@@ -184,7 +187,7 @@ async fn migrate_qdrant_db(
                     migration_info.json_path, migration_plan.agent_type
                 );
                 qdrant_db
-                    .save(migration_plan.agent_type, text.as_str())
+                    .save(migration_plan.agent_type, text.as_str(), embedding)
                     .await?;
             }
         }
@@ -204,7 +207,7 @@ async fn delete_action(
         let id = delete_item.id.as_ref()
             .map(|id_val| Uuid::parse_str(id_val.as_str()))
             .unwrap()?;
-        
+
         let _ = qdrant_db.delete_by_id(agent_type, id).await?;
     }
     Ok(())
@@ -237,11 +240,10 @@ async fn enrich_datasets_with_embeddings(
 
                 let embedding = qdrant_db.nervo_llm.text_to_embeddings(text).await?.unwrap();
 
-                let embedding_model_name =
-                    Some(app_state.nervo_config.llm.embedding_model_name.clone());
+                let model_name = Some(app_state.nervo_config.llm.embedding_model_name.clone());
                 updated_model.create.vector = Some(VectorData {
                     embedding,
-                    embedding_model_name,
+                    embedding_model_name: model_name,
                 });
 
                 need_update = true;

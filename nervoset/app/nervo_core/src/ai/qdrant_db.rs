@@ -3,6 +3,7 @@ use crate::config::common::QdrantParams;
 use crate::utils::cryptography::UuidGenerator;
 use anyhow::bail;
 use anyhow::Result;
+use async_openai::types::Embedding;
 use nervo_api::agent_type::{AgentType, NervoAgentType};
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::{
@@ -36,14 +37,15 @@ impl QdrantDb {
 }
 
 impl QdrantDb {
-    pub async fn save(&self, agent_type: AgentType, text: &str) -> Result<()> {
-        let collection_name = NervoAgentType::get_name(agent_type);
 
+    pub async fn save_text(&self, agent_type: AgentType, text: &str) -> Result<()> {
         let maybe_vec_data = self.nervo_llm.text_to_embeddings(text).await?;
-
-        let Some(vec_data) = maybe_vec_data else {
-            bail!("No embedding data found.");
-        };
+        
+        self.save(agent_type, text, maybe_vec_data.unwrap()).await
+    }
+    
+    pub async fn save(&self, agent_type: AgentType, text: &str, embedding: Embedding) -> Result<()> {
+        let collection_name = NervoAgentType::get_name(agent_type);
 
         let col_exists = self
             .qdrant_client
@@ -55,7 +57,7 @@ impl QdrantDb {
                 collection_name: collection_name.clone(),
                 vectors_config: Some(VectorsConfig {
                     config: Some(Config::Params(VectorParams {
-                        size: vec_data.embedding.len() as u64,
+                        size: embedding.embedding.len() as u64,
                         distance: Distance::Cosine.into(),
                         ..Default::default()
                     })),
@@ -71,7 +73,7 @@ impl QdrantDb {
             let point_id = UuidGenerator::from(text).to_string();
 
             let payload: Payload = json!({"text": text}).try_into()?;
-            let point = PointStruct::new(point_id, vec_data.embedding.clone(), payload);
+            let point = PointStruct::new(point_id, embedding.embedding.clone(), payload);
             vec![point]
         };
 
