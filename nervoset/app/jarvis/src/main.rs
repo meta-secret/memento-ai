@@ -1,7 +1,7 @@
 use nervo_bot_core::telegram::jarvis;
 
-use std::sync::Arc;
 use anyhow::bail;
+use std::sync::Arc;
 
 use clap::Parser;
 use nervo_api::agent_type::{AgentType, NervoAgentType};

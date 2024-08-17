@@ -1,8 +1,8 @@
+use crate::ai::ai_db::NervoAiDb;
 use crate::ai::nervo_llm::{NervoLlm, NervoLlmConfig};
 use crate::config::common::{DatabaseParams, QdrantParams};
-use serde_derive::Deserialize;
-use crate::ai::ai_db::NervoAiDb;
 use crate::db::local_db::LocalDb;
+use serde_derive::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct JarvisConfig {

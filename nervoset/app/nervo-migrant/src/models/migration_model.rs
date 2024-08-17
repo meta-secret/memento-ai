@@ -14,6 +14,16 @@ pub struct MigrationModel {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DataSample {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
     pub text: String,
-    pub embedding: Option<Embedding>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vector: Option<VectorData>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct VectorData {
+    pub embedding_model_name: Option<String>,
+    pub embedding: Embedding,
 }

@@ -76,23 +76,19 @@ pub async fn start(
 
         Update::filter_message()
             .branch(
-                dptree::filter_async(
-                    |msg: Message, app_state: Arc<JarvisAppState>| async move {
-                        has_role(&app_state.local_db, msg.from().clone(), &OWNER)
-                            .await
-                            .unwrap_or(false)
-                    },
-                )
+                dptree::filter_async(|msg: Message, app_state: Arc<JarvisAppState>| async move {
+                    has_role(&app_state.local_db, msg.from().clone(), &OWNER)
+                        .await
+                        .unwrap_or(false)
+                })
                 .chain(owner_handler),
             )
             .branch(
-                dptree::filter_async(
-                    |msg: Message, app_state: Arc<JarvisAppState>| async move {
-                        has_role(&app_state.local_db, msg.from().clone(), &MEMBER.to_string())
-                            .await
-                            .unwrap_or(false)
-                    },
-                )
+                dptree::filter_async(|msg: Message, app_state: Arc<JarvisAppState>| async move {
+                    has_role(&app_state.local_db, msg.from().clone(), &MEMBER.to_string())
+                        .await
+                        .unwrap_or(false)
+                })
                 .chain(authorized_user_handler.clone()),
             )
             .branch(
@@ -125,7 +121,7 @@ async fn command_handler(
     msg: Message,
     cmd: JarvisCommands,
     app_state: Arc<JarvisAppState>,
-    agent_type: AgentType
+    agent_type: AgentType,
 ) -> Result<()> {
     match cmd {
         JarvisCommands::Model => {

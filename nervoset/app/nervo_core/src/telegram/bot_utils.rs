@@ -300,16 +300,15 @@ impl SystemMessage {
     fn agent_type(&self) -> AgentType {
         match self {
             SystemMessage::Start(agent_type) => agent_type.clone(),
-            SystemMessage::Manual(agent_type) => agent_type.clone()
+            SystemMessage::Manual(agent_type) => agent_type.clone(),
         }
     }
-    
+
     pub async fn as_str(&self) -> anyhow::Result<String> {
         let agent = NervoAgentType::get_name(self.agent_type());
-        let system_msg_file = format!("resources/agent/{}/system_messages.json",  agent);
-        
-        let json_string = fs::read_to_string(system_msg_file)
-            .await?;
+        let system_msg_file = format!("resources/agent/{}/system_messages.json", agent);
+
+        let json_string = fs::read_to_string(system_msg_file).await?;
         let system_messages_models: SystemMessages = serde_json::from_str(&json_string)?;
 
         match self {

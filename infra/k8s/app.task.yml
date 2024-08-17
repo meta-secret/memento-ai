@@ -65,6 +65,7 @@ tasks:
     
           if [ "$pod_status" == "Running" ]; then
             kubectl logs --tail=1 $(kubectl get pods --selector=job-name={{.K8S_APP_NAME}} -o jsonpath='{.items[0].metadata.name}')
+            sleep 1
             continue
           fi
         

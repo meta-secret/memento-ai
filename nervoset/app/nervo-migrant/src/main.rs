@@ -1,6 +1,6 @@
 mod models;
 
-use crate::models::migration_model::MigrationModel;
+use crate::models::migration_model::{MigrationModel, VectorData};
 use crate::models::migration_path_model::{MigrationMetaData, MigrationPlan};
 use anyhow::bail;
 use nervo_bot_core::config::common::NervoConfig;
@@ -14,6 +14,9 @@ use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 use clap::{Parser, Subcommand};
 use nervo_api::agent_type::{AgentType, NervoAgentType};
+use nervo_bot_core::utils::cryptography::UuidGenerator;
+use tokio::time::Instant;
+use uuid::Uuid;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -67,10 +70,15 @@ async fn main() -> anyhow::Result<()> {
             info!("Dataset preparation step has been finished");
         }
         Commands::Migration => {
+            let start = Instant::now();
+
             // Update qdrant collection (remove old records in qdrant if needed)
             info!("Migration preparation has been started");
             let migration_plan = collect_jsons_content("../../dataset".to_string()).await?;
             migrate_qdrant_db(migration_plan, app_state).await?;
+
+            let duration = start.elapsed();
+            info!("Migration completed for: {:?}", duration);
         }
     }
 
@@ -147,7 +155,7 @@ async fn migrate_qdrant_db(
     plans: Vec<MigrationPlan>,
     app_state: Arc<JarvisAppState>,
 ) -> anyhow::Result<()> {
-    info!("Start updating QDrant collection");
+    info!("Start updating Qdrant collection");
 
     let qdrant_db = &app_state.nervo_ai_db.qdrant;
 
@@ -162,18 +170,18 @@ async fn migrate_qdrant_db(
                 app_state.clone(),
             )
             .await?;
-            
+
+            let id = migration_model.clone().create.id.unwrap();
             let text = migration_model.clone().create.text;
 
             //check if qdrant already has this record
             let records = qdrant_db
-                .find_by_idd(migration_plan.agent_type, text.as_str())
+                .find_by_id(migration_plan.agent_type, Uuid::parse_str(id.as_str())?)
                 .await?;
             if records.result.is_empty() {
                 info!(
                     "Save text of {:?} to qdrant: {:?}",
-                    migration_info.json_path,
-                    migration_plan.agent_type
+                    migration_info.json_path, migration_plan.agent_type
                 );
                 qdrant_db
                     .save(migration_plan.agent_type, text.as_str())
@@ -193,8 +201,11 @@ async fn delete_action(
     for delete_item in migration_model.delete.iter() {
         let qdrant_db = &app_state.nervo_ai_db.qdrant;
 
-        let text = delete_item.text.as_str();
-        let _ = qdrant_db.delete_by_idd(agent_type, text).await?;
+        let id = delete_item.id.as_ref()
+            .map(|id_val| Uuid::parse_str(id_val.as_str()))
+            .unwrap()?;
+        
+        let _ = qdrant_db.delete_by_id(agent_type, id).await?;
     }
     Ok(())
 }
@@ -207,25 +218,53 @@ async fn enrich_datasets_with_embeddings(
 
     for migration in migration_plans.iter() {
         for data_model in &migration.data_models {
-            if data_model.migration_model.create.embedding.is_none() {
+            let mut need_update = false;
+
+            let mut updated_model = data_model.migration_model.clone();
+
+            if data_model.migration_model.create.id.is_none() {
+                let text = data_model.migration_model.create.text.as_str();
+                let id = UuidGenerator::from(text).to_string();
+
+                updated_model.create.id = Some(id);
+
+                need_update = true;
+            }
+
+            if data_model.migration_model.create.vector.is_none() {
                 // get embeddings and update model
-                let embedding = qdrant_db
-                    .nervo_llm
-                    .text_to_embeddings(&data_model.migration_model.create.text)
-                    .await?;
+                let text = data_model.migration_model.create.text.as_str();
 
-                let mut updated_model = data_model.migration_model.clone();
-                updated_model.create.embedding = embedding;
+                let embedding = qdrant_db.nervo_llm.text_to_embeddings(text).await?.unwrap();
 
-                let json_file = File::create(data_model.json_path.clone())?;
-                let writer = BufWriter::new(json_file);
-                serde_json::to_writer_pretty(writer, &updated_model)?;
+                let embedding_model_name =
+                    Some(app_state.nervo_config.llm.embedding_model_name.clone());
+                updated_model.create.vector = Some(VectorData {
+                    embedding,
+                    embedding_model_name,
+                });
 
-                info!("Embedding has been created for: {:?}", data_model.json_path);
+                need_update = true;
+            }
+
+            if need_update {
+                save_updated_model_to_json(data_model, &updated_model)?;
+                info!("Dataset has been updated: {:?}", data_model.json_path);
             }
         }
     }
 
+    Ok(())
+}
+
+fn save_updated_model_to_json(
+    data_model: &MigrationMetaData,
+    updated_model: &MigrationModel,
+) -> anyhow::Result<()> {
+    // save updated model to json
+    let json_file = File::create(data_model.json_path.clone())?;
+    let writer = BufWriter::new(json_file);
+    serde_json::to_writer_pretty(writer, &updated_model)?;
     Ok(())
 }
 

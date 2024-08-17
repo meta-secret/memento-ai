@@ -40,7 +40,7 @@ async fn happy_path_of_moderation(
     info!("SERVER: HAPPY PATH");
     let table_name = msg_request.chat_id.to_string();
     let agent_type = msg_request.agent_type;
-    
+
     let llm_reply = llm_conversation(app_state, msg_request, table_name, agent_type)
         .await
         .map_err(|err| {

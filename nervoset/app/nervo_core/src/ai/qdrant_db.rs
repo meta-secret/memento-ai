@@ -1,15 +1,14 @@
-use std::ptr::null;
 use crate::ai::nervo_llm::NervoLlm;
 use crate::config::common::QdrantParams;
-use crate::utils::cryptography;
+use crate::utils::cryptography::UuidGenerator;
 use anyhow::bail;
 use anyhow::Result;
 use nervo_api::agent_type::{AgentType, NervoAgentType};
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::{
-    Condition, CreateCollection, DeletePointsBuilder, Distance, Filter, PointStruct,
-    ScrollPointsBuilder, ScrollResponse, SearchParamsBuilder, SearchPointsBuilder,
-    UpsertPointsBuilder,
+    CreateCollection, DeletePointsBuilder, Distance, GetPointsBuilder,
+    GetResponse, PointStruct, SearchParamsBuilder,
+    SearchPointsBuilder, UpsertPointsBuilder,
 };
 use qdrant_client::qdrant::{SearchResponse, VectorParams, VectorsConfig};
 use qdrant_client::Payload;
@@ -69,11 +68,9 @@ impl QdrantDb {
 
         let points = {
             // Generate a UUID
-            let point_id = Uuid::new_v4().to_string();
-            let idd = cryptography::generate_uuid(text)?;
-            let idd = idd.to_string();
+            let point_id = UuidGenerator::from(text).to_string();
 
-            let payload: Payload = json!({"idd": idd, "text": text}).try_into()?;
+            let payload: Payload = json!({"text": text}).try_into()?;
             let point = PointStruct::new(point_id, vec_data.embedding.clone(), payload);
             vec![point]
         };
@@ -114,32 +111,28 @@ impl QdrantDb {
         }
     }
 
-    pub async fn find_by_idd(&self, agent_type: AgentType, text: &str) -> Result<ScrollResponse> {
-        let mut search_result = ScrollResponse::default();
-        
+    pub async fn find_by_id(&self, agent_type: AgentType, id: Uuid) -> Result<GetResponse> {
         let collection_name = NervoAgentType::get_name(agent_type);
         let col_exists = self
             .qdrant_client
             .collection_exists(&collection_name)
             .await?;
-        
+
         if col_exists {
             let col_name = NervoAgentType::get_name(agent_type);
+            let query = GetPointsBuilder::new(col_name, vec![id.to_string().into()]);
 
-            let idd = cryptography::generate_uuid(text)?;
-            let idd = idd.to_string();
+            let search_result = self.qdrant_client.get_points(query).await?;
 
-            let filter = ScrollPointsBuilder::new(col_name)
-                .filter(Filter::must([Condition::matches("idd", idd)]));
-
-            search_result = self.qdrant_client.scroll(filter).await?;
+            Ok(search_result)
+        } else {
+            Ok(GetResponse::default())
         }
-        Ok(search_result)
     }
 
-    pub async fn delete_by_idd(&self, agent_type: AgentType, text: &str) -> Result<DeleteResult> {
+    pub async fn delete_by_id(&self, agent_type: AgentType, id: Uuid) -> Result<DeleteResult> {
         let col_name = NervoAgentType::get_name(agent_type);
-        let search_result = self.find_by_idd(agent_type, text).await?;
+        let search_result = self.find_by_id(agent_type, id).await?;
 
         if search_result.result.is_empty() {
             info!("No matching points found.");
