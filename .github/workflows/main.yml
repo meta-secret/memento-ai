@@ -29,6 +29,10 @@ jobs:
         with:
           devbox-path: 'infra'
 
+      - uses: ./.github/actions/void_sentinel_auth
+        with:
+          main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
+
       - uses: ./.github/actions/docker_setup
 
       - name: Build and push docker image
