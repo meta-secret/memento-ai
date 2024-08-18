@@ -3,13 +3,13 @@ name: Web Artifacts Deployment
 on:
   workflow_dispatch:
 
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/web_artifact.yml'
-      - 'nervoset/nervo-web/**'
-      - 'nervoset/app/nervo_wasm/**'
+#  push:
+#    branches:
+#      - main
+#    paths:
+#      - '.github/workflows/web_artifact.yml'
+#      - 'nervoset/nervo-web/**'
+#      - 'nervoset/app/nervo_wasm/**'
 
 env:
   CARGO_TERM_COLOR: always

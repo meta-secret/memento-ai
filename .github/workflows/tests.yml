@@ -30,28 +30,3 @@ jobs:
     - name: Run tests
       working-directory: nervoset/app
       run: cargo test
-
-  infra_deployment_test:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: ./.github/actions/devbox_setup
-        with:
-          devbox-path: 'infra'
-
-      - uses: ./.github/actions/void_sentinel_auth
-        with:
-          main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
-
-      - uses: ./.github/actions/docker_setup
-
-      - name: deploying k8s infra
-        working-directory: infra
-        run: devbox run task deployment:infra_dev
-
-

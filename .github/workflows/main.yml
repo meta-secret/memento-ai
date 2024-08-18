@@ -1,0 +1,63 @@
+name: Main Deployment
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/main.yml'
+      - 'nervoset/**'
+      - 'infra/**'
+
+env:
+  CARGO_TERM_COLOR: always
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  docker_hub_push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/devbox_setup
+        with:
+          devbox-path: 'infra'
+
+      - uses: ./.github/actions/docker_setup
+
+      - name: Build and push docker image
+        working-directory: nervoset
+        run: |
+          devbox run 'task docker_push INFRA=prod'
+
+  infra_deployment_test:
+    needs: docker_hub_push
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/devbox_setup
+        with:
+          devbox-path: 'infra'
+
+      - uses: ./.github/actions/void_sentinel_auth
+        with:
+          main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
+
+      - uses: ./.github/actions/docker_setup
+
+      - name: deploying k8s infra
+        working-directory: infra
+        run: devbox run task deployment:infra_dev
+
