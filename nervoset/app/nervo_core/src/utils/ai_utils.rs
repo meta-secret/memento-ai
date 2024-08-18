@@ -182,8 +182,8 @@ async fn detecting_crap_request(
 }
 
 pub async fn get_all_search_layers(agent_type: AgentType) -> anyhow::Result<QdrantSearchInfo> {
-    info!("COMMON: get_all_search_layers");
     let agent_type_name = NervoAgentType::get_name(agent_type);
+    info!("COMMON: get_all_search_layers: {:?}", agent_type_name);
     let resource_path = format!(
         "resources/agent/{}/vectorisation_roles.json",
         agent_type_name
