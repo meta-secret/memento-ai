@@ -16,9 +16,7 @@ use std::sync::Arc;
 use teloxide::net::Download;
 use teloxide::prelude::ChatId;
 use teloxide::prelude::*;
-use teloxide::types::{
-    ChatKind, File, FileMeta, InputFile, MediaKind, MessageKind, ParseMode, User,
-};
+use teloxide::types::{ChatKind, File, FileMeta, InputFile, MediaKind, MessageKind, ParseMode, ReplyParameters, User};
 use teloxide::Bot;
 use tokio::fs;
 use tracing::{error, info};
@@ -50,7 +48,7 @@ pub async fn chat(
     let is_reply = msg
         .clone()
         .reply_to_message()
-        .and_then(|message| message.from())
+        .and_then(|message| message.from.as_ref())
         .and_then(|user| user.username.clone())
         .map_or(false, |username| username == bot_name.clone());
 
@@ -77,9 +75,18 @@ pub async fn chat(
                 .send_chat_action(msg.chat.id.clone(), teloxide::types::ChatAction::Typing)
                 .await?;
 
+            let reply_parameters = ReplyParameters {
+                message_id: msg.id,
+                chat_id: None,
+                allow_sending_without_reply: None,
+                quote: None,
+                quote_parse_mode: None,
+                quote_entities: None,
+                quote_position: None,
+            };
             if text.is_empty() {
                 bot.send_message(msg.chat.id, "Please provide a message to send.")
-                    .reply_to_message_id(msg.id.clone())
+                    .reply_parameters(reply_parameters)
                     .await?;
 
                 return Ok(());
@@ -166,11 +173,7 @@ impl<'a> MessageParser<'a> {
 impl<'a> MessageParser<'a> {
     // Get user from TG message
     pub async fn parse_user(&mut self) -> anyhow::Result<User> {
-        let MessageKind::Common(msg_common) = &self.msg.kind else {
-            bail!("Unsupported message content type.");
-        };
-
-        let Some(user) = &msg_common.from else {
+        let Some(user) = &self.msg.from else {
             bail!("User not found. We can handle only direct messages.");
         };
 
@@ -183,7 +186,7 @@ impl<'a> MessageParser<'a> {
             bail!("Unsupported message content type.");
         };
 
-        let Some(user) = &msg_common.from else {
+        let Some(user) = &self.msg.from else {
             bail!("User not found. We can handle only direct messages.");
         };
 
@@ -213,12 +216,22 @@ impl<'a> MessageParser<'a> {
         media_voice: &FileMeta,
         user: &User,
     ) -> anyhow::Result<(User, String)> {
-        self.bot
-            .send_message(
+        let reply_parameters = ReplyParameters {
+            message_id: self.msg.id,
+            chat_id: None,
+            allow_sending_without_reply: None,
+            quote: None,
+            quote_parse_mode: None,
+            quote_entities: None,
+            quote_position: None,
+        };
+
+        info!("COMMON: Generate audio message");
+        self.bot.send_message(
                 self.msg.chat.id.clone(),
                 "Один момент, сейчас отвечу!".to_string(),
             )
-            .reply_to_message_id(self.msg.id.clone())
+            .reply_parameters(reply_parameters)
             .await?;
 
         let file: File = self.bot.get_file(&media_voice.id).await?;
@@ -284,8 +297,19 @@ pub async fn system_message(
     message_type: SystemMessage,
 ) -> anyhow::Result<()> {
     let introduction_msg = message_type.as_str().await?;
+    let reply_parameters = ReplyParameters {
+        message_id: msg.id,
+        chat_id: None,
+        allow_sending_without_reply: None,
+        quote: None,
+        quote_parse_mode: None,
+        quote_entities: None,
+        quote_position: None,
+    };
+    
+    info!("COMMON: Send system message");
     bot.send_message(msg.chat.id, introduction_msg)
-        .reply_to_message_id(msg.id.clone())
+        .reply_parameters(reply_parameters)
         .await?;
 
     Ok(())
@@ -370,9 +394,20 @@ pub async fn chat_gpt_conversation(
     if is_voice {
         create_speech(bot, user_final_question.as_str(), chat_id, app_state).await;
     } else {
+        let reply_parameters = ReplyParameters {
+            message_id: message.id,
+            chat_id: None,
+            allow_sending_without_reply: None,
+            quote: None,
+            quote_parse_mode: None,
+            quote_entities: None,
+            quote_position: None,
+        };
+
+        info!("COMMON: Send ANSWER");
         bot.send_message(ChatId(chat_id as i64), user_final_question)
             .parse_mode(ParseMode::Markdown)
-            .reply_to_message_id(message.id)
+            .reply_parameters(reply_parameters)
             .await?;
     }
 
@@ -399,6 +434,7 @@ async fn create_speech(bot: &Bot, text: &str, chat_id: u64, app_state: Arc<Jarvi
         }
         Err(err) => {
             error!("ERROR: {:?}", err);
+            info!("CMOMON: Send ERROR: {:?}", err);
             let _ = bot
                 .send_message(ChatId(chat_id as i64), err.to_string())
                 .await;

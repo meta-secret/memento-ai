@@ -77,7 +77,7 @@ pub async fn start(
         Update::filter_message()
             .branch(
                 dptree::filter_async(|msg: Message, app_state: Arc<JarvisAppState>| async move {
-                    has_role(&app_state.local_db, msg.from().clone(), &OWNER)
+                    has_role(&app_state.local_db, msg.from.as_ref().clone(), &OWNER)
                         .await
                         .unwrap_or(false)
                 })
@@ -85,7 +85,7 @@ pub async fn start(
             )
             .branch(
                 dptree::filter_async(|msg: Message, app_state: Arc<JarvisAppState>| async move {
-                    has_role(&app_state.local_db, msg.from().clone(), &MEMBER.to_string())
+                    has_role(&app_state.local_db, msg.from.as_ref().clone(), &MEMBER.to_string())
                         .await
                         .unwrap_or(false)
                 })
@@ -93,7 +93,7 @@ pub async fn start(
             )
             .branch(
                 dptree::filter(|msg: Message, _app_state: Arc<JarvisAppState>| {
-                    msg.from()
+                    msg.from
                         .map(|user| {
                             WHITELIST_MEMBERS
                                 .contains(&user.username.clone().unwrap_or_default().as_str())
