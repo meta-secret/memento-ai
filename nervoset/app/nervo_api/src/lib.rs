@@ -49,6 +49,7 @@ pub mod agent_type {
     pub const PROBIOT: &str = "probiot";
     pub const W3A: &str = "w3a";
     pub const LEO: &str = "leo";
+    pub const GROOT: &str = "groot";
 
     #[wasm_bindgen]
     #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -57,6 +58,7 @@ pub mod agent_type {
         Probiot,
         W3a,
         Leo,
+        Groot,
         None,
     }
 
@@ -71,6 +73,7 @@ pub mod agent_type {
                 PROBIOT => AgentType::Probiot,
                 W3A => AgentType::W3a,
                 LEO => AgentType::Leo,
+                GROOT => AgentType::Groot,
                 _ => AgentType::None,
             }
         }
@@ -80,6 +83,7 @@ pub mod agent_type {
                 AgentType::Probiot => String::from(PROBIOT),
                 AgentType::W3a => String::from(W3A),
                 AgentType::Leo => String::from(LEO),
+                AgentType::Groot => String::from(GROOT),
                 AgentType::None => String::from(""),
             }
         }

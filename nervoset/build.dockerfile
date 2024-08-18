@@ -28,6 +28,7 @@ RUN cargo build --release
 FROM ubuntu:24.04
 
 ARG APP_NAME
+
 WORKDIR /nervoset/app/${APP_NAME}
 
 # Install ca-certificates https://github.com/telegram-rs/telegram-bot/issues/236
@@ -37,7 +38,7 @@ RUN apt-get update \
     && apt-get install -y sqlite3
 
 COPY dataset/ /nervoset/dataset
-COPY app/${APP_NAME}/resources /nervoset/app/${APP_NAME}/resources
+COPY app/resources /nervoset/app/resources
 COPY --from=builder /nervoset/app/target/release/${APP_NAME} /nervoset/app/${APP_NAME}/${APP_NAME}
 
 CMD ["./${APP_NAME}"]

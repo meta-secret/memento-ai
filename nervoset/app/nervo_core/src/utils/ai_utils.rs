@@ -19,6 +19,8 @@ use nervo_api::{
     LlmMessageRole, SendMessageRequest,
 };
 
+pub const RESOURCES_DIR: &str = "../resources";
+
 //Common entry point for WEB and TG
 pub async fn llm_conversation(
     app_state: Arc<JarvisAppState>,
@@ -58,7 +60,8 @@ pub async fn llm_conversation(
         // Prepare System Role anf User question to ask a simple LLM
         let agent_type_name = NervoAgentType::get_name(agent_type);
         let resource_path = format!(
-            "resources/agent/{}/crap_request_system_role.txt",
+            "{}/agent/{}/crap_request_system_role.txt",
+            RESOURCES_DIR, 
             agent_type_name
         );
         let crap_system_role = std::fs::read_to_string(resource_path)?;
@@ -185,7 +188,8 @@ pub async fn get_all_search_layers(agent_type: AgentType) -> anyhow::Result<Qdra
     let agent_type_name = NervoAgentType::get_name(agent_type);
     info!("COMMON: get_all_search_layers: {:?}", agent_type_name);
     let resource_path = format!(
-        "resources/agent/{}/vectorisation_roles.json",
+        "{}/agent/{}/vectorisation_roles.json",
+        RESOURCES_DIR,
         agent_type_name
     );
     let json_string = fs::read_to_string(resource_path).await?;
@@ -383,7 +387,6 @@ mod test {
     use std::collections::HashMap;
 
     use qdrant_client::qdrant::ScoredPoint;
-
     use crate::utils::ai_utils::{concatenate_results, update_search_content};
 
     #[test]

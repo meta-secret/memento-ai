@@ -57,6 +57,7 @@ pub async fn start_jarvis(agent_type: AgentType) -> anyhow::Result<()> {
         AgentType::Probiot => nervo_config.telegram.agent.probiot,
         AgentType::W3a => nervo_config.telegram.agent.w3a,
         AgentType::Leo => nervo_config.telegram.agent.leo,
+        AgentType::Groot => nervo_config.telegram.agent.groot,
         AgentType::None => bail!("Unknown Agent Type"),
     };
 

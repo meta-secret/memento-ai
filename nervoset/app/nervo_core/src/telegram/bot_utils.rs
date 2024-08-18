@@ -2,7 +2,7 @@ use crate::config::jarvis::JarvisAppState;
 use crate::models::nervo_message_model::TelegramMessage;
 use crate::models::system_messages::SystemMessages;
 use crate::models::user_model::TelegramUser;
-use crate::utils::ai_utils::llm_conversation;
+use crate::utils::ai_utils::{llm_conversation, RESOURCES_DIR};
 use anyhow::bail;
 use chrono::Utc;
 use nervo_api::agent_type::{AgentType, NervoAgentType};
@@ -330,7 +330,7 @@ impl SystemMessage {
 
     pub async fn as_str(&self) -> anyhow::Result<String> {
         let agent = NervoAgentType::get_name(self.agent_type());
-        let system_msg_file = format!("resources/agent/{}/system_messages.json", agent);
+        let system_msg_file = format!("{}/agent/{}/system_messages.json", RESOURCES_DIR, agent);
 
         let json_string = fs::read_to_string(system_msg_file).await?;
         let system_messages_models: SystemMessages = serde_json::from_str(&json_string)?;

@@ -1,12 +1,11 @@
 use serde_derive::Deserialize;
 
 use crate::ai::nervo_llm::{NervoLlm, NervoLlmConfig};
-use crate::config::common::{DatabaseParams, TelegramBotParams};
+use crate::config::common::{DatabaseParams};
 use crate::db::local_db::LocalDb;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct GrootConfig {
-    pub telegram: TelegramBotParams,
     pub llm: NervoLlmConfig,
     pub database: DatabaseParams,
 }

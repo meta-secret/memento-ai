@@ -25,6 +25,7 @@ pub struct TelegramAgent {
     pub probiot: TelegramBotParams,
     pub w3a: TelegramBotParams,
     pub leo: TelegramBotParams,
+    pub groot: TelegramBotParams,
 }
 
 #[derive(Debug, Clone, Deserialize)]
