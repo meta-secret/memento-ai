@@ -1,9 +1,9 @@
-use std::fmt::Display;
 use sha2::{Digest, Sha256};
+use std::fmt::Display;
 use uuid::Uuid;
 
 pub struct UuidGenerator {
-    uuid: Uuid
+    uuid: Uuid,
 }
 
 impl From<&str> for UuidGenerator {

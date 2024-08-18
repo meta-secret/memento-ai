@@ -7,9 +7,8 @@ use async_openai::types::Embedding;
 use nervo_api::agent_type::{AgentType, NervoAgentType};
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::{
-    CreateCollection, DeletePointsBuilder, Distance, GetPointsBuilder,
-    GetResponse, PointStruct, SearchParamsBuilder,
-    SearchPointsBuilder, UpsertPointsBuilder,
+    CreateCollection, DeletePointsBuilder, Distance, GetPointsBuilder, GetResponse, PointStruct,
+    SearchParamsBuilder, SearchPointsBuilder, UpsertPointsBuilder,
 };
 use qdrant_client::qdrant::{SearchResponse, VectorParams, VectorsConfig};
 use qdrant_client::Payload;
@@ -37,14 +36,18 @@ impl QdrantDb {
 }
 
 impl QdrantDb {
-
     pub async fn save_text(&self, agent_type: AgentType, text: &str) -> Result<()> {
         let maybe_vec_data = self.nervo_llm.text_to_embeddings(text).await?;
-        
+
         self.save(agent_type, text, maybe_vec_data.unwrap()).await
     }
-    
-    pub async fn save(&self, agent_type: AgentType, text: &str, embedding: Embedding) -> Result<()> {
+
+    pub async fn save(
+        &self,
+        agent_type: AgentType,
+        text: &str,
+        embedding: Embedding,
+    ) -> Result<()> {
         let collection_name = NervoAgentType::get_name(agent_type);
 
         let col_exists = self

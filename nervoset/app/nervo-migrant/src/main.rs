@@ -7,12 +7,15 @@ use nervo_bot_core::config::common::NervoConfig;
 use nervo_bot_core::config::jarvis::JarvisAppState;
 use std::fs::File;
 use std::io::BufWriter;
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::fs;
 use tracing::{info, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 use clap::{Parser, Subcommand};
+use futures::future::BoxFuture;
+use futures::FutureExt;
 use nervo_api::agent_type::{AgentType, NervoAgentType};
 use nervo_bot_core::utils::cryptography::UuidGenerator;
 use tokio::time::Instant;
@@ -93,7 +96,7 @@ async fn initial_setup() -> anyhow::Result<Arc<JarvisAppState>> {
 }
 
 async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<MigrationPlan>> {
-    info!("Start collecting all jsons ant paths");
+    info!("Start collecting all jsons and paths");
     let mut result_vec: Vec<MigrationPlan> = vec![];
 
     let mut dir_entries = fs::read_dir(&dataset_path).await?;
@@ -114,31 +117,11 @@ async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<Migra
             bail!("Empty app name")
         }
 
-        let mut data_models = vec![];
-
-        if app_path.is_dir() {
-            let mut app_dir_entries = fs::read_dir(&app_path).await?;
-            while let Some(app_dir_entry) = app_dir_entries.next_entry().await? {
-                let app_path_dataset = app_dir_entry.path();
-
-                let mut subdir_entries = fs::read_dir(&app_path_dataset).await?;
-                while let Some(file_entry) = subdir_entries.next_entry().await? {
-                    let file_path = file_entry.path();
-
-                    if file_path.extension().and_then(|s| s.to_str()) == Some("json") {
-                        let json_content = fs::read_to_string(&file_path).await?;
-                        let migration_model: MigrationModel =
-                            serde_json::from_str(json_content.as_str())?;
-                        let migration_data_model = MigrationMetaData {
-                            json_path: file_path,
-                            migration_model,
-                        };
-
-                        data_models.push(migration_data_model);
-                    }
-                }
-            }
-        }
+        let data_models = if app_path.is_dir() {
+            find_json_files(app_path).await?
+        } else {
+            vec![]
+        };
 
         let migration_config = MigrationPlan {
             agent_type,
@@ -149,6 +132,36 @@ async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<Migra
     }
 
     Ok(result_vec)
+}
+
+fn find_json_files(
+    dir_path: PathBuf,
+) -> BoxFuture<'static, anyhow::Result<Vec<MigrationMetaData>>> {
+    async move {
+        let mut data_models = vec![];
+        let mut dir_entries = fs::read_dir(&dir_path).await?;
+
+        while let Some(entry) = dir_entries.next_entry().await? {
+            let path = entry.path();
+
+            if path.is_dir() {
+                let mut nested_data_models = find_json_files(path).await?;
+                data_models.append(&mut nested_data_models);
+            } else if path.extension().and_then(|s| s.to_str()) == Some("json") {
+                let json_content = fs::read_to_string(&path).await?;
+                let migration_model: MigrationModel = serde_json::from_str(&json_content)?;
+                let migration_data_model = MigrationMetaData {
+                    json_path: path,
+                    migration_model,
+                };
+
+                data_models.push(migration_data_model);
+            }
+        }
+
+        Ok(data_models)
+    }
+    .boxed()
 }
 
 async fn migrate_qdrant_db(
@@ -204,7 +217,9 @@ async fn delete_action(
     for delete_item in migration_model.delete.iter() {
         let qdrant_db = &app_state.nervo_ai_db.qdrant;
 
-        let id = delete_item.id.as_ref()
+        let id = delete_item
+            .id
+            .as_ref()
             .map(|id_val| Uuid::parse_str(id_val.as_str()))
             .unwrap()?;
 
