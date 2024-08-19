@@ -33,14 +33,14 @@ enum JarvisOwnerCommands {
     GetWhiteListMembers,
 }
 
-pub async fn permission_restricted(bot: Bot, msg: Message) -> Result<()> {
-    bot.send_message(
-        msg.chat.id,
-        "сорян, я пока не работаю, приходите через 2 мес.",
-    )
-    .await?;
-    Ok(())
-}
+// pub async fn permission_restricted(bot: Bot, msg: Message) -> Result<()> {
+//     bot.send_message(
+//         msg.chat.id,
+//         "сорян, я пока не работаю, приходите через 2 мес.",
+//     )
+//     .await?;
+//     Ok(())
+// }
 
 static WHITELIST_MEMBERS: [&str; 0] = [
     // "afazulzyanov",
@@ -67,42 +67,11 @@ pub async fn start(
 
         let msg_handler = Update::filter_message().endpoint(chat);
 
-        let authorized_user_handler = Update::filter_message()
-            .branch(cmd_handler)
-            .branch(msg_handler);
-
-        let permission_restricted_handler =
-            Update::filter_message().endpoint(permission_restricted);
-
         Update::filter_message()
-            .branch(
-                dptree::filter_async(|msg: Message, app_state: Arc<JarvisAppState>| async move {
-                    has_role(&app_state.local_db, msg.from.as_ref().clone(), &OWNER)
-                        .await
-                        .unwrap_or(false)
-                })
-                .chain(owner_handler),
-            )
-            .branch(
-                dptree::filter_async(|msg: Message, app_state: Arc<JarvisAppState>| async move {
-                    has_role(&app_state.local_db, msg.from.as_ref().clone(), &MEMBER.to_string())
-                        .await
-                        .unwrap_or(false)
-                })
-                .chain(authorized_user_handler.clone()),
-            )
-            .branch(
-                dptree::filter(|msg: Message, _app_state: Arc<JarvisAppState>| {
-                    msg.from
-                        .map(|user| {
-                            WHITELIST_MEMBERS
-                                .contains(&user.username.clone().unwrap_or_default().as_str())
-                        })
-                        .unwrap_or(false)
-                })
-                .chain(authorized_user_handler),
-            )
-            .branch(permission_restricted_handler)
+            .branch(owner_handler)
+            .branch(cmd_handler)
+            .branch(msg_handler)
+
     };
 
     Dispatcher::builder(bot, handler)
