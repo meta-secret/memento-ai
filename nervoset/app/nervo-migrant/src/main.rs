@@ -114,6 +114,9 @@ async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<Migra
         let agent_type = NervoAgentType::try_from(app_name_str);
 
         if agent_type == AgentType::None {
+            info!("agent_type: {:?}", agent_type);
+            info!("app_name_str: {}", app_name_str);
+            info!("app_path: {:?}", app_path);
             bail!("Empty app name")
         }
 
