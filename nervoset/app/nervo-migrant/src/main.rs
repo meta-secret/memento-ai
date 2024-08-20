@@ -7,11 +7,13 @@ use nervo_bot_core::config::common::NervoConfig;
 use nervo_bot_core::config::jarvis::JarvisAppState;
 use std::fs::File;
 use std::io::BufWriter;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::fs;
 use tracing::{info, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
+
+use enum_iterator::all;
 
 use clap::{Parser, Subcommand};
 use futures::future::BoxFuture;
@@ -68,7 +70,7 @@ async fn main() -> anyhow::Result<()> {
             // - update json files with embeddings
             // - commit and push changes to GitHub (manually)
             info!("Dataset preparation has been started");
-            let migration_plan = collect_jsons_content("../../dataset".to_string()).await?;
+            let migration_plan = collect_jsons_content("../../dataset").await?;
             enrich_datasets_with_embeddings(app_state, migration_plan).await?;
             info!("Dataset preparation step has been finished");
         }
@@ -77,7 +79,7 @@ async fn main() -> anyhow::Result<()> {
 
             // Update qdrant collection (remove old records in qdrant if needed)
             info!("Migration preparation has been started");
-            let migration_plan = collect_jsons_content("../../dataset".to_string()).await?;
+            let migration_plan = collect_jsons_content("../../dataset").await?;
             migrate_qdrant_db(migration_plan, app_state).await?;
 
             let duration = start.elapsed();
@@ -95,33 +97,31 @@ async fn initial_setup() -> anyhow::Result<Arc<JarvisAppState>> {
     Ok(app_state)
 }
 
-async fn collect_jsons_content(dataset_path: String) -> anyhow::Result<Vec<MigrationPlan>> {
+async fn collect_jsons_content(dataset_path: &str) -> anyhow::Result<Vec<MigrationPlan>> {
     info!("Start collecting all jsons and paths");
     let mut result_vec: Vec<MigrationPlan> = vec![];
 
-    let mut dir_entries = fs::read_dir(&dataset_path).await?;
-    while let Some(entry) = dir_entries.next_entry().await? {
-        let app_path = entry.path();
+    let all_agents = all::<AgentType>().collect::<Vec<_>>();
 
-        let Some(file_name) = app_path.file_name() else {
-            bail!("Invalid dataset project structure")
-        };
-
-        let Some(app_name_str) = file_name.to_str() else {
-            bail!("Invalid app name")
-        };
-
-        let agent_type = NervoAgentType::try_from(app_name_str);
-
+    for agent_type in all_agents {
         if agent_type == AgentType::None {
-            info!("agent_type: {:?}", agent_type);
-            info!("app_name_str: {}", app_name_str);
-            info!("app_path: {:?}", app_path);
-            bail!("Empty app name")
+            //skip empty app
+            continue;
         }
 
-        let data_models = if app_path.is_dir() {
-            find_json_files(app_path).await?
+        let agent_path_str = [dataset_path, "/", NervoAgentType::get_name(agent_type).as_str()].concat();
+        let agent_path = Path::new(agent_path_str.as_str());
+        if !agent_path.exists() {
+            info!("No dataset for agent: {:?}", agent_type);
+            continue;
+        }
+
+        let mut agent_path = agent_path.to_path_buf();
+
+        info!("Found agent: {:?}", agent_path);
+
+        let data_models = if agent_path.is_dir() {
+            find_json_files(agent_path).await?
         } else {
             vec![]
         };
@@ -164,7 +164,7 @@ fn find_json_files(
 
         Ok(data_models)
     }
-    .boxed()
+        .boxed()
 }
 
 async fn migrate_qdrant_db(
@@ -186,7 +186,7 @@ async fn migrate_qdrant_db(
                 migration_plan.agent_type,
                 app_state.clone(),
             )
-            .await?;
+                .await?;
 
             let data_sample = migration_model.clone().create;
             let id = data_sample.id.unwrap();
@@ -295,14 +295,14 @@ mod test {
 
     #[tokio::test]
     async fn test_collect_jsons_content() -> anyhow::Result<()> {
-        let jsons_content = collect_jsons_content("../../dataset".to_string()).await?;
+        let jsons_content = collect_jsons_content("../../dataset").await?;
         assert_eq!(jsons_content.len(), 3);
         Ok(())
     }
 
     #[tokio::test]
     async fn test_collect_jsons_content_one() -> anyhow::Result<()> {
-        let jsons_content = collect_jsons_content("../../dataset".to_string()).await?;
+        let jsons_content = collect_jsons_content("../../dataset").await?;
         let apps: Vec<AgentType> = jsons_content.iter().map(|plan| plan.agent_type).collect();
 
         assert!(apps.contains(&AgentType::Probiot));

@@ -43,6 +43,7 @@ pub mod app_type {
 }
 
 pub mod agent_type {
+    use enum_iterator::Sequence;
     use serde_derive::{Deserialize, Serialize};
     use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -53,7 +54,7 @@ pub mod agent_type {
     pub const NERVOZNYAK: &str = "nervoznyak";
 
     #[wasm_bindgen]
-    #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Sequence)]
     #[serde(rename_all = "camelCase")]
     pub enum AgentType {
         Probiot,

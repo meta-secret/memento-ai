@@ -16,6 +16,7 @@ members = [
 # Error handling
 thiserror = "1.0"
 anyhow = "1.0"
+enum-iterator = "2.1.0"
 
 config = { version = "0.14", features = ["yaml"] }
 clap = { version = "4.5.15", features = ["derive"] }

@@ -22,4 +22,4 @@ nervoset/app/nervo-migrant/Cargo.lock
 /app/jaison/.env
 /app/nervo-migrant/config.yaml
 
-/dataset/.DS_Store
+/**/.DS_Store

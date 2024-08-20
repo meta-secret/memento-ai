@@ -45,3 +45,5 @@ build
 k8s/groot/kcl.mod.lock
 
 **/.kclvm
+
+/**/.DS_Store

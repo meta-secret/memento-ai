@@ -10,6 +10,7 @@ nervo-core = { path = "../nervo_core" }
 nervo-api = { path = "../nervo_api" }
 
 anyhow.workspace = true
+enum-iterator.workspace = true
 
 tokio.workspace = true
 
