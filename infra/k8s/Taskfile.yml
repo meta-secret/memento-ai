@@ -23,6 +23,16 @@ includes:
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
+  nervoznyak:
+    taskfile: app.task.yml
+    dir: nervoznyak
+    vars:
+      K8S_APP_NAME: 'nervoznyak'
+      APP_NAME: 'jarvis'
+      CONFIGS: statefulset.k
+      IMAGE_NAME:
+        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+
   groot:
     taskfile: app.task.yml
     dir: groot
@@ -52,7 +62,6 @@ includes:
       CONFIGS: job.k
       IMAGE_NAME:
         sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
-
 
 tasks:
   default:
