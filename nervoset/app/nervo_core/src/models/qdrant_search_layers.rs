@@ -5,7 +5,8 @@ use serde_derive::{Deserialize, Serialize};
 pub struct QdrantSearchInfo {
     pub crap_detecting_layer: QdrantSearchLayer,
     pub layers: Vec<QdrantSearchLayer>,
-    pub info_message: String,
+    pub info_message_1: String,
+    pub info_message_2: String
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

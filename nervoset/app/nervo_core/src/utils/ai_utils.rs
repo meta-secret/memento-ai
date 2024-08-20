@@ -341,8 +341,13 @@ async fn openai_chat_preparations(
             cached_messages.push(content_message.clone());
         }
     }
+    
+    if cached_messages.len() % 3 == 0 {
+        rephrased_prompt.push_str(&all_layers_data.info_message_1);
+    };
+
     if cached_messages.len() % 5 == 0 {
-        rephrased_prompt.push_str(&all_layers_data.info_message);
+        rephrased_prompt.push_str(&all_layers_data.info_message_2);
     };
 
     Ok(rephrased_prompt)
@@ -361,8 +366,11 @@ fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyh
     );
     if tokens.len() > token_limit {
         tokens.truncate(token_limit);
-        Ok(tokens.join(""))
+        let truncated = tokens.join("");
+        info!("Truncated search_result: {}", truncated);
+        Ok(truncated)
     } else {
+        info!("Concatenated_texts (non-truncated): {}", concatenated_texts);
         Ok(concatenated_texts)
     }
     //info!("COMMON: search content result: {}", search_content);
