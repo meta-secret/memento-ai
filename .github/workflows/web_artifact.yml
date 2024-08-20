@@ -93,7 +93,7 @@ jobs:
       - name: Build nervo-web for nervoznyak
         working-directory: nervoset
         run: |
-          devbox run task nervo_web_build AGENT_TYPE=nervoznyak
+          devbox run task build_nervo_web_component AGENT_TYPE=nervoznyak
 
       - name: Deploy nervo-web-nervoznyak on cloudflare pages
         uses: cloudflare/pages-action@1
