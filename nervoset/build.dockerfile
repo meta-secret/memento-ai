@@ -37,6 +37,8 @@ RUN apt-get update \
     && update-ca-certificates \
     && apt-get install -y sqlite3
 
+# Do not EVEN THINK to remove it!!! It's used in kubernetes
+RUN mkdir data
 COPY dataset/ /nervoset/dataset
 COPY app/resources /nervoset/app/resources
 COPY --from=builder /nervoset/app/target/release/${APP_NAME} /nervoset/app/${APP_NAME}/${APP_NAME}

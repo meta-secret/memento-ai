@@ -88,3 +88,18 @@ jobs:
           projectName: nervo-web-w3a
           directory: nervoset/nervo-web/dist/app
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      ### Nervoznyak Deployment ###
+      - name: Build nervo-web for nervoznyak
+        working-directory: nervoset
+        run: |
+          devbox run task nervo_web_build AGENT_TYPE=nervoznyak
+
+      - name: Deploy nervo-web-nervoznyak on cloudflare pages
+        uses: cloudflare/pages-action@1
+        with:
+          apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
+          accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
+          projectName: nervo-web-nervoznyak
+          directory: nervoset/nervo-web/dist/app
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
