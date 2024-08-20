@@ -1,9 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetpack-io/devbox/0.10.3/.schema/devbox.schema.json",
   "packages": [
-    "k3d@5.6.0",
-    "kubernetes-helm@3.14.3",
-    "kubectl@1.29.3",
+    "k3d@5.7.3",
+    "kubernetes-helm@3.15.4",
+    "kubectl@1.30.2",
     "kcl-cli@0.8.9",
 
     "go-task@3.37.2",
@@ -14,7 +14,8 @@
 
     "jq@1.7.1",
     "coreutils@9.4",
-    "gawk@5.2.2"
+    "gawk@5.2.2",
+    "python@3.12.4"
   ],
   "shell": {
     "init_hook": [

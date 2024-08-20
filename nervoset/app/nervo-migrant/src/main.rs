@@ -1,6 +1,6 @@
 mod models;
 
-use crate::models::migration_model::{DataSample, MigrationModel, VectorData};
+use crate::models::migration_model::{MigrationModel, VectorData};
 use crate::models::migration_path_model::{MigrationMetaData, MigrationPlan};
 use anyhow::bail;
 use nervo_bot_core::config::common::NervoConfig;
@@ -293,7 +293,7 @@ mod test {
     #[tokio::test]
     async fn test_collect_jsons_content() -> anyhow::Result<()> {
         let jsons_content = collect_jsons_content("../../dataset".to_string()).await?;
-        assert_eq!(jsons_content.len(), 2);
+        assert_eq!(jsons_content.len(), 3);
         Ok(())
     }
 
@@ -304,6 +304,7 @@ mod test {
 
         assert!(apps.contains(&AgentType::Probiot));
         assert!(apps.contains(&AgentType::W3a));
+        assert!(apps.contains(&AgentType::Nervoznyak));
 
         Ok(())
     }

@@ -50,6 +50,7 @@ pub mod agent_type {
     pub const W3A: &str = "w3a";
     pub const LEO: &str = "leo";
     pub const GROOT: &str = "groot";
+    pub const NERVOZNYAK: &str = "nervoznyak";
 
     #[wasm_bindgen]
     #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,6 +60,7 @@ pub mod agent_type {
         W3a,
         Leo,
         Groot,
+        Nervoznyak,
         None,
     }
 
@@ -74,6 +76,7 @@ pub mod agent_type {
                 W3A => AgentType::W3a,
                 LEO => AgentType::Leo,
                 GROOT => AgentType::Groot,
+                NERVOZNYAK => AgentType::Nervoznyak,
                 _ => AgentType::None,
             }
         }
@@ -84,6 +87,7 @@ pub mod agent_type {
                 AgentType::W3a => String::from(W3A),
                 AgentType::Leo => String::from(LEO),
                 AgentType::Groot => String::from(GROOT),
+                AgentType::Nervoznyak => String::from(NERVOZNYAK),
                 AgentType::None => String::from(""),
             }
         }

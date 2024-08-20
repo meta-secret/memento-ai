@@ -4,7 +4,6 @@ use std::sync::Arc;
 use crate::config::common::TelegramBotParams;
 use crate::config::jarvis::JarvisAppState;
 use crate::telegram::bot_utils::{chat, system_message, SystemMessage};
-use crate::telegram::roles_and_permissions::{has_role, MEMBER, OWNER};
 use anyhow::Result;
 use nervo_api::agent_type::AgentType;
 use teloxide::macros::BotCommands;
@@ -71,7 +70,6 @@ pub async fn start(
             .branch(owner_handler)
             .branch(cmd_handler)
             .branch(msg_handler)
-
     };
 
     Dispatcher::builder(bot, handler)

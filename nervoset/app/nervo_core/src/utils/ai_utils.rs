@@ -61,8 +61,7 @@ pub async fn llm_conversation(
         let agent_type_name = NervoAgentType::get_name(agent_type);
         let resource_path = format!(
             "{}/agent/{}/crap_request_system_role.txt",
-            RESOURCES_DIR, 
-            agent_type_name
+            RESOURCES_DIR, agent_type_name
         );
         let crap_system_role = std::fs::read_to_string(resource_path)?;
 
@@ -189,8 +188,7 @@ pub async fn get_all_search_layers(agent_type: AgentType) -> anyhow::Result<Qdra
     info!("COMMON: get_all_search_layers: {:?}", agent_type_name);
     let resource_path = format!(
         "{}/agent/{}/vectorisation_roles.json",
-        RESOURCES_DIR,
-        agent_type_name
+        RESOURCES_DIR, agent_type_name
     );
     let json_string = fs::read_to_string(resource_path).await?;
     let all_layers_data: QdrantSearchInfo = serde_json::from_str(&json_string)?;
@@ -386,8 +384,8 @@ fn concatenate_results(all_search_results: Vec<ScoredPoint>) -> anyhow::Result<S
 mod test {
     use std::collections::HashMap;
 
-    use qdrant_client::qdrant::ScoredPoint;
     use crate::utils::ai_utils::{concatenate_results, update_search_content};
+    use qdrant_client::qdrant::ScoredPoint;
 
     #[test]
     fn test_update_search_content() -> anyhow::Result<()> {

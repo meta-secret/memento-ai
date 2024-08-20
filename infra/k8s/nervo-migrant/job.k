@@ -1,5 +1,4 @@
 import .common
-import .pvc
 
 apiVersion = "batch/v1"
 kind = "Job"
@@ -46,12 +45,6 @@ spec = {
                 }
             ]
             volumes = [
-                {
-                    name = common.volumeName
-                    persistentVolumeClaim = {
-                        claimName = pvc.metadata.name
-                    }
-                }
                 {
                     name = "config"
                     configMap = {

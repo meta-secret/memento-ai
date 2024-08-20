@@ -1,6 +1,5 @@
 use nervo_bot_core::telegram::jarvis;
 
-use anyhow::bail;
 use std::sync::Arc;
 
 use clap::Parser;
@@ -53,13 +52,7 @@ pub async fn start_jarvis(agent_type: AgentType) -> anyhow::Result<()> {
     let nervo_config = NervoConfig::load()?;
     let app_state = Arc::from(JarvisAppState::try_from(nervo_config.apps.jarvis)?);
 
-    let telegram_params = match agent_type {
-        AgentType::Probiot => nervo_config.telegram.agent.probiot,
-        AgentType::W3a => nervo_config.telegram.agent.w3a,
-        AgentType::Leo => nervo_config.telegram.agent.leo,
-        AgentType::Groot => nervo_config.telegram.agent.groot,
-        AgentType::None => bail!("Unknown Agent Type"),
-    };
+    let telegram_params = nervo_config.telegram.agent_params(agent_type)?;
 
     jarvis::start(telegram_params, app_state, agent_type).await?;
 

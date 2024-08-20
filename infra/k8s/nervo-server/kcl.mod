@@ -1,5 +1,5 @@
 [package]
-name = "probiot_t1000"
+name = "nervo-server"
 edition = "v0.8.0"
 version = "0.0.1"
 

@@ -16,7 +16,9 @@ use std::sync::Arc;
 use teloxide::net::Download;
 use teloxide::prelude::ChatId;
 use teloxide::prelude::*;
-use teloxide::types::{ChatKind, File, FileMeta, InputFile, MediaKind, MessageKind, ParseMode, ReplyParameters, User};
+use teloxide::types::{
+    ChatKind, File, FileMeta, InputFile, MediaKind, MessageKind, ParseMode, ReplyParameters, User,
+};
 use teloxide::Bot;
 use tokio::fs;
 use tracing::{error, info};
@@ -227,7 +229,8 @@ impl<'a> MessageParser<'a> {
         };
 
         info!("COMMON: Generate audio message");
-        self.bot.send_message(
+        self.bot
+            .send_message(
                 self.msg.chat.id.clone(),
                 "Один момент, сейчас отвечу!".to_string(),
             )
@@ -306,7 +309,7 @@ pub async fn system_message(
         quote_entities: None,
         quote_position: None,
     };
-    
+
     info!("COMMON: Send system message");
     bot.send_message(msg.chat.id, introduction_msg)
         .reply_parameters(reply_parameters)

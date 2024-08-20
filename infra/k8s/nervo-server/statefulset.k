@@ -1,5 +1,4 @@
 import .common
-import .pvc
 
 apiVersion = "apps/v1"
 kind = "StatefulSet"
@@ -44,10 +43,6 @@ spec = {
                     ]
                     volumeMounts = [
                         {
-                            name = common.volumeName
-                            mountPath = "${common.appPath}/data"
-                        }
-                        {
                             name = "config"
                             mountPath = "${common.appPath}/config.yaml"
                             subPath = "config.yaml"
@@ -56,12 +51,6 @@ spec = {
                 }
             ]
             volumes = [
-                {
-                    name = common.volumeName
-                    persistentVolumeClaim = {
-                        claimName = pvc.metadata.name
-                    }
-                }
                 {
                     name = "config"
                     configMap = {

@@ -67,7 +67,7 @@ tasks:
           CLUSTER_NAME: '{{.K8S_CLUSTER_NAME}}'
 
       # setup persistent volume for k8s
-      - kubectl apply -f kube
+      #- kubectl apply -f kube
 
       # setup docker registry authentication in k8s
       - task: docker_registry:setup_docker_registry

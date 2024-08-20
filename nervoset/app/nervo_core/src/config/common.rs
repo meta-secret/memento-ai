@@ -1,7 +1,9 @@
+use anyhow::bail;
 use crate::config::groot::GrootConfig;
 use crate::config::jarvis::JarvisConfig;
 use config::Config as AppConfig;
 use serde::Deserialize;
+use nervo_api::agent_type::AgentType;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct NervoConfig {
@@ -20,12 +22,26 @@ pub struct TelegramConfig {
     pub agent: TelegramAgent,
 }
 
+impl TelegramConfig {
+    pub fn agent_params(self, agent_type: AgentType) -> anyhow::Result<TelegramBotParams> {
+        match agent_type {
+            AgentType::Probiot => Ok(self.agent.probiot),
+            AgentType::W3a => Ok(self.agent.w3a),
+            AgentType::Leo => Ok(self.agent.leo),
+            AgentType::Groot => Ok(self.agent.groot),
+            AgentType::Nervoznyak => Ok(self.agent.nervoznyak),
+            _ => bail!("Unknown agent type")
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct TelegramAgent {
     pub probiot: TelegramBotParams,
     pub w3a: TelegramBotParams,
     pub leo: TelegramBotParams,
     pub groot: TelegramBotParams,
+    pub nervoznyak: TelegramBotParams,
 }
 
 #[derive(Debug, Clone, Deserialize)]

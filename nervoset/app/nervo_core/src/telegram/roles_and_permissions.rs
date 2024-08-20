@@ -6,7 +6,7 @@ pub const SUPER_ADMIN: &str = "SUPERADMIN";
 pub const OWNER: &str = "OWNER";
 pub const MEMBER: &str = "MEMBER";
 
-async fn get_roles(local_db: &LocalDb, maybe_user: Option<&User>) -> Result<Vec<String>> {
+async fn _get_roles(local_db: &LocalDb, maybe_user: Option<&User>) -> Result<Vec<String>> {
     let Some(User { id, .. }) = maybe_user else {
         return Ok(Vec::new());
     };
@@ -14,8 +14,8 @@ async fn get_roles(local_db: &LocalDb, maybe_user: Option<&User>) -> Result<Vec<
     local_db.get_user_permissions_tg_id(id.0).await
 }
 
-pub async fn has_role(local_db: &LocalDb, user: Option<&User>, role: &str) -> Result<bool> {
-    let user_roles = get_roles(local_db, user).await?;
+pub async fn _has_role(local_db: &LocalDb, user: Option<&User>, role: &str) -> Result<bool> {
+    let user_roles = _get_roles(local_db, user).await?;
 
     let role_str = String::from(role);
     let super_admin_str = String::from(SUPER_ADMIN);
