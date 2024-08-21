@@ -3,6 +3,7 @@ version: '3'
 set: [pipefail]
 
 tasks:
+
   k8s_deploy:
     requires:
       vars:

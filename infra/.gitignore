@@ -1,26 +1,10 @@
 hazmat/tmp/
+
 deployment/tf/cluster/.terraform.lock.hcl
 deployment/tf/cluster/.terraform/
 deployment/tf/cluster/terraform.tfstate
 
-void-sentiel/target/
-void-sentiel/Cargo.lock
-
-provisioning/gh_bootstrap/.terraform.lock.hcl
-provisioning/gh_bootstrap/.terraform
-provisioning/gh_bootstrap/terraform.tfstate
-provisioning/gh_bootstrap/terraform.tfstate.backup
-
-provisioning/gh_bootstrap/tmp
-provisioning/provision/tmp
-provisioning/gh_bootstrap/.terraform.tfstate.lock.info
-
-deployment/.terraform.lock.hcl
-deployment/terraform.tfstate
 deployment/tmp
-deployment/.terraform.tfstate.lock.info
-deployment/terraform.tfstate.backup
-deployment/.terraform
 
 .devbox
 devbox.lock
@@ -28,21 +12,15 @@ tmp/
 deployment/docker-registry/.kclvm/
 /deployment/docker-registry/build/
 
-k8s/probiot-t1000/.kclvm
-k8s/probiot-t1000/build
-
-k8s/groot/.kclvm/
-k8s/groot/build
-
-k8s/nervo-server/.kclvm
-k8s/nervo-server/build
+k8s/*/.kclvm
+k8s/*/build
+k8s/*/kcl.mod.lock
 
 # Ignore Gradle project-specific cache directory
 .gradle
 
 # Ignore Gradle build output directory
 build
-k8s/groot/kcl.mod.lock
 
 **/.kclvm
 

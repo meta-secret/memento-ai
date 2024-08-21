@@ -12,6 +12,9 @@ RUN wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.
     && chmod +x /usr/local/bin/sccache
 ENV RUSTC_WRAPPER=sccache
 
+RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+RUN rustup component add rustfmt
+
 WORKDIR /nervoset/app
 
 # Build dependencies - this is the caching Docker layer!

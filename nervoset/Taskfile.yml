@@ -101,14 +101,25 @@ tasks:
     vars:
       NERVO_WASM_DIR: 'app/nervo_wasm'
       NERVO_WEB_DIR: 'nervo-web'
+      PWD:
+        sh: pwd
+      UID:
+        sh: id -u
+      GID:
+        sh: id -g
     cmds:
-      - cd {{.NERVO_WASM_DIR}} && wasm-pack build
-
       - rm -rf {{.NERVO_WEB_DIR}}/pkg
       - rm -rf {{.NERVO_WEB_DIR}}/dist
 
-      - mkdir -p {{.NERVO_WEB_DIR}}/pkg
-      - cp -r {{.NERVO_WASM_DIR}}/pkg {{.NERVO_WEB_DIR}}
+      - task: common:base_build
+
+      - |
+        docker run --rm \
+          -v {{.PWD}}/{{.NERVO_WEB_DIR}}/pkg:/nervoset/app/nervo_wasm/pkg \
+          --workdir /nervoset/app/nervo_wasm \
+          {{.BASE_IMAGE}} \
+          bash -c "chown -R {{.UID}}:{{.GID}} /nervoset/app/nervo_wasm/pkg && wasm-pack build"
+
       - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run build:app"
 
   nervo_web_run:

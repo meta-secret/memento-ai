@@ -116,7 +116,7 @@ async fn collect_jsons_content(dataset_path: &str) -> anyhow::Result<Vec<Migrati
             continue;
         }
 
-        let mut agent_path = agent_path.to_path_buf();
+        let agent_path = agent_path.to_path_buf();
 
         info!("Found agent: {:?}", agent_path);
 

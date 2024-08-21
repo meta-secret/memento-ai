@@ -85,5 +85,5 @@ tasks:
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v /usr/bin/docker:/usr/bin/docker \
           -v /usr/local/bin/k3d:/usr/local/bin/k3d \
-          ubuntu:latest \
-          bash
+          ghcr.io/k3d-io/k3d:5.7.3 \
+          cluster create kek

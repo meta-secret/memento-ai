@@ -12,14 +12,14 @@ app/nervo_core/Cargo.lock
 # Ignore Gradle build output directory
 build
 
-k8s/nervo-server/.kclvm
 nervo-web/package-lock.json
+nervo-web/pkg
 
 # Cargos
 nervoset/app/nervo-migrant/Cargo.lock
 
 
-/app/jaison/.env
-/app/nervo-migrant/config.yaml
+app/jaison/.env
+app/nervo-migrant/config.yaml
 
 /**/.DS_Store
