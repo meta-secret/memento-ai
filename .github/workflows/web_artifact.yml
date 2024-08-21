@@ -78,7 +78,7 @@ jobs:
       - name: Build nervo-web for w3a
         working-directory: nervoset
         run: |
-          devbox run task nervo_web_build AGENT_TYPE=w3a
+          devbox run task build_nervo_web_component AGENT_TYPE=w3a
 
       - name: Deploy nervo-web-w3a on cloudflare pages
         uses: cloudflare/pages-action@1
