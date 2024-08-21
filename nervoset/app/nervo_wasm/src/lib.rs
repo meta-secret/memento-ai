@@ -18,7 +18,7 @@ pub struct ApiUrl {
 impl ApiUrl {
     pub fn dev(port: u32) -> Self {
         ApiUrl {
-            url: "http://nervoset.metaelon.space",
+            url: "http://localhost",
             port,
         }
     }

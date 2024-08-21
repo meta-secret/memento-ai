@@ -110,6 +110,7 @@ tasks:
     cmds:
       - rm -rf {{.NERVO_WEB_DIR}}/pkg
       - rm -rf {{.NERVO_WEB_DIR}}/dist
+      - mkdir {{.NERVO_WEB_DIR}}/pkg
 
       - task: common:base_build
 
