@@ -234,9 +234,8 @@ interface HeaderProps {
     header: string;
     title: string;
     subtitle: string;
-    logoUrl: string;
 }
-const Header: React.FC<HeaderProps> = ({ header, title, subtitle, logoUrl }) => {
+const Header: React.FC<HeaderProps> = ({ header, title, subtitle}) => {
     return (
         <div className="flex w-full flex-col justify-between rounded-1xl bg-slate-50 p-8 text-slate-900 ring-slate-300 dark:bg-[#202228] dark:text-slate-200 dark:ring-slate-300/20 xl:p-10">
             <div className="flex items-center justify-between">
