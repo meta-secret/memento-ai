@@ -7,10 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        'source-code': ['Source Code Pro', 'monospace'],
+        'source-code': ['"Source Code Pro"', 'monospace'],
       },
     },
   },
   plugins: [],
 }
-
