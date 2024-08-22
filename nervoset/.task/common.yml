@@ -7,7 +7,7 @@ tasks:
   prepare_dependencies:
     internal: true
     vars:
-      CHEF_IMAGE_NAME: "lukemathwalker/cargo-chef:latest-rust-1.77-bookworm"
+      CHEF_IMAGE_NAME: "lukemathwalker/cargo-chef:latest-rust-1.80-bookworm"
     cmds:
       - mkdir -p target/chef
       - |-

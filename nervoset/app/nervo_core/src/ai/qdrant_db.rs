@@ -89,29 +89,40 @@ impl QdrantDb {
     pub async fn vector_search(
         &self,
         agent_type: AgentType,
-        search_text: String,
-        search_vectors_limit: u64,
+        embedding: Embedding,
+        limit: u64,
     ) -> Result<SearchResponse> {
         let collection_name = NervoAgentType::get_name(agent_type);
+        let builder = SearchPointsBuilder::new(
+            collection_name,
+            embedding.embedding,
+            limit,
+        )
+            .with_payload(true)
+            .params(SearchParamsBuilder::default().exact(true));
 
-        let maybe_vec_data = self.nervo_llm.text_to_embeddings(&search_text).await?;
+        let search_result = self.qdrant_client.search_points(builder).await?;
 
-        match maybe_vec_data {
+        Ok(search_result)
+    }
+    
+
+    pub async fn text_search(
+        &self,
+        agent_type: AgentType,
+        text: String,
+        search_vectors_limit: u64,
+    ) -> Result<SearchResponse> {
+        let maybe_embedding = self.nervo_llm
+            .text_to_embeddings(&text)
+            .await?;
+
+        match maybe_embedding {
             None => {
                 bail!("No embedding data found.");
             }
-            Some(vec_data) => {
-                let builder = SearchPointsBuilder::new(
-                    collection_name,
-                    vec_data.embedding.clone(),
-                    search_vectors_limit,
-                )
-                .with_payload(true)
-                .params(SearchParamsBuilder::default().exact(true));
-
-                let search_result = self.qdrant_client.search_points(builder).await?;
-
-                Ok(search_result)
+            Some(embedding) => {
+                self.vector_search(agent_type, embedding, search_vectors_limit).await
             }
         }
     }

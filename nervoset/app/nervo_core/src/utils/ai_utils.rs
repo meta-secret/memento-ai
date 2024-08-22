@@ -28,8 +28,9 @@ pub async fn llm_conversation(
     table_name: String,
     agent_type: AgentType,
 ) -> anyhow::Result<LlmMessage> {
-    let content = msg_request.llm_message.content.0.as_str();
-    let user_id = msg_request.llm_message.sender_id.to_string();
+    let msg = msg_request.llm_message;
+    let content = msg.content.0.as_str();
+    let user_id = msg.sender_id.to_string();
     info!("COMMON: content: {:?} and user_id: {:?}", &content, user_id);
 
     // First, detect the request type. Will we use Qdrant or a simple LLM going forward?
@@ -45,7 +46,7 @@ pub async fn llm_conversation(
     if initial_user_request == "SKIP" {
         let llm_user_message = LlmMessage {
             meta_info: LlmMessageMetaInfo {
-                sender_id: Some(msg_request.llm_message.sender_id),
+                sender_id: Some(msg.sender_id),
                 role: LlmMessageRole::User,
                 persistence: LlmMessagePersistence::Temporal,
             },
@@ -73,7 +74,7 @@ pub async fn llm_conversation(
 
         let request_to_llm = LlmMessage {
             meta_info: LlmMessageMetaInfo {
-                sender_id: Some(msg_request.llm_message.sender_id),
+                sender_id: Some(msg.sender_id),
                 role: LlmMessageRole::User,
                 persistence: LlmMessagePersistence::Temporal,
             },
@@ -105,7 +106,7 @@ pub async fn llm_conversation(
     } else {
         let llm_user_message = LlmMessage {
             meta_info: LlmMessageMetaInfo {
-                sender_id: Some(msg_request.llm_message.sender_id),
+                sender_id: Some(msg.sender_id),
                 role: LlmMessageRole::User,
                 persistence: LlmMessagePersistence::Persistent,
             },
@@ -291,7 +292,7 @@ async fn openai_chat_preparations(
             let mut all_search_results = vec![];
             let db_search_response = &app_state
                 .nervo_ai_db
-                .search(
+                .text_search(
                     agent_type,
                     rephrased_prompt.clone(),
                     processing_layer.vectors_limit,
