@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef, ChangeEvent, FormEvent, Component} from 'react';
 import {ApiUrl, LlmChat, LlmMessage, LlmMessageRole, NervoAgentType, NervoClient} from "nervo-wasm";
 import Cookies from 'js-cookie';
+import ReplyContent from "./components/reply-content.tsx";
 
 interface AppProps {
     header: string;
@@ -139,27 +140,6 @@ function App(props: AppProps) {
     );
 }
 
-interface ReplyContentProps {
-    text: string;
-}
-
-const ReplyContent: React.FC<ReplyContentProps> = ({text}) => {
-    return (
-        <div className="flex bg-slate-100 px-4 py-8 dark:bg-[#515666] sm:px-6">
-            <img
-                className="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
-                src="https://dummyimage.com/256x256/a3adcc/ffffff&text=A"
-                alt="Assistant Avatar"
-            />
-            <div className="flex w-full flex-col items-start lg:flex-row lg:justify-between">
-                <p className="max-w-3xl">
-                    {text}
-                </p>
-            </div>
-        </div>
-    );
-};
-
 interface RequestContentProps {
     text?: string;
 }
@@ -256,7 +236,7 @@ interface HeaderProps {
 }
 const Header: React.FC<HeaderProps> = ({header, title, subtitle}) => {
     return (
-        <div className="flex w-full max-w-md flex-col justify-between rounded-1xl bg-slate-50 p-8 text-slate-900 ring-1 ring-slate-300 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-300/20 xl:p-10">
+        <div className="flex w-full flex-col justify-between rounded-1xl bg-slate-50 p-8 text-slate-900 ring-1 ring-slate-300 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-300/20 xl:p-10">
             <div>
                 <div className="flex items-center justify-between gap-x-4">
                     <h5 id="tier-starter" className="text-sm font-semibold leading-1">{header}</h5>
