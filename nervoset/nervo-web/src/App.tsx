@@ -1,20 +1,33 @@
-import React, { useState, useEffect, useRef, ChangeEvent, FormEvent, Component } from 'react';
+import React, {useState, useEffect, useRef, ChangeEvent, FormEvent, Component} from 'react';
 import {ApiUrl, LlmChat, LlmMessage, LlmMessageRole, NervoAgentType, NervoClient} from "nervo-wasm";
 import Cookies from 'js-cookie';
 
-function App() {
+interface AppProps {
+    header: string;
+    title: string;
+    subtitle: string;
+}
+function App(props: AppProps) {
     const [conversation, setConversation] = useState<JSX.Element[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | boolean>(false);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const userId = getUserId();
     const chatId = getChatId();
-    
+
     let apiUrl = ApiUrl.prod();
-    if (import.meta.env.DEV) {
-        let serverPort: number = import.meta.env.VITE_SERVER_PORT;
-        console.log("port: " + serverPort);
+    let serverPort: number = import.meta.env.VITE_SERVER_PORT;
+    console.log("port: " + serverPort);
+    if (import.meta.env.MODE === "localDev") {
+        apiUrl = ApiUrl.local(serverPort);
+    }
+
+    if (import.meta.env.MODE === "dev") {
         apiUrl = ApiUrl.dev(serverPort);
+    }
+
+    if (import.meta.env.MODE === "prod") {
+        apiUrl = ApiUrl.prod();
     }
 
     //Need to use it to send to server
@@ -24,12 +37,16 @@ function App() {
     const nervoClient = NervoClient.new(apiUrl, agentType);
     nervoClient.configure();
 
-    useEffect(() => { fetchChat().catch(console.error); }, []);
+    useEffect(() => {
+        fetchChat().catch(console.error);
+    }, []);
 
-    useEffect(() => { scrollToBottom(); }, [conversation]);
+    useEffect(() => {
+        scrollToBottom();
+    }, [conversation]);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({behavior: "smooth"});
     };
 
     function getUserId() {
@@ -57,14 +74,14 @@ function App() {
 
             const conversationElements = chat.messages.map((message, index) => {
                 if (message.meta_info.role === LlmMessageRole.User) {
-                    return <RequestContent key={index} text={message.content.text()} />;
+                    return <RequestContent key={index} text={message.content.text()}/>;
                 } else if (message.meta_info.role === LlmMessageRole.Assistant) {
-                    return <ReplyContent key={index} text={message.content.text()} />;
+                    return <ReplyContent key={index} text={message.content.text()}/>;
                 } else {
                     return <ReplyContent key={index} text=""/>;
                 }
             });
-            
+
             setConversation(conversationElements);
 
         } catch (error) {
@@ -78,7 +95,7 @@ function App() {
     const handleSendMessage = async (messageText: string) => {
         setConversation(prevConversation => [
             ...prevConversation,
-            <RequestContent key={prevConversation.length} text={messageText} />
+            <RequestContent key={prevConversation.length} text={messageText}/>
         ]);
 
         try {
@@ -89,7 +106,7 @@ function App() {
                 let msg = responseMessage.content.text();
                 setConversation(prevConversation => [
                     ...prevConversation,
-                    <ReplyContent key={prevConversation.length} text={msg} />
+                    <ReplyContent key={prevConversation.length} text={msg}/>
                 ]);
             }
         } catch (error) {
@@ -109,14 +126,15 @@ function App() {
 
     return (
         <div className="flex h-[97vh] w-full flex-col">
+            <Header header={props.header} title={props.title} subtitle={props.subtitle}/>
             <div
                 className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-[#30333d] dark:text-slate-300 sm:text-base sm:leading-7"
             >
                 {conversation}
-                <div ref={messagesEndRef} />
+                <div ref={messagesEndRef}/>
             </div>
 
-            <MessagingPanel sendMessage={handleSendMessage} />
+            <MessagingPanel sendMessage={handleSendMessage}/>
         </div>
     );
 }
@@ -125,7 +143,7 @@ interface ReplyContentProps {
     text: string;
 }
 
-const ReplyContent: React.FC<ReplyContentProps> = ({ text }) => {
+const ReplyContent: React.FC<ReplyContentProps> = ({text}) => {
     return (
         <div className="flex bg-slate-100 px-4 py-8 dark:bg-[#515666] sm:px-6">
             <img
@@ -167,7 +185,7 @@ interface MessagingPanelProps {
     sendMessage: (messageText: string) => void;
 }
 
-const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
+const MessagingPanel: React.FC<MessagingPanelProps> = ({sendMessage}) => {
     const [messageText, setMessageText] = useState('');
 
     const handleMessageChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -228,6 +246,30 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
                 </button>
             </div>
         </form>
+    );
+};
+
+interface HeaderProps {
+    header: string;
+    title: string;
+    subtitle: string;
+}
+const Header: React.FC<HeaderProps> = ({header, title, subtitle}) => {
+    return (
+        <div className="flex w-full max-w-md flex-col justify-between rounded-1xl bg-slate-50 p-8 text-slate-900 ring-1 ring-slate-300 dark:bg-slate-900 dark:text-slate-200 dark:ring-slate-300/20 xl:p-10">
+            <div>
+                <div className="flex items-center justify-between gap-x-4">
+                    <h5 id="tier-starter" className="text-sm font-semibold leading-1">{header}</h5>
+                </div>
+                <p className="mt-2 flex items-baseline gap-x-1">
+                    <span className="text-2xl font-bold tracking-tight">{title}</span>
+                </p>
+                <p className="mt-2 flex items-baseline gap-x-1">
+                    <span
+                        className="text-sm font-semibold leading-1 text-slate-700 dark:text-slate-400">{subtitle}</span>
+                </p>
+            </div>
+        </div>
     );
 };
 

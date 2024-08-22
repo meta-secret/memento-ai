@@ -16,9 +16,15 @@ pub struct ApiUrl {
 
 #[wasm_bindgen]
 impl ApiUrl {
-    pub fn dev(port: u32) -> Self {
+    pub fn local(port: u32) -> Self {
         ApiUrl {
             url: "http://localhost",
+            port,
+        }
+    }
+    pub fn dev(port: u32) -> Self {
+        ApiUrl {
+            url: "http://nervoset.metaelon.space",
             port,
         }
     }

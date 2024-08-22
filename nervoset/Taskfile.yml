@@ -130,6 +130,15 @@ tasks:
         - AGENT_TYPE
     cmds:
       - task: nervo_web_build
+      - "cd nervo-web && VITE_SERVER_PORT={{.SERVER_PORT}} VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run local"
+
+  nervo_web_run_dev:
+    requires:
+      vars:
+        - SERVER_PORT
+        - AGENT_TYPE
+    cmds:
+      - task: nervo_web_build
       - "cd nervo-web && VITE_SERVER_PORT={{.SERVER_PORT}} VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run dev"
 
   test:
