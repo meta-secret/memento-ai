@@ -110,7 +110,7 @@ function App() {
     return (
         <div className="flex h-[97vh] w-full flex-col">
             <div
-                className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-slate-800 dark:text-slate-300 sm:text-base sm:leading-7"
+                className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-[#30333d] dark:text-slate-300 sm:text-base sm:leading-7"
             >
                 {conversation}
                 <div ref={messagesEndRef} />
@@ -127,10 +127,10 @@ interface ReplyContentProps {
 
 const ReplyContent: React.FC<ReplyContentProps> = ({ text }) => {
     return (
-        <div className="flex bg-slate-100 px-4 py-8 dark:bg-slate-900 sm:px-6">
+        <div className="flex bg-slate-100 px-4 py-8 dark:bg-[#515666] sm:px-6">
             <img
                 className="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
-                src="https://dummyimage.com/256x256/354ea1/ffffff&text=G"
+                src="https://dummyimage.com/256x256/a3adcc/ffffff&text=A"
                 alt="Assistant Avatar"
             />
             <div className="flex w-full flex-col items-start lg:flex-row lg:justify-between">
@@ -152,7 +152,7 @@ class RequestContent extends Component<RequestContentProps, any> {
             <div className="flex flex-row px-4 py-8 sm:px-6">
                 <img
                     className="mr-2 flex h-8 w-8 rounded-full sm:mr-4"
-                    src="https://dummyimage.com/256x256/363536/ffffff&text=U"
+                    src="https://dummyimage.com/256x256/202228/ffffff&text=U"
                     alt="User Avatar"
                 />
                 <div className="flex max-w-3xl items-center">
@@ -188,7 +188,7 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
             <div className="relative">
                 <button
                     type="button"
-                    className="absolute rounded-none inset-y-0 left-0 flex items-center pl-3 text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-500"
+                    className="absolute left-0 rounded-lg inset-y-0 flex items-center text-slate-500 hover:text-blue-500 dark:text-slate-400 dark:hover:text-blue-500"
                 >
                     <svg
                         aria-hidden="true"
@@ -215,14 +215,14 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
                     id="chat-input"
                     name="chat-input"
                     rows={1}
-                    className="block w-full resize-none border-none bg-slate-200 p-4 pl-16 pr-20 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-slate-700 dark:text-slate-200 dark:placeholder-slate-400 dark:focus:ring-blue-500 sm:text-base"
-                    placeholder="Enter your prompt"
+                    className="block w-full resize-none border-none bg-slate-200 p-4 pl-20 pr-18 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-[#202228] dark:text-slate-200 dark:placeholder-slate-400 dark:focus:ring-blue-500 sm:text-base"
+                    placeholder="Ask me anything"
                     value={messageText}
                     onChange={handleMessageChange}
                 />
                 <button
                     type="submit"
-                    className="absolute bottom-2 right-2.5 rounded-lg bg-blue-700 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 sm:text-base"
+                    className="absolute bottom-2 right-2.5 rounded-lg bg-[#929bb7] px-4 py-2 text-sm font-medium text-slate-200 hover:bg-[#7e87a2] focus:outline-none focus:ring-4 focus:ring-[#6a7390] dark:bg-[#929bb7] dark:hover:bg-[#7e87a2] dark:focus:ring-[#6a7390] sm:text-base"
                 >
                     Send <span className="sr-only">Send message</span>
                 </button>
