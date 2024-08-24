@@ -3,6 +3,7 @@ import {ApiUrl, LlmChat, LlmMessage, LlmMessageRole, NervoAgentType, NervoClient
 import Cookies from 'js-cookie';
 import ReplyContent from "./components/reply-content.tsx";
 import logo from '../public/nervoset_logo.png';
+import SlidingPanel from './components/sliding-panel.tsx';
 
 interface AppProps {
     header: string;
@@ -129,12 +130,15 @@ function App(props: AppProps) {
     return (
         <div className="flex h-[97vh] w-full flex-col">
             <Header header={props.header} title={props.title} subtitle={props.subtitle}/>
+
             <div
                 className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-[#30333d] dark:text-slate-300 sm:text-base sm:leading-7"
             >
                 {conversation}
                 <div ref={messagesEndRef}/>
             </div>
+
+            <SlidingPanel buttons={['Option A', 'Option B', 'Option C']} />
 
             <MessagingPanel sendMessage={handleSendMessage}/>
         </div>
@@ -221,7 +225,7 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({sendMessage}) => {
                 />
                 <button
                     type="submit"
-                    className="absolute bottom-2 right-2.5 rounded-lg bg-[#929bb7] px-4 py-2 text-sm font-medium text-slate-200 hover:bg-[#7e87a2] focus:outline-none focus:ring-4 focus:ring-[#6a7390] dark:bg-[#929bb7] dark:hover:bg-[#7e87a2] dark:focus:ring-[#6a7390] sm:text-base"
+                    className="absolute bottom-2 right-2.5 rounded-lg bg-[#929bb7] px-4 py-2 text-sm font-medium text-slate-100 hover:bg-[#7e87a2] focus:outline-none focus:ring-4 focus:ring-[#6a7390] dark:bg-[#929bb7] dark:hover:bg-[#7e87a2] dark:focus:ring-[#6a7390] sm:text-base"
                 >
                     Send <span className="sr-only">Send message</span>
                 </button>
