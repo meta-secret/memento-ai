@@ -2,12 +2,9 @@ version: '3'
 
 set: [pipefail]
 
-vars:
-  REGISTRY: 'cypherkitty'
-  REPOSITORY: 'nervoset'
-  APP_VERSION: '0.1'
-
 includes:
+  base_vas: ../nervoset/.task/base.vars.yml
+
   hazmat:
     taskfile: hazmat/Taskfile.yml
     dir: hazmat

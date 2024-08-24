@@ -14,6 +14,17 @@ includes:
 
 tasks:
 
+  encrypt:
+    requires:
+      vars:
+        - BASE_PATH
+        - KEY_NAME
+    cmds:
+      - task: crypto:encrypt
+        vars:
+          BASE_PATH: '{{.BASE_PATH}}'
+          KEY_NAME: '{{.KEY_NAME}}'
+
   get_prod_host:
     cmds:
       - task: crypto:decrypt

@@ -1,9 +1,20 @@
 version: '3'
 
+# Docker naming format for nervoset:
+#docker:
+#  registry:
+#    short_name: nervodocker
+#    long_name: docker.io/nervodocker
+#  repo:
+#    nervoset
+#  tags:
+#    - base_0.1
+#    - nervo-server_0.1
+#    - .....
+
 vars:
-  REGISTRY: 'cypherkitty'
+  REGISTRY: 'nervodocker'
   REPOSITORY: 'nervoset'
-
-  BASE_IMAGE: "cypherkitty/nervoset:base"
-
   APP_VERSION: '0.1'
+
+  BASE_IMAGE: "{{.REGISTRY}}/{{.REPOSITORY}}:nervo-base_{{.APP_VERSION}}"

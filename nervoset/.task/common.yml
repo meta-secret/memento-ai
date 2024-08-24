@@ -1,8 +1,5 @@
 version: '3'
 
-vars:
-  BASE_IMAGE: "cypherkitty/nervoset:base"
-
 tasks:
   prepare_dependencies:
     vars:
@@ -17,13 +14,15 @@ tasks:
           cargo chef prepare --recipe-path /app/recipe.json
 
   base_build:
-    internal: true
+
     cmds:
       - |
         docker buildx build \
-          --push \
+          --load \
           --cache-from type=registry,ref={{.BASE_IMAGE}} \
           --cache-to type=registry,ref={{.BASE_IMAGE}},mode=max \
           --tag {{.BASE_IMAGE}} \
           --file base.dockerfile \
           .
+        
+        docker push {{.BASE_IMAGE}}
