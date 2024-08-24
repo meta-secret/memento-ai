@@ -23,7 +23,7 @@ COPY app/recipe.json /nervoset/app/recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # Build application
-COPY app/ /nervoset/app
 COPY dataset/ /nervoset/dataset
+COPY app/ /nervoset/app
 
 RUN cargo build --release
