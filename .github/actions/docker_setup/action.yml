@@ -6,7 +6,7 @@ runs:
     - name: Enable docker
       uses: docker/setup-buildx-action@v3
 
-    - name: Login to Docker Hub
+    - name: Docker Login
       shell: bash
       working-directory: infra
       run: devbox run 'task deployment:docker_registry:docker_login'

@@ -3,8 +3,6 @@ devbox.lock
 
 target
 app/target
-app/Cargo.lock
-app/nervo_core/Cargo.lock
 
 # Ignore Gradle project-specific cache directory
 .gradle

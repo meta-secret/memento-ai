@@ -1,26 +1,37 @@
 version: '3'
 
 vars:
-  BASE_IMAGE: "nervoset/base:latest"
+  BASE_IMAGE: "cypherkitty/nervoset:base"
 
 tasks:
   prepare_dependencies:
-    internal: true
     vars:
       CHEF_IMAGE_NAME: "lukemathwalker/cargo-chef:latest-rust-1.80-bookworm"
     cmds:
-      - mkdir -p target/chef
       - |-
         docker run --rm \
           --user=$(id -u) \
           --workdir=/app \
           -v $(pwd)/app:/app \
-          -v $(pwd)/target/chef:/chef \
           {{.CHEF_IMAGE_NAME}} \
-          cargo chef prepare --recipe-path /chef/recipe.json
+          cargo chef prepare --recipe-path /app/recipe.json
 
   base_build:
     internal: true
     cmds:
-      - task: prepare_dependencies
-      - docker buildx build --tag {{.BASE_IMAGE}} --output type=docker --file base.dockerfile .
+      - |
+        docker buildx build \
+          --push \
+          --cache-from type=registry,ref={{.BASE_IMAGE}} \
+          --cache-to type=registry,ref={{.BASE_IMAGE}},mode=max \
+          --tag {{.BASE_IMAGE}} \
+          --output=type=docker \
+          --file base.dockerfile \
+          .
+
+  base_build_and_push:
+    internal: true
+    cmds:
+      - docker pull {{.BASE_IMAGE}}
+      - docker build --tag {{.BASE_IMAGE}} --file base.dockerfile .
+      - docker push {{.BASE_IMAGE}}

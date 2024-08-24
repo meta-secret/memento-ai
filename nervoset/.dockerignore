@@ -1,2 +1,10 @@
+.gitignore
+.gitattributes
+
 app/target/**
 app/Cargo.lock
+
+.devbox
+devbox.lock
+
+package-lock.json

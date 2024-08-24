@@ -14,8 +14,7 @@
 
     "jq@1.7.1",
     "coreutils@9.4",
-    "gawk@5.2.2",
-    "python@3.12.4"
+    "gawk@5.2.2"
   ],
   "shell": {
     "init_hook": [

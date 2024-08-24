@@ -4,6 +4,6 @@ vars:
   REGISTRY: 'cypherkitty'
   REPOSITORY: 'nervoset'
 
-  BASE_IMAGE: "nervoset/base:latest"
+  BASE_IMAGE: "cypherkitty/nervoset:base"
 
   APP_VERSION: '0.1'

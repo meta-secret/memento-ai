@@ -2,23 +2,24 @@
 # https://www.lpalmieri.com/posts/fast-rust-docker-builds/
 # https://github.com/LukeMathWalker/cargo-chef
 
-FROM lukemathwalker/cargo-chef:latest-rust-1.80-bookworm
-
-# Install sccache
-#RUN cargo install sccache too slooowww
-RUN wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz \
-    && tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz \
-    && mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache \
-    && chmod +x /usr/local/bin/sccache
-ENV RUSTC_WRAPPER=sccache
-
-RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-RUN rustup component add rustfmt
+FROM rust:1.80.1-bookworm
 
 WORKDIR /nervoset/app
 
+# Install sccache (cargo is too slow)
+#RUN cargo install sccache@0.8.1
+#ENV RUSTC_WRAPPER=sccache
+#RUN wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz \
+#    && tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz \
+#    && mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache \
+#    && chmod +x /usr/local/bin/sccache
+
+RUN cargo install wasm-pack
+RUN rustup component add rustfmt
+
 # Build dependencies - this is the caching Docker layer!
-COPY target/chef/recipe.json /nervoset/app/recipe.json
+RUN cargo install cargo-chef --locked
+COPY app/recipe.json /nervoset/app/recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # Build application
