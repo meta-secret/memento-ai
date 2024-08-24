@@ -25,13 +25,5 @@ tasks:
           --cache-from type=registry,ref={{.BASE_IMAGE}} \
           --cache-to type=registry,ref={{.BASE_IMAGE}},mode=max \
           --tag {{.BASE_IMAGE}} \
-          --output=type=docker \
           --file base.dockerfile \
           .
-
-  base_build_and_push:
-    internal: true
-    cmds:
-      - docker pull {{.BASE_IMAGE}}
-      - docker build --tag {{.BASE_IMAGE}} --file base.dockerfile .
-      - docker push {{.BASE_IMAGE}}
