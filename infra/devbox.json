@@ -9,11 +9,7 @@
     "go-task@3.37.2",
 
     "age@1.1.1",
-    "gnupg@2.4.5",
-
-    "jq@1.7.1",
-    "coreutils@9.4",
-    "gawk@5.2.2"
+    "gnupg@2.4.5"
   ],
   "shell": {
     "init_hook": [

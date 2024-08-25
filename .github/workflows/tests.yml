@@ -32,17 +32,6 @@ jobs:
 
     - uses: ./.github/actions/docker_setup
 
-    #- name: Docker images cache
-    #  uses: docker/build-push-action@v6
-    #  with:
-    #    context: ./nervoset
-    #    file: ./nervoset/base.dockerfile
-    #    cache-from: type=gha
-    #    cache-to: type=gha,mode=max
-    #    load: true
-        #cache-from: type=registry,ref=docker.io/cypherkitty/nervoset:base
-        #cache-to: type=registry,ref=docker.io/cypherkitty/nervoset:base,mode=max
-
     - name: Run tests
       working-directory: nervoset
       run: devbox run task test

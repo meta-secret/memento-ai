@@ -76,23 +76,6 @@ tasks:
     cmds:
       - echo {{if eq .INFRA "prod"}}{{.IMG_NAME_PROD}}{{else}}{{.IMG_NAME_DEV}}{{end}}
 
-  build_nervo_web_component:
-    requires:
-      vars:
-        - AGENT_TYPE
-    vars:
-      NERVO_WASM_DIR: 'app/nervo_wasm'
-      NERVO_WEB_DIR: 'nervo-web'
-    cmds:
-      - cd {{.NERVO_WASM_DIR}} && wasm-pack build
-
-      - rm -rf {{.NERVO_WEB_DIR}}/pkg
-      - rm -rf {{.NERVO_WEB_DIR}}/dist
-
-      - mkdir -p {{.NERVO_WEB_DIR}}/pkg
-      - cp -r {{.NERVO_WASM_DIR}}/pkg {{.NERVO_WEB_DIR}}
-      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run build:lib"
-
   nervo_web_build:
     requires:
       vars:
@@ -120,7 +103,8 @@ tasks:
           {{.BASE_IMAGE}} \
           bash -c "chown -R {{.UID}}:{{.GID}} /nervoset/app/nervo_wasm/pkg && wasm-pack build"
 
-      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run build:app"
+      # Build nervo-web app and lib
+      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run build:app && npm run build:lib"
 
   nervo_web_run:
     requires:

@@ -19,10 +19,9 @@ tasks:
       - |
         docker buildx build \
           --load \
+          --push \
           --cache-from type=registry,ref={{.BASE_IMAGE}} \
           --cache-to type=registry,ref={{.BASE_IMAGE}},mode=max \
           --tag {{.BASE_IMAGE}} \
           --file base.dockerfile \
           .
-        
-        docker push {{.BASE_IMAGE}}
