@@ -1,9 +1,13 @@
-use log::info;
+use pulldown_cmark::{html, Parser};
 use nervo_api::agent_type::AgentType;
-use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, SendMessageRequest, UserLlmMessage};
+use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest, UserLlmMessage};
 use reqwest::Client;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsError, JsValue};
+
+use tracing_web::{MakeWebConsoleWriter};
+use tracing_subscriber::prelude::*;
+use tracing::{info};
 
 mod utils;
 
@@ -61,13 +65,24 @@ impl NervoClient {
         }
     }
 
-    pub fn configure(&self) {
+    pub async fn configure(&self) {
+        let fmt_layer = tracing_subscriber::fmt::layer()
+            .with_ansi(false) // Only partially supported across browsers
+            .without_time()   // std::time is not available in browsers, see note below
+            .with_writer(MakeWebConsoleWriter::new()); // write events to the console
+        // let perf_layer = performance_layer()
+        //     .with_details_from_fields(Pretty::default());
+
+        tracing_subscriber::registry()
+            .with(fmt_layer)
+            // .with(perf_layer)
+            .init(); // Install these as subscribers to tracing events
+
         utils::set_panic_hook();
     }
 
     #[wasm_bindgen]
     pub async fn get_chat(&self, chat_id: u64) -> Result<LlmChat, JsValue> {
-        // console_log::init_with_level(Level::Debug)?;
         info!("LIB: get_chat");
 
         let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
@@ -81,9 +96,32 @@ impl NervoClient {
             Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
         };
 
-        let json: LlmChat = response.json().await.map_err(JsError::from)?;
+        let chat: LlmChat = response.json().await.map_err(JsError::from)?;
 
-        Ok(json)
+        let transformed_messages: Vec<LlmMessage> = chat.messages.iter().map(|x| {
+            match x.meta_info.role {
+                LlmMessageRole::User => x.clone(),
+                _ => {
+                    let markdown_text = x.content.text();
+                    let html_text = markdown_to_html(&markdown_text);
+                    let content = LlmMessageContent::from(html_text.as_ref());
+
+                    LlmMessage {
+                        meta_info: LlmMessageMetaInfo {
+                            sender_id: x.meta_info.sender_id,
+                            role: x.meta_info.role,
+                            persistence: x.meta_info.persistence,
+                        },
+                        content,
+                    }
+                }
+            }
+        }).collect();
+        
+        Ok(LlmChat {
+            chat_id: chat.chat_id,
+            messages:transformed_messages,
+        })
     }
 
     pub async fn send_message(
@@ -114,8 +152,27 @@ impl NervoClient {
             .await
             .map_err(JsError::from)?;
 
-        let json: LlmMessage = response.json().await.map_err(JsError::from)?;
+        let llm_message_response: LlmMessage = response.json().await.map_err(JsError::from)?;
+        info!("LIB: Response LlmMessage: {:?}", llm_message_response);
+        let markdown_text = llm_message_response.content.text();
+        let html_text = markdown_to_html(&markdown_text);
+        info!("LIB: html_text: {:?}", html_text);
+        let content = LlmMessageContent::from(html_text.as_ref());
 
-        Ok(json)
+        Ok(LlmMessage {
+            meta_info: LlmMessageMetaInfo {
+                sender_id: llm_message_response.meta_info.sender_id,
+                role: llm_message_response.meta_info.role,
+                persistence: llm_message_response.meta_info.persistence,
+            },
+            content,
+        })
     }
+}
+
+fn markdown_to_html(markdown: &str) -> String {
+    let parser = Parser::new(markdown);
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+    html_output
 }

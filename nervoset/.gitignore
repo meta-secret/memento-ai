@@ -15,7 +15,7 @@ nervo-web/pkg
 
 # Cargos
 nervoset/app/nervo-migrant/Cargo.lock
-
+nervoset/node_modules
 
 app/jaison/.env
 app/nervo-migrant/config.yaml

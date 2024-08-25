@@ -29,7 +29,7 @@ pub async fn chat(
     app_state: Arc<JarvisAppState>,
     agent_type: AgentType,
 ) -> anyhow::Result<()> {
-    info!("Start chat...");
+    info!("COMMON: Start chat...");
     let mut parser = MessageParser {
         bot: &bot,
         msg: &msg,
@@ -55,7 +55,7 @@ pub async fn chat(
         .map_or(false, |username| username == bot_name.clone());
 
     let MessageKind::Common(msg_common) = &msg.kind else {
-        bail!("Unsupported message content type: {:?}.", msg.kind);
+        bail!("COMMON: Unsupported message content type: {:?}.", msg.kind);
     };
 
     let is_text = matches!(&msg_common.media_kind, MediaKind::Text(_media_text));
@@ -176,7 +176,7 @@ impl<'a> MessageParser<'a> {
     // Get user from TG message
     pub async fn parse_user(&mut self) -> anyhow::Result<User> {
         let Some(user) = &self.msg.from else {
-            bail!("User not found. We can handle only direct messages.");
+            bail!("COMMON: User not found. We can handle only direct messages.");
         };
 
         Ok(user.clone())
@@ -185,11 +185,11 @@ impl<'a> MessageParser<'a> {
     // Get text from TG message
     pub async fn parse_message(&mut self) -> anyhow::Result<String> {
         let MessageKind::Common(msg_common) = &self.msg.kind else {
-            bail!("Unsupported message content type.");
+            bail!("COMMON: Unsupported message content type.");
         };
 
         let Some(user) = &self.msg.from else {
-            bail!("User not found. We can handle only direct messages.");
+            bail!("COMMON: User not found. We can handle only direct messages.");
         };
 
         let media_kind = &msg_common.media_kind;
@@ -205,7 +205,7 @@ impl<'a> MessageParser<'a> {
                 text.clone()
             }
             _ => {
-                bail!("Unsupported case. We can handle only direct messages.");
+                bail!("COMMON: Unsupported case. We can handle only direct messages.");
             }
         };
 
@@ -280,13 +280,13 @@ impl<'a> MessageParser<'a> {
                     Ok((user.clone(), text.clone()))
                 }
                 Err(err) => {
-                    error!("ERROR {:?}", err.to_string());
+                    error!("COMMON: ERROR {:?}", err.to_string());
                     Err(anyhow::Error::msg(err.to_string()))
                 }
             }
         } else {
             Err(anyhow::Error::msg(format!(
-                "File '{}' doesn't exist.",
+                "COMMON: File '{}' doesn't exist.",
                 file_path
             )))
         }
@@ -408,10 +408,20 @@ pub async fn chat_gpt_conversation(
         };
 
         info!("COMMON: Send ANSWER");
-        bot.send_message(ChatId(chat_id as i64), user_final_question)
-            .parse_mode(ParseMode::Markdown)
+        info!("COMMON: user_final_question {:?}", user_final_question);
+        let escaped_message = escape_markdown(&user_final_question);
+        info!("COMMON: escaped_message {:?}", escaped_message);
+        match bot.send_message(ChatId(chat_id as i64), escaped_message)
+            .parse_mode(ParseMode::MarkdownV2)
             .reply_parameters(reply_parameters)
-            .await?;
+            .await {
+            Ok(_) => {
+                info!("COMMON: Message has been sent successfully");
+            }
+            Err(e) => {
+                eprintln!("COMON: Ошибка при отправке сообщения: {:?}", e);
+            }
+        }
     }
 
     Ok(())
@@ -436,11 +446,30 @@ async fn create_speech(bot: &Bot, text: &str, chat_id: u64, app_state: Arc<Jarvi
             let _ = bot.send_voice(ChatId(chat_id as i64), input_file).await;
         }
         Err(err) => {
-            error!("ERROR: {:?}", err);
-            info!("COMMON: Send ERROR: {:?}", err);
+            error!("COMMON: ERROR: {:?}", err);
+            info!("CMOMON: Send ERROR: {:?}", err);
             let _ = bot
                 .send_message(ChatId(chat_id as i64), err.to_string())
                 .await;
         }
     }
+}
+
+fn escape_markdown(text: &str) -> String {
+    text.replace('_', "\\_")
+        .replace('[', "\\[")
+        .replace(']', "\\]")
+        .replace('(', "\\(")
+        .replace(')', "\\)")
+        .replace('~', "\\~")
+        .replace('>', "\\>")
+        .replace('#', "\\#")
+        .replace('+', "\\+")
+        .replace('-', "\\-")
+        .replace('=', "\\=")
+        .replace('|', "\\|")
+        .replace('{', "\\{")
+        .replace('}', "\\}")
+        .replace('.', "\\.")
+        .replace('!', "\\!")
 }

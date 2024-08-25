@@ -3,7 +3,7 @@ import {ApiUrl, LlmChat, LlmMessage, LlmMessageRole, NervoAgentType, NervoClient
 import Cookies from 'js-cookie';
 import ReplyContent from "./components/reply-content.tsx";
 import logo from '../public/nervoset_logo.png';
-import SlidingPanel from './components/sliding-panel.tsx';
+// import SlidingPanel from './components/sliding-panel.tsx';
 
 interface AppProps {
     header: string;
@@ -14,6 +14,7 @@ function App(props: AppProps) {
     const [conversation, setConversation] = useState<JSX.Element[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | boolean>(false);
+    const [isTyping, setIsTyping] = useState(false); // <-- Новое состояние
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const userId = getUserId();
     const chatId = getChatId();
@@ -38,7 +39,10 @@ function App(props: AppProps) {
     console.log("Agent type: ", agentType)
 
     const nervoClient = NervoClient.new(apiUrl, agentType);
-    nervoClient.configure();
+
+    useEffect(() => {
+        nervoClient.configure();
+    }, []);
 
     useEffect(() => {
         fetchChat().catch(console.error);
@@ -75,7 +79,7 @@ function App(props: AppProps) {
             let chat: LlmChat = await nervoClient.get_chat(BigInt(chatId));
             console.log(`WEB: chatString ${JSON.stringify(chat)}`)
 
-            const conversationElements = chat.messages.map((message, index) => {
+            const conversationElements = chat.messages.map((message: LlmMessage, index: number) => {
                 if (message.meta_info.role === LlmMessageRole.User) {
                     return <RequestContent key={index} text={message.content.text()}/>;
                 } else if (message.meta_info.role === LlmMessageRole.Assistant) {
@@ -100,6 +104,7 @@ function App(props: AppProps) {
             ...prevConversation,
             <RequestContent key={prevConversation.length} text={messageText}/>
         ]);
+        setIsTyping(true); // <-- Установить состояние "печати"
 
         try {
             let responseMessage: LlmMessage = await nervoClient.send_message(BigInt(chatId), BigInt(userId), messageText);
@@ -115,6 +120,8 @@ function App(props: AppProps) {
         } catch (error) {
             console.error("WEB: Failed to send message: ", error);
             setError("Failed to send message");
+        } finally {
+            setIsTyping(false); // <-- Скрыть состояние "печати"
         }
     };
 
@@ -135,10 +142,13 @@ function App(props: AppProps) {
                 className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-[#30333d] dark:text-slate-300 sm:text-base sm:leading-7"
             >
                 {conversation}
+                {isTyping && (
+                    <div className="p-4 text-sm text-gray-500">Typing...</div>
+                )}
                 <div ref={messagesEndRef}/>
             </div>
 
-            <SlidingPanel buttons={['Option A', 'Option B', 'Option C']} />
+            {/*<SlidingPanel buttons={['Option A', 'Option B', 'Option C']}/>*/}
 
             <MessagingPanel sendMessage={handleSendMessage}/>
         </div>
@@ -170,18 +180,25 @@ interface MessagingPanelProps {
     sendMessage: (messageText: string) => void;
 }
 
-const MessagingPanel: React.FC<MessagingPanelProps> = ({sendMessage}) => {
+const MessagingPanel: React.FC<MessagingPanelProps> = ({ sendMessage }) => {
     const [messageText, setMessageText] = useState('');
 
     const handleMessageChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
         setMessageText(event.target.value);
     };
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const handleSubmit = (event?: FormEvent<HTMLFormElement>) => {
+        if (event) event.preventDefault();
         if (messageText.trim() !== '') {
             sendMessage(messageText);
             setMessageText('');
+        }
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            handleSubmit();
         }
     };
 
@@ -222,6 +239,7 @@ const MessagingPanel: React.FC<MessagingPanelProps> = ({sendMessage}) => {
                     placeholder="Ask me anything"
                     value={messageText}
                     onChange={handleMessageChange}
+                    onKeyDown={handleKeyDown} // Add this line
                 />
                 <button
                     type="submit"
@@ -248,7 +266,7 @@ const Header: React.FC<HeaderProps> = ({ header, title, subtitle}) => {
                         <h5 id="tier-starter" className="text-sm font-semibold leading-1">{header}</h5>
                     </div>
                     <p className="mt-2 flex items-baseline gap-x-1">
-                    <span className="text-2xl font-bold tracking-tight">{title}</span>
+                        <span className="text-2xl font-bold tracking-tight">{title}</span>
                     </p>
                     <p className="mt-2 flex items-baseline gap-x-1">
                         <span className="text-sm font-semibold leading-1 text-slate-700 dark:text-slate-400">{subtitle}</span>
