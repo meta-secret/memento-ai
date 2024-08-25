@@ -44,7 +44,7 @@ tasks:
       IMG_NAME_PROD: '{{.IMG_NAME_PREFIX}}_v{{.APP_VERSION}}'
       IMG_NAME_DEV: '{{.IMG_NAME_PREFIX}}_${USER}_dev_v{{.APP_VERSION}}'
     cmds:
-      - '{{if eq .INFRA "prod"}}{{.IMG_NAME_PROD}}{{else}}{{.IMG_NAME_DEV}}{{end}}'
+      - echo {{if eq .INFRA "prod"}}{{.IMG_NAME_PROD}}{{else}}{{.IMG_NAME_DEV}}{{end}}
 
 
   completions:
