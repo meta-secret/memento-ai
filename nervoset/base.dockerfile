@@ -2,7 +2,7 @@
 # https://www.lpalmieri.com/posts/fast-rust-docker-builds/
 # https://github.com/LukeMathWalker/cargo-chef
 
-FROM rust:1.80.1-bookworm
+FROM lukemathwalker/cargo-chef:latest-rust-1.80-bookworm
 
 WORKDIR /nervoset/app
 
@@ -19,7 +19,7 @@ RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 RUN rustup component add rustfmt
 
 # Build dependencies - this is the caching Docker layer!
-RUN cargo install cargo-chef --locked
+#RUN cargo install cargo-chef --locked
 COPY app/recipe.json /nervoset/app/recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 
