@@ -25,10 +25,7 @@ FROM base
 # Build dependencies - this is the caching Docker layer!
 #RUN cargo install cargo-chef --locked
 COPY app/recipe.json /nervoset/app/recipe.json
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
-    cargo chef cook --release --recipe-path recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 
 # Build application
 COPY dataset/ /nervoset/dataset
