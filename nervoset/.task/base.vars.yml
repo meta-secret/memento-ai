@@ -13,7 +13,7 @@ version: '3'
 #    - .....
 
 vars:
-  REGISTRY: 'nervodocker'
+  REGISTRY: 'docker.io/nervodocker'
   REPOSITORY: 'nervoset'
   APP_VERSION: '0.1'
 

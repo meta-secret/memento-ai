@@ -70,7 +70,7 @@ tasks:
         - APP_VERSION
         - INFRA
     vars:
-      IMG_NAME_PREFIX: '{{.REGISTRY}}/{{.REPOSITORY}}/{{.K8S_APP_NAME}}'
+      IMG_NAME_PREFIX: '{{.REGISTRY}}/{{.REPOSITORY}}:{{.K8S_APP_NAME}}'
       IMG_NAME_PROD: '{{.IMG_NAME_PREFIX}}_v{{.APP_VERSION}}'
       IMG_NAME_DEV: '{{.IMG_NAME_PREFIX}}_${USER}_dev_v{{.APP_VERSION}}'
     cmds:
