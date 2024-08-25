@@ -343,11 +343,11 @@ async fn openai_chat_preparations(
         }
     }
     
-    if cached_messages.len() % 3 == 0 {
+    if cached_messages.len() % 5 == 0 {
         rephrased_prompt.push_str(&all_layers_data.info_message_1);
     };
 
-    if cached_messages.len() % 5 == 0 {
+    if cached_messages.len() % 7 == 0 {
         rephrased_prompt.push_str(&all_layers_data.info_message_2);
     };
 

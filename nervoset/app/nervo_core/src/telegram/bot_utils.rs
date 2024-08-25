@@ -437,7 +437,7 @@ async fn create_speech(bot: &Bot, text: &str, chat_id: u64, app_state: Arc<Jarvi
         }
         Err(err) => {
             error!("ERROR: {:?}", err);
-            info!("CMOMON: Send ERROR: {:?}", err);
+            info!("COMMON: Send ERROR: {:?}", err);
             let _ = bot
                 .send_message(ChatId(chat_id as i64), err.to_string())
                 .await;
