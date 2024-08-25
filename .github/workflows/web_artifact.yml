@@ -39,6 +39,8 @@ jobs:
         with:
           main-password: ${{ secrets.NERVOSET_VOID_SENTINEL }}
 
+      - uses: ./.github/actions/docker_setup
+
       - name: Get npm cache directory
         id: npm-cache-dir
         run: |
