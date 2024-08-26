@@ -69,9 +69,11 @@ tasks:
         - APP_VERSION
         - INFRA
     vars:
+      USER:
+        sh: echo ${USER}
       IMG_NAME_PREFIX: '{{.REGISTRY}}/{{.REPOSITORY}}:{{.K8S_APP_NAME}}'
       IMG_NAME_PROD: '{{.IMG_NAME_PREFIX}}_v{{.APP_VERSION}}'
-      IMG_NAME_DEV: '{{.IMG_NAME_PREFIX}}_${USER}_dev_v{{.APP_VERSION}}'
+      IMG_NAME_DEV: '{{.IMG_NAME_PREFIX}}_{{.USER}}_dev_v{{.APP_VERSION}}'
     cmds:
       - echo {{if eq .INFRA "prod"}}{{.IMG_NAME_PROD}}{{else}}{{.IMG_NAME_DEV}}{{end}}
 

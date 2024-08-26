@@ -24,7 +24,7 @@ tasks:
 
   deliver_config:
     cmds:
-      - task -t ../../Taskfile.yml hazmat:void_sentinel:vault:config:get_config INFRA={{.INFRA}} > {{.BUILD_DIR}}/config.yaml
+      - task -t {{.ROOT_DIR}}/Taskfile.yml infra:hazmat:void_sentinel:vault:config:get_config INFRA={{.INFRA}} > {{.BUILD_DIR}}/config.yaml
 
   generate_config_maps:
     cmds:
@@ -86,7 +86,7 @@ tasks:
       vars:
         - APP_NAME
     cmds:
-      - task -t ../../../Taskfile.yml nervoset:docker_{{.APP_NAME}}:push INFRA={{.INFRA}}
+      - task -t {{.ROOT_DIR}}/Taskfile.yml nervoset:docker_{{.APP_NAME}}:push INFRA={{.INFRA}}
       - task: generate
       - kubectl apply -f {{ .BUILD_DIR }}
 

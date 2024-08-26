@@ -87,7 +87,7 @@ tasks:
       - task: db:vector_db:qdrant_deploy
 
       # deploy migrant
-      - task -t ../Taskfile.yml k8s:nervo_migrant:redeploy_job INFRA={{.INFRA}}
+      - task -t {{.ROOT_DIR}}/Taskfile.yml infra:k8s:nervo_migrant:redeploy_job INFRA={{.INFRA}}
 
   k3d_within_docker:
     cmds:

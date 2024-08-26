@@ -38,7 +38,6 @@ tasks:
       - |
         docker buildx build \
           --push \
-          --load \
           --tag {{.BASE_IMAGE}} \
           --cache-from type=registry,ref={{.BASE_IMAGE}} \
           --cache-to type=inline,mode=min \

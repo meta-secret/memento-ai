@@ -33,7 +33,6 @@ tasks:
       - mkdir -p app/{{ .APP_NAME }}/resources
       - |-
         docker buildx build \
-          --load \
           --push \
           --tag {{.IMAGE_NAME}} \
           --file build.dockerfile \
