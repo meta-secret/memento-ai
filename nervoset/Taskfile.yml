@@ -108,6 +108,7 @@ tasks:
       # Build nervo-web app and lib
       - |
         docker run --rm \
+          --name nervo-web-app-build \
           --workdir /nerwo-web \
           -v {{.PWD}}/{{.NERVO_WEB_DIR}}:/nerwo-web \
           -e VITE_AGENT_TYPE={{.AGENT_TYPE}} \
@@ -119,18 +120,44 @@ tasks:
       vars:
         - SERVER_PORT
         - AGENT_TYPE
+    vars:
+      NERVO_WEB_DIR: 'nervo-web'
+      PWD:
+        sh: pwd
     cmds:
       - task: nervo_web_build
-      - "cd nervo-web && VITE_SERVER_PORT={{.SERVER_PORT}} VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run local"
+      - |
+        docker run --rm \
+          --name nervo-web-app \
+          --workdir /nerwo-web \
+          -v {{.PWD}}/{{.NERVO_WEB_DIR}}:/nerwo-web \
+          -e VITE_AGENT_TYPE={{.AGENT_TYPE}} \
+          -e VITE_SERVER_PORT={{.SERVER_PORT}} \
+          -p 5173:5173 \
+          node:22.7-bookworm \
+          bash -c "npm run local"
 
   nervo_web_run_dev:
     requires:
       vars:
         - SERVER_PORT
         - AGENT_TYPE
+    vars:
+      NERVO_WEB_DIR: 'nervo-web'
+      PWD:
+        sh: pwd
     cmds:
       - task: nervo_web_build
-      - "cd nervo-web && VITE_SERVER_PORT={{.SERVER_PORT}} VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run dev"
+      - |
+        docker run --rm \
+          --name nervo-web-app \
+          --workdir /nerwo-web \
+          -v {{.PWD}}/{{.NERVO_WEB_DIR}}:/nerwo-web \
+          -e VITE_AGENT_TYPE={{.AGENT_TYPE}} \
+          -e VITE_SERVER_PORT={{.SERVER_PORT}} \
+          -p 5173:5173 \
+          node:22.7-bookworm \
+          bash -c "npm run dev"
 
   test:
     cmds:

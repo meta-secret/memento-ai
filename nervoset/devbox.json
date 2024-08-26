@@ -6,10 +6,7 @@
     "age@1.1.1",
     "gnupg@2.4.5",
 
-    "git@2.44.0",
-
-    "nodejs@22.3.0",
-    "typescript@5.4.5"
+    "git@2.44.0"
   ],
   "shell": {
     "init_hook": [],
