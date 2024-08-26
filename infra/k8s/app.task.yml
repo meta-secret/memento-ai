@@ -86,7 +86,7 @@ tasks:
       vars:
         - APP_NAME
     cmds:
-      - task -t ../../../nervoset/Taskfile.yml docker_{{.APP_NAME}}:push INFRA={{.INFRA}}
+      - task -t ../../../Taskfile.yml nervoset:docker_{{.APP_NAME}}:push INFRA={{.INFRA}}
       - task: generate
       - kubectl apply -f {{ .BUILD_DIR }}
 
