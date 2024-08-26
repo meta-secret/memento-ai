@@ -35,6 +35,17 @@ tasks:
     cmds:
       - task --list-all
 
+  redeploy_infra_dev:
+    vars:
+      INFRA: 'dev'
+      K8S_CLUSTER_NAME:
+        sh: "echo $(whoami)-nervoset-{{.INFRA}}"
+    cmds:
+      - k3d cluster delete {{.K8S_CLUSTER_NAME}}
+      - task: infra_dev
+        vars:
+          INFRA: "{{.INFRA}}"
+
   infra_dev:
     vars:
       INFRA: 'dev'
