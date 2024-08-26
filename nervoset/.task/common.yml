@@ -19,7 +19,7 @@ tasks:
   base_build:
     # output options: https://docs.docker.com/reference/cli/docker/buildx/build/#output
     cmds:
-      - task: prepare_dependencies
+      # - task: prepare_dependencies
 
       # 3 types of caches:
       # registry:
