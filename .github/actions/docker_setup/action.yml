@@ -3,8 +3,8 @@ name: Docker setup
 runs:
   using: "composite"
   steps:
-    - name: Enable docker
-      uses: docker/setup-buildx-action@v3
+    #- name: Enable docker
+    #  uses: docker/setup-buildx-action@v3
 
     - name: Docker Login
       shell: bash

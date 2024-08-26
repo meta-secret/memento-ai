@@ -2,14 +2,13 @@
 # https://www.lpalmieri.com/posts/fast-rust-docker-builds/
 # https://github.com/LukeMathWalker/cargo-chef
 
-FROM lukemathwalker/cargo-chef:latest-rust-1.80-bookworm AS base
+FROM lukemathwalker/cargo-chef:latest-rust-1.80-bookworm
 
 WORKDIR /nervoset/app
 
 # Install sccache (cargo is too slow)
 #RUN cargo install sccache@0.8.1
 ENV RUSTC_WRAPPER=sccache
-ENV SCCACHE_DIR=/sccache
 RUN wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz \
     && tar xzf sccache-v0.8.1-x86_64-unknown-linux-musl.tar.gz \
     && mv sccache-v0.8.1-x86_64-unknown-linux-musl/sccache /usr/local/bin/sccache \
@@ -19,7 +18,6 @@ RUN wget https://github.com/mozilla/sccache/releases/download/v0.8.1/sccache-v0.
 RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 RUN rustup component add rustfmt
 
-FROM base
 # https://depot.dev/docs/languages/rust-dockerfile
 
 # Build dependencies - this is the caching Docker layer!
@@ -31,6 +29,4 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY dataset/ /nervoset/dataset
 COPY app/ /nervoset/app
 
-RUN cargo build --release
-
-RUN sccache --show-stats
+RUN cargo build --release && sccache --show-stats

@@ -17,8 +17,8 @@ tasks:
       - mkdir -p app/{{ .APP_NAME }}/resources
       - |-
         docker buildx build \
+          --load \
           --tag {{.IMAGE_NAME}} \
-          --output type=docker \
           --file build.dockerfile \
           --build-arg="APP_NAME={{ .APP_NAME }}" \
           .
@@ -29,7 +29,13 @@ tasks:
         - IMAGE_NAME
         - APP_NAME
     cmds:
-      - task: build
-        vars:
-          IMAGE_NAME: "{{.IMAGE_NAME}}"
-      - docker push {{.IMAGE_NAME}}
+      - task: common:base_build
+      - mkdir -p app/{{ .APP_NAME }}/resources
+      - |-
+        docker buildx build \
+          --load \
+          --push \
+          --tag {{.IMAGE_NAME}} \
+          --file build.dockerfile \
+          --build-arg="APP_NAME={{ .APP_NAME }}" \
+          .

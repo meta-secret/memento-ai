@@ -1,7 +1,10 @@
 version: '3'
 
+# buildx: https://docs.docker.com/reference/cli/docker/buildx/build/
+# UNDERSTANDING: https://www.blacksmith.sh/blog/cache-is-king-a-guide-for-docker-layer-caching-in-github-actions
 tasks:
   prepare_dependencies:
+    internal: true
     vars:
       CHEF_IMAGE_NAME: "lukemathwalker/cargo-chef:latest-rust-1.80-bookworm"
     cmds:
@@ -14,14 +17,31 @@ tasks:
           cargo chef prepare --recipe-path /app/recipe.json
 
   base_build:
-
+    # output options: https://docs.docker.com/reference/cli/docker/buildx/build/#output
     cmds:
+      - task: prepare_dependencies
+      - docker pull {{.BASE_IMAGE}}
+
+      # 3 types of caches:
+      # registry:
+      # --cache-from type=registry,ref={{.BASE_IMAGE}} \
+      # --cache-to type=registry,ref={{.BASE_IMAGE}},mode=max,compression=zstd \
+      #
+      # inline:
+      # --cache-from type=registry,ref={{.BASE_IMAGE}} \
+      # --cache-to type=inline,mode=min \
+      #
+      # github actions(gha):
+      # --cache-from type=gha \
+      # --cache-to type=gha,mode=max \
+      #
+      # caching explanation: https://www.blacksmith.sh/blog/cache-is-king-a-guide-for-docker-layer-caching-in-github-actions
       - |
         docker buildx build \
-          --load \
           --push \
-          --cache-from type=registry,ref={{.BASE_IMAGE}} \
-          --cache-to type=registry,ref={{.BASE_IMAGE}},mode=max \
+          --load \
           --tag {{.BASE_IMAGE}} \
+          --cache-from type=registry,ref={{.BASE_IMAGE}} \
+          --cache-to type=inline,mode=min \
           --file base.dockerfile \
           .
