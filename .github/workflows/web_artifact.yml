@@ -30,8 +30,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/devbox_setup
-        with:
-          devbox-path: 'nervoset'
 
       - uses: ./.github/actions/sccache_setup
 
@@ -42,16 +40,13 @@ jobs:
       - uses: ./.github/actions/docker_setup
 
       - name: Set cloudflare credentials
-        working-directory: infra
         run: |
-          echo "CLOUD_FLARE_API_TOKEN=$(devbox run task hazmat:void_sentinel:vault:get_cloudflare_api_token)" >> $GITHUB_ENV
-          echo "CLOUD_FLARE_ACCOUNT_ID=$(devbox run task hazmat:void_sentinel:vault:get_cloudflare_account_id)" >> $GITHUB_ENV
+          echo "CLOUD_FLARE_API_TOKEN=$(devbox run task infra:hazmat:void_sentinel:vault:get_cloudflare_api_token)" >> $GITHUB_ENV
+          echo "CLOUD_FLARE_ACCOUNT_ID=$(devbox run task infra:hazmat:void_sentinel:vault:get_cloudflare_account_id)" >> $GITHUB_ENV
 
       ### Probiot Deployment ###
       - name: Build nervo-web for probiot
-        working-directory: nervoset
-        run: |
-          devbox run task nervo_web_build AGENT_TYPE=probiot
+        run: devbox run task nervoset:nervo_web_build AGENT_TYPE=probiot
 
       - name: Deploy nervo-web-probiot on cloudflare pages
         uses: cloudflare/pages-action@1
@@ -64,9 +59,7 @@ jobs:
 
       ### W3a Deployment ###
       - name: Build nervo-web for w3a
-        working-directory: nervoset
-        run: |
-          devbox run task nervo_web_build AGENT_TYPE=w3a
+        run: devbox run task nervoset:nervo_web_build AGENT_TYPE=w3a
 
       - name: Deploy nervo-web-w3a on cloudflare pages
         uses: cloudflare/pages-action@1
@@ -79,9 +72,7 @@ jobs:
 
       ### Nervoznyak Deployment ###
       - name: Build nervo-web for nervoznyak
-        working-directory: nervoset
-        run: |
-          devbox run task nervo_web_build AGENT_TYPE=nervoznyak
+        run: devbox run task nervoset:nervo_web_build AGENT_TYPE=nervoznyak
 
       - name: Deploy nervo-web-nervoznyak on cloudflare pages
         uses: cloudflare/pages-action@1

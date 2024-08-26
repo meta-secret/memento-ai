@@ -1,0 +1,25 @@
+version: '3'
+
+set: [pipefail]
+
+includes:
+  base_vars: base.vars.yml
+
+  infra:
+    taskfile: infra/Taskfile.yml
+    dir: infra
+  nervoset:
+    taskfile: nervoset/Taskfile.yml
+    dir: nervoset
+
+tasks:
+  default:
+    cmds:
+      - task --list-all
+
+  clean:
+    cmds:
+      - rm -rf nervoset/app/target
+      - rm -rf nervoset/nervo-web/dist
+      - rm -rf nervoset/nervo-web/pkg
+

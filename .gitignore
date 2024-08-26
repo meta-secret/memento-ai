@@ -4,3 +4,5 @@ testo-web
 taskomatic
 
 target
+/.devbox/
+devbox.lock

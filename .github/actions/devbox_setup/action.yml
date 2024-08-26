@@ -1,15 +1,9 @@
 name: Setup devbox
 
-inputs:
-  devbox-path:
-    required: true
-    description: "Path to the directory which contains devbox.json"
-
 runs:
   using: "composite"
   steps:
     - name: Install devbox
       uses: jetpack-io/devbox-install-action@v0.8.0
       with:
-        project-path: ${{ inputs.devbox-path }}
         enable-cache: 'true'

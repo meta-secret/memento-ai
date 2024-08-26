@@ -9,9 +9,8 @@ runs:
   using: "composite"
   steps:
     - name: Auth
-      working-directory: infra
       shell: bash
       env:
         SENTINEL_MASTER_PASSWORD: ${{ inputs.main-password }}
       run: |
-        devbox run task hazmat:void_sentinel:gpg_decrypt_sentinel_key
+        devbox run task infra:hazmat:void_sentinel:gpg_decrypt_sentinel_key

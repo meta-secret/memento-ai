@@ -3,8 +3,6 @@ version: '3'
 set: [pipefail]
 
 includes:
-  base_vas: ../nervoset/.task/base.vars.yml
-
   hazmat:
     taskfile: hazmat/Taskfile.yml
     dir: hazmat

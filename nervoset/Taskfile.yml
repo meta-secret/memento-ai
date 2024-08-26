@@ -3,7 +3,6 @@ version: '3'
 set: [pipefail]
 
 includes:
-  base_vars: .task/base.vars.yml
   common: .task/common.yml
 
   docker_jarvis:

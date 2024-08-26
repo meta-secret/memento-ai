@@ -23,8 +23,6 @@ jobs:
     - uses: actions/checkout@v4
 
     - uses: ./.github/actions/devbox_setup
-      with:
-        devbox-path: 'nervoset'
 
     - uses: ./.github/actions/void_sentinel_auth
       with:
@@ -33,5 +31,4 @@ jobs:
     - uses: ./.github/actions/docker_setup
 
     - name: Run tests
-      working-directory: nervoset
-      run: devbox run task test
+      run: devbox run task nervoset:test

@@ -8,5 +8,4 @@ runs:
 
     - name: Docker Login
       shell: bash
-      working-directory: infra
-      run: devbox run 'task deployment:docker_registry:docker_login'
+      run: devbox run 'task infra:deployment:docker_registry:docker_login'
