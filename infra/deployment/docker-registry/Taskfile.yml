@@ -12,11 +12,11 @@ tasks:
   docker_login:
     vars:
       DOCKER_REGISTRY_USER:
-        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_user
+        sh: task -t {{.PROJECT_DIR}}/Taskfile.yml infra:hazmat:void_sentinel:vault:get_docker_user
       DOCKER_REGISTRY_PASS:
-        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_pass
+        sh: task -t {{.PROJECT_DIR}}/Taskfile.yml infra:hazmat:void_sentinel:vault:get_docker_pass
       DOCKER_REGISTRY_EMAIL:
-        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_email
+        sh: task -t {{.PROJECT_DIR}}/Taskfile.yml infra:hazmat:void_sentinel:vault:get_docker_email
     cmds:
       - echo {{.DOCKER_REGISTRY_PASS}} | docker login --username={{.DOCKER_REGISTRY_USER}} --password-stdin
     silent: true
@@ -26,11 +26,11 @@ tasks:
   setup_docker_registry:
     vars:
       DOCKER_REGISTRY_USER:
-        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_user
+        sh: task -t {{.PROJECT_DIR}}/Taskfile.yml infra:hazmat:void_sentinel:vault:get_docker_user
       DOCKER_REGISTRY_PASS:
-        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_pass
+        sh: task -t {{.PROJECT_DIR}}/Taskfile.yml infra:hazmat:void_sentinel:vault:get_docker_pass
       DOCKER_REGISTRY_EMAIL:
-        sh: task -t {{.PROJECT_DIR}}/hazmat/Taskfile.yml void_sentinel:vault:get_docker_email
+        sh: task -t {{.PROJECT_DIR}}/Taskfile.yml infra:hazmat:void_sentinel:vault:get_docker_email
     cmds:
       - |-
         kubectl create secret docker-registry docker-registry-secret \

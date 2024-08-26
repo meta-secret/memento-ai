@@ -11,7 +11,7 @@ includes:
       APP_NAME: 'jarvis'
       CONFIGS: statefulset.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   w3a:
     taskfile: app.task.yml
@@ -21,7 +21,7 @@ includes:
       APP_NAME: 'jarvis'
       CONFIGS: statefulset.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   nervoznyak:
     taskfile: app.task.yml
@@ -31,7 +31,7 @@ includes:
       APP_NAME: 'jarvis'
       CONFIGS: statefulset.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   groot:
     taskfile: app.task.yml
@@ -41,7 +41,7 @@ includes:
       APP_NAME: 'groot'
       CONFIGS: statefulset.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   nervo_server:
     taskfile: app.task.yml
@@ -51,7 +51,7 @@ includes:
       APP_NAME: "nervo_server"
       CONFIGS: statefulset.k service.k ingress.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
   nervo_migrant:
     taskfile: app.task.yml
@@ -61,7 +61,7 @@ includes:
       APP_NAME: "nervo-migrant"
       CONFIGS: job.k
       IMAGE_NAME:
-        sh: task img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+        sh: task infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
 tasks:
   default:

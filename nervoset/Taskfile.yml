@@ -15,7 +15,7 @@ includes:
       K8S_APP_NAME: 'jarvis'
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
+        sh: task nervoset:img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
   docker_groot:
     taskfile: .task/docker.yml
@@ -27,7 +27,7 @@ includes:
       K8S_APP_NAME: 'groot'
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
+        sh: task nervoset:img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
   docker_nervo-migrant:
     taskfile: .task/docker.yml
@@ -39,7 +39,7 @@ includes:
       K8S_APP_NAME: 'nervo-migrant'
       VERSION: '{{.APP_VERSION}}'
       IMAGE_NAME:
-        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
+        sh: task nervoset:img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
   docker_nervo_server:
     taskfile: .task/docker.yml
@@ -53,7 +53,7 @@ includes:
       HOST_PORT: '3000'
       DOCKER_PORT: '3000'
       IMAGE_NAME:
-        sh: task img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
+        sh: task nervoset:img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
 tasks:
   default:
