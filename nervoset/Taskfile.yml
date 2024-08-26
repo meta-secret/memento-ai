@@ -92,7 +92,9 @@ tasks:
     cmds:
       - rm -rf {{.NERVO_WEB_DIR}}/pkg
       - rm -rf {{.NERVO_WEB_DIR}}/dist
+
       - mkdir {{.NERVO_WEB_DIR}}/pkg
+      - mkdir {{.NERVO_WEB_DIR}}/dist
 
       - task: common:base_build
 
@@ -104,7 +106,13 @@ tasks:
           bash -c "chown -R {{.UID}}:{{.GID}} /nervoset/app/nervo_wasm/pkg && wasm-pack build"
 
       # Build nervo-web app and lib
-      - "cd {{.NERVO_WEB_DIR}} && npm install && VITE_AGENT_TYPE={{.AGENT_TYPE}} npm run build:app && npm run build:lib"
+      - |
+        docker run --rm \
+          --workdir /nerwo-web \
+          -v {{.PWD}}/{{.NERVO_WEB_DIR}}:/nerwo-web \
+          -e VITE_AGENT_TYPE={{.AGENT_TYPE}} \
+          node:22.7-bookworm \
+          bash -c "npm install && npm run build:app && npm run build:lib"
 
   nervo_web_run:
     requires:

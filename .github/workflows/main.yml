@@ -41,6 +41,7 @@ jobs:
           devbox run task docker_push INFRA=prod
 
   infra_deployment_test:
+    timeout-minutes: 45
     needs: docker_hub_push
 
     runs-on: ubuntu-latest
