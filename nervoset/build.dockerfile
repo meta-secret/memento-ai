@@ -1,6 +1,8 @@
 FROM nervodocker/nervoset:nervo-base_0.1 AS base
 RUN echo using nervo-base image
 
+RUN cargo build --release && sccache --show-stats
+
 FROM debian:bookworm-slim
 
 ARG APP_NAME

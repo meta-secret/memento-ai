@@ -28,5 +28,3 @@ RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY dataset/ /nervoset/dataset
 COPY app/ /nervoset/app
-
-RUN cargo build --release && sccache --show-stats
