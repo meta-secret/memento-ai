@@ -114,7 +114,7 @@ tasks:
           -v {{.PWD}}/{{.NERVO_WEB_DIR}}:/nerwo-web \
           -e VITE_AGENT_TYPE={{.AGENT_TYPE}} \
           node:22.7-bookworm \
-          bash -c "npm install && npm run build:app && npm run build:lib"
+          bash -c "chown -R {{.UID}}:{{.GID}} /nerwo-web/dist && npm install && npm run build:app && npm run build:lib"
 
   nervo_web_run:
     requires:
