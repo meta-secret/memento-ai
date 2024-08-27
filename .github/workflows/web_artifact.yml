@@ -25,6 +25,9 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+
 
     steps:
       - uses: actions/checkout@v4
@@ -39,46 +42,47 @@ jobs:
 
       - uses: ./.github/actions/docker_setup
 
-      - name: Set cloudflare credentials
+      - name: Set credentials
         run: |
           echo "CLOUD_FLARE_API_TOKEN=$(devbox run task infra:hazmat:void_sentinel:vault:get_cloudflare_api_token)" >> $GITHUB_ENV
           echo "CLOUD_FLARE_ACCOUNT_ID=$(devbox run task infra:hazmat:void_sentinel:vault:get_cloudflare_account_id)" >> $GITHUB_ENV
+          echo "GH_TOKEN=$(devbox run task infra:hazmat:void_sentinel:vault:get_github_token)" >> $GITHUB_ENV
 
       ### Probiot Deployment ###
       - name: Build nervo-web for probiot
         run: devbox run task nervoset:nervo_web_build AGENT_TYPE=probiot
 
-      - name: Deploy nervo-web-probiot on cloudflare pages
-        uses: cloudflare/pages-action@1
+      - name: Deploy nervo-web-probiot on github pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
-          accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
-          projectName: nervo-web-probiot
-          directory: nervoset/nervo-web/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          personal_token: ${{ env.GH_TOKEN }}
+          external_repository: nervoset/nervo-web
+          publish_branch: main
+          publish_dir: nervoset/nervo-web/dist
+          destination_dir: probiosha
 
       ### W3a Deployment ###
       - name: Build nervo-web for w3a
         run: devbox run task nervoset:nervo_web_build AGENT_TYPE=w3a
 
-      - name: Deploy nervo-web-w3a on cloudflare pages
-        uses: cloudflare/pages-action@1
+      - name: Deploy nervo-web-w3a on github pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
-          accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
-          projectName: nervo-web-w3a
-          directory: nervoset/nervo-web/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          personal_token: ${{ env.GH_TOKEN }}
+          external_repository: nervoset/nervo-web
+          publish_branch: main
+          publish_dir: nervoset/nervo-web/dist
+          destination_dir: w3a
 
       ### Nervoznyak Deployment ###
       - name: Build nervo-web for nervoznyak
         run: devbox run task nervoset:nervo_web_build AGENT_TYPE=nervoznyak
 
-      - name: Deploy nervo-web-nervoznyak on cloudflare pages
-        uses: cloudflare/pages-action@1
+      - name: Deploy nervo-web-nervoznyak on github pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          apiToken: ${{ env.CLOUD_FLARE_API_TOKEN }}
-          accountId: ${{ env.CLOUD_FLARE_ACCOUNT_ID }}
-          projectName: nervo-web-nervoznyak
-          directory: nervoset/nervo-web/dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          personal_token: ${{ env.GH_TOKEN }}
+          external_repository: nervoset/nervo-web
+          publish_branch: main
+          publish_dir: nervoset/nervo-web/dist
+          destination_dir: nervoznyak
