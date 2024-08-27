@@ -43,3 +43,11 @@ tasks:
           --cache-to type=registry,ref={{.BASE_IMAGE}}_cache,mode=max \
           --file base.dockerfile \
           .
+
+      # build basic app container which contains all necessary dependencies
+      - |
+        docker buildx build \
+          --load \
+          --tag {{.BASE_APP_IMAGE}} \
+          --file app.dockerfile \
+          .

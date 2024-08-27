@@ -18,3 +18,4 @@ vars:
   APP_VERSION: '0.1'
 
   BASE_IMAGE: "{{.REGISTRY}}/{{.REPOSITORY}}:nervo-base_{{.APP_VERSION}}"
+  BASE_APP_IMAGE: "{{.REGISTRY}}/{{.REPOSITORY}}:nervo-app_{{.APP_VERSION}}"

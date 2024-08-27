@@ -14,7 +14,6 @@ tasks:
         - APP_NAME
     cmds:
       - task: common:base_build
-      - mkdir -p app/{{ .APP_NAME }}/resources
       - |-
         docker buildx build \
           --load \
