@@ -47,7 +47,7 @@ tasks:
       # build basic app container which contains all necessary dependencies
       - |
         docker buildx build \
-          --load \
+          --push \
           --tag {{.BASE_APP_IMAGE}} \
           --file app.dockerfile \
           .
