@@ -58,13 +58,18 @@ tasks:
     cmds:
       - task: delete
       - task: apply
+
+      - |
+        echo printing pods information
+        kubectl get pods
+
       - |
         pod_name=$(kubectl get pods --selector=job-name={{.K8S_APP_NAME}} --output=jsonpath='{.items[0].metadata.name}')
-        while true; do
+        for i in {1..25}; do
           pod_status=$(kubectl get pod $pod_name --output=jsonpath='{.status.phase}')
     
           if [ "$pod_status" == "Running" ]; then
-            kubectl logs --tail=1 $(kubectl get pods --selector=job-name={{.K8S_APP_NAME}} -o jsonpath='{.items[0].metadata.name}')
+            kubectl logs --tail=1 $pod_name
             sleep 1
             continue
           fi
@@ -73,6 +78,20 @@ tasks:
           if [[ $completed == "job.batch/{{.K8S_APP_NAME}} condition met" ]]; then
             echo "Job {{.K8S_APP_NAME}} has completed!"
             break
+          else
+            if [ "$i" -gt 3 ]; then
+              echo ================================
+              echo pods:
+              kubectl get pods
+            
+              echo ================================
+              echo describe job {{.K8S_APP_NAME}}:
+              kubectl describe pod {{.K8S_APP_NAME}}
+        
+              echo ================================
+              echo {{.K8S_APP_NAME}} logs:
+              kubectl logs --tail=5 $pod_name
+            fi
           fi
         done
 
