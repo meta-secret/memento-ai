@@ -49,5 +49,7 @@ tasks:
         docker buildx build \
           --push \
           --tag {{.BASE_APP_IMAGE}} \
+          --cache-from type=registry,ref={{.BASE_APP_IMAGE}}_cache \
+          --cache-to type=registry,ref={{.BASE_APP_IMAGE}}_cache,mode=max \
           --file app.dockerfile \
           .
