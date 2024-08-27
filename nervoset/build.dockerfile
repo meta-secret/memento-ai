@@ -9,6 +9,8 @@ ARG APP_NAME
 
 WORKDIR /nervoset/app/${APP_NAME}
 
+COPY dataset/ /nervoset/dataset
+COPY app/resources /nervoset/app/resources
 COPY --from=base /nervoset/app/target/release/${APP_NAME} /nervoset/app/${APP_NAME}/${APP_NAME}
 
 CMD ["./${APP_NAME}"]
