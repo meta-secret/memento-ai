@@ -106,7 +106,7 @@ function App(props: AppProps) {
             ...prevConversation,
             <RequestContent key={prevConversation.length} text={messageText}/>
         ]);
-        setIsTyping(true); // <-- Установить состояние "печати"
+        setIsTyping(true); // <-- show "typing..." message
 
         try {
             const responseMessage: LlmMessage = await nervoClient.send_message(BigInt(chatId), BigInt(userId), messageText);
@@ -123,7 +123,7 @@ function App(props: AppProps) {
             console.error("WEB: Failed to send message: ", error);
             setError("Failed to send message");
         } finally {
-            setIsTyping(false); // <-- Скрыть состояние "печати"
+            setIsTyping(false); // <-- hide "typing..." message
         }
     };
 

@@ -3,7 +3,7 @@ use crate::ai::qdrant_db::QdrantDb;
 use crate::config::common::QdrantParams;
 use anyhow::Result;
 use async_openai::types::Embedding;
-use nervo_api::agent_type::AgentType;
+use nervo_sdk::agent_type::AgentType;
 use qdrant_client::qdrant::SearchResponse;
 use tracing::log::info;
 

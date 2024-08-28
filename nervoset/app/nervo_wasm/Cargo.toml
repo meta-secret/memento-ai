@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 default = ["console_error_panic_hook"]
 
 [dependencies]
-nervo-api = { path = "../nervo_api" }
+nervo-sdk = { path = "../nervo_sdk" }
 
 serde_json.workspace = true
 serde.workspace = true

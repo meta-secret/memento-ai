@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 nervo-core = { path = "../nervo_core" }
-nervo-api = { path = "../nervo_api" }
+nervo-sdk = { path = "../nervo_sdk" }
 
 anyhow.workspace = true
 enum-iterator.workspace = true

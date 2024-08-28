@@ -8,7 +8,7 @@ crate-type = ["cdylib", "lib", "staticlib"]
 name = "nervo_bot_core"
 
 [dependencies]
-nervo-api = { path = "../nervo_api" }
+nervo-sdk = { path = "../nervo_sdk" }
 
 thiserror.workspace = true
 anyhow.workspace = true

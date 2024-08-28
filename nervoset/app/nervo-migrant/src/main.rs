@@ -18,10 +18,10 @@ use enum_iterator::all;
 use clap::{Parser, Subcommand};
 use futures::future::BoxFuture;
 use futures::FutureExt;
-use nervo_api::agent_type::{AgentType, NervoAgentType};
+use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use tokio::time::Instant;
 use uuid::Uuid;
-use nervo_api::utils::cryptography::UuidGenerator;
+use nervo_sdk::utils::cryptography::UuidGenerator;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -291,7 +291,7 @@ fn save_updated_model_to_json(
 #[cfg(test)]
 mod test {
     use crate::collect_jsons_content;
-    use nervo_api::agent_type::AgentType;
+    use nervo_sdk::agent_type::AgentType;
 
     #[tokio::test]
     async fn test_collect_jsons_content() -> anyhow::Result<()> {

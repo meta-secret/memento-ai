@@ -1,6 +1,6 @@
 use pulldown_cmark::{html, Parser};
-use nervo_api::agent_type::AgentType;
-use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest, UserLlmMessage};
+use nervo_sdk::agent_type::AgentType;
+use nervo_sdk::api::spec::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest, UserLlmMessage};
 use reqwest::Client;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsError, JsValue};
@@ -15,7 +15,7 @@ mod utils;
 
 pub mod run_mode {
     use wasm_bindgen::prelude::wasm_bindgen;
-    use nervo_api::errors::{NervoWebError, NervoWebResult};
+    use nervo_sdk::errors::{NervoWebError, NervoWebResult};
 
     pub const LOCAL: &str = "localDev";
     pub const DEV: &str = "dev";
@@ -26,7 +26,7 @@ pub mod run_mode {
     pub enum ClientRunMode {
         Local,
         Dev,
-        Prod
+        Prod,
     }
 
     #[wasm_bindgen]
@@ -71,14 +71,14 @@ impl ApiUrl {
         ApiUrl {
             url: "http://localhost",
             port,
-            run_mode: ClientRunMode::Local
+            run_mode: ClientRunMode::Local,
         }
     }
     pub fn dev(port: u32) -> Self {
         ApiUrl {
             url: "http://nervoset.metaelon.space",
             port,
-            run_mode: ClientRunMode::Dev
+            run_mode: ClientRunMode::Dev,
         }
     }
 
@@ -86,7 +86,7 @@ impl ApiUrl {
         ApiUrl {
             url: "https://prod.metaelon.space",
             port: 443,
-            run_mode: ClientRunMode::Prod
+            run_mode: ClientRunMode::Prod,
         }
     }
 }
@@ -121,7 +121,7 @@ impl NervoClient {
             .without_time()   // std::time is not available in browsers, see note below
             .with_writer(MakeWebConsoleWriter::new()); // write events to the console
         let perf_layer = performance_layer()
-             .with_details_from_fields(Pretty::default());
+            .with_details_from_fields(Pretty::default());
 
         tracing_subscriber::registry()
             .with(fmt_layer)
@@ -167,10 +167,10 @@ impl NervoClient {
                 }
             }
         }).collect();
-        
+
         Ok(LlmChat {
             chat_id: chat.chat_id,
-            messages:transformed_messages,
+            messages: transformed_messages,
         })
     }
 

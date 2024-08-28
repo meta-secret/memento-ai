@@ -3,7 +3,7 @@ use crate::config::groot::GrootConfig;
 use crate::config::jarvis::JarvisConfig;
 use config::Config as AppConfig;
 use serde::Deserialize;
-use nervo_api::agent_type::AgentType;
+use nervo_sdk::agent_type::AgentType;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct NervoConfig {

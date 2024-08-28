@@ -15,7 +15,7 @@ use async_openai::types::{ChatCompletionRequestUserMessage, Embedding};
 use async_openai::Client;
 use serde_derive::Deserialize;
 
-use nervo_api::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageRole};
+use nervo_sdk::api::spec::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageRole};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct NervoLlmConfig {

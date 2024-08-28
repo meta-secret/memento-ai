@@ -5,8 +5,8 @@ use crate::models::user_model::TelegramUser;
 use crate::utils::ai_utils::{llm_conversation, RESOURCES_DIR};
 use anyhow::bail;
 use chrono::Utc;
-use nervo_api::agent_type::{AgentType, NervoAgentType};
-use nervo_api::{LlmMessageContent, SendMessageRequest, UserLlmMessage};
+use nervo_sdk::agent_type::{AgentType, NervoAgentType};
+use nervo_sdk::api::spec::{LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::audio::{
     AudioOutputFormat, AudioSpeechParameters, AudioSpeechResponseFormat, AudioTranscriptionFile,

@@ -3,7 +3,7 @@ use crate::config::common::QdrantParams;
 use anyhow::bail;
 use anyhow::Result;
 use async_openai::types::Embedding;
-use nervo_api::agent_type::{AgentType, NervoAgentType};
+use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::{
     CreateCollection, DeletePointsBuilder, Distance, GetPointsBuilder, GetResponse, PointStruct,
@@ -15,7 +15,7 @@ use qdrant_client::Qdrant;
 use serde_json::json;
 use tracing::info;
 use uuid::Uuid;
-use nervo_api::utils::cryptography::UuidGenerator;
+use nervo_sdk::utils::cryptography::UuidGenerator;
 
 pub struct QdrantDb {
     pub qdrant_client: Qdrant,

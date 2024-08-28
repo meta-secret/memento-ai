@@ -13,8 +13,8 @@ use crate::db::local_db::LocalDb;
 use crate::models::qdrant_search_layers::{
     QdrantSearchInfo, QdrantSearchLayer, QdrantUserRoleTextType,
 };
-use nervo_api::agent_type::{AgentType, NervoAgentType};
-use nervo_api::{
+use nervo_sdk::agent_type::{AgentType, NervoAgentType};
+use nervo_sdk::api::spec::{
     LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence,
     LlmMessageRole, SendMessageRequest,
 };

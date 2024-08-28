@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde_derive::{Deserialize, Serialize};
 
-use nervo_api::agent_type::AgentType;
+use nervo_sdk::agent_type::AgentType;
 
 use crate::models::migration_model::MigrationModel;
 

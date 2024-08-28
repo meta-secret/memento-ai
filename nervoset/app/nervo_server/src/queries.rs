@@ -1,7 +1,7 @@
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
-use nervo_api::{LlmChat, LlmMessage};
+use nervo_sdk::api::spec::{LlmChat, LlmMessage};
 use nervo_bot_core::config::jarvis::JarvisAppState;
 use std::sync::Arc;
 use tracing::{error, info};

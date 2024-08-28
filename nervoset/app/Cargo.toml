@@ -7,7 +7,7 @@ members = [
     "nervo_core",
     "jarvis",
     "nervo_server",
-    "nervo_api",
+    "nervo_sdk",
     "nervo_wasm",
     "nervo-migrant"
 ]

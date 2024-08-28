@@ -5,7 +5,7 @@ use crate::config::common::TelegramBotParams;
 use crate::config::jarvis::JarvisAppState;
 use crate::telegram::bot_utils::{chat, system_message, SystemMessage};
 use anyhow::Result;
-use nervo_api::agent_type::AgentType;
+use nervo_sdk::agent_type::AgentType;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
 use teloxide::Bot as TelegramBot;
