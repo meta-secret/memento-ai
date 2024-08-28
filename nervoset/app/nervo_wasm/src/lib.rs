@@ -5,31 +5,80 @@ use reqwest::Client;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsError, JsValue};
 
-use tracing_web::{MakeWebConsoleWriter};
+use tracing_web::{performance_layer, MakeWebConsoleWriter};
 use tracing_subscriber::prelude::*;
 use tracing::{info};
+use tracing_subscriber::fmt::format::Pretty;
+use crate::run_mode::ClientRunMode;
 
 mod utils;
+
+pub mod run_mode {
+    use wasm_bindgen::prelude::wasm_bindgen;
+    use nervo_api::errors::{NervoWebError, NervoWebResult};
+
+    pub const LOCAL: &str = "localDev";
+    pub const DEV: &str = "dev";
+    pub const PROD: &str = "prod";
+
+    #[wasm_bindgen]
+    #[derive(Copy, Clone, Debug)]
+    pub enum ClientRunMode {
+        Local,
+        Dev,
+        Prod
+    }
+
+    #[wasm_bindgen]
+    pub struct ClientRunModeUtil {}
+
+    #[wasm_bindgen]
+    impl ClientRunModeUtil {
+        pub fn parse(mode: &str) -> NervoWebResult<ClientRunMode> {
+            match mode {
+                LOCAL => Ok(ClientRunMode::Local),
+                DEV => Ok(ClientRunMode::Dev),
+                PROD => Ok(ClientRunMode::Prod),
+                _ => {
+                    let mode_str = String::from(mode);
+                    let error = NervoWebError::UnknownRunModeError(mode_str);
+                    Err(error)
+                }
+            }
+        }
+    }
+}
 
 #[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]
 pub struct ApiUrl {
     url: &'static str,
     port: u32,
+    run_mode: ClientRunMode,
 }
 
 #[wasm_bindgen]
 impl ApiUrl {
+    pub fn get(port: u32, run_mode: ClientRunMode) -> Self {
+        match run_mode {
+            ClientRunMode::Local => ApiUrl::local(port),
+            ClientRunMode::Dev => ApiUrl::dev(port),
+            ClientRunMode::Prod => ApiUrl::prod(),
+        }
+    }
+
     pub fn local(port: u32) -> Self {
         ApiUrl {
             url: "http://localhost",
             port,
+            run_mode: ClientRunMode::Local
         }
     }
     pub fn dev(port: u32) -> Self {
         ApiUrl {
             url: "http://nervoset.metaelon.space",
             port,
+            run_mode: ClientRunMode::Dev
         }
     }
 
@@ -37,6 +86,7 @@ impl ApiUrl {
         ApiUrl {
             url: "https://prod.metaelon.space",
             port: 443,
+            run_mode: ClientRunMode::Prod
         }
     }
 }
@@ -70,12 +120,12 @@ impl NervoClient {
             .with_ansi(false) // Only partially supported across browsers
             .without_time()   // std::time is not available in browsers, see note below
             .with_writer(MakeWebConsoleWriter::new()); // write events to the console
-        // let perf_layer = performance_layer()
-        //     .with_details_from_fields(Pretty::default());
+        let perf_layer = performance_layer()
+             .with_details_from_fields(Pretty::default());
 
         tracing_subscriber::registry()
             .with(fmt_layer)
-            // .with(perf_layer)
+            .with(perf_layer)
             .init(); // Install these as subscribers to tracing events
 
         utils::set_panic_hook();

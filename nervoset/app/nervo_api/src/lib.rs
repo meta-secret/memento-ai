@@ -2,6 +2,8 @@ use crate::agent_type::AgentType;
 use serde_derive::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
+pub mod errors;
+
 pub mod app_type {
     use serde_derive::{Deserialize, Serialize};
     use wasm_bindgen::prelude::wasm_bindgen;

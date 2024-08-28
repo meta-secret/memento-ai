@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef, ChangeEvent, FormEvent, Component} from 'react';
-import {ApiUrl, LlmChat, LlmMessage, LlmMessageRole, NervoAgentType, NervoClient} from "nervo-wasm";
+import {ApiUrl, ClientRunModeUtil, LlmChat, LlmMessage, LlmMessageRole, NervoAgentType, NervoClient} from "nervo-wasm";
 import Cookies from 'js-cookie';
 import ReplyContent from "./components/reply-content.tsx";
 import logo from '../public/nervoset_logo.png';
@@ -14,29 +14,18 @@ function App(props: AppProps) {
     const [conversation, setConversation] = useState<JSX.Element[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | boolean>(false);
-    const [isTyping, setIsTyping] = useState(false); // <-- Новое состояние
+    const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const userId = getUserId();
     const chatId = getChatId();
 
-    let apiUrl = ApiUrl.prod();
-    let serverPort: number = import.meta.env.VITE_SERVER_PORT;
-    console.log("port: " + serverPort);
-    if (import.meta.env.MODE === "localDev") {
-        apiUrl = ApiUrl.local(serverPort);
-    }
-
-    if (import.meta.env.MODE === "dev") {
-        apiUrl = ApiUrl.dev(serverPort);
-    }
-
-    if (import.meta.env.MODE === "prod") {
-        apiUrl = ApiUrl.prod();
-    }
-
+    const serverPort: number = import.meta.env.VITE_SERVER_PORT;
+    const mode = ClientRunModeUtil.parse(import.meta.env.MODE);
+    const apiUrl = ApiUrl.get(serverPort, mode);
     //Need to use it to send to server
     const agentType = NervoAgentType.try_from(import.meta.env.VITE_AGENT_TYPE);
-    console.log("Agent type: ", agentType)
+
+    console.log("Agent type:", NervoAgentType.get_name(agentType), ", port: " + serverPort);
 
     const nervoClient = NervoClient.new(apiUrl, agentType);
 
@@ -76,7 +65,7 @@ function App(props: AppProps) {
 
     async function fetchChat() {
         try {
-            let chat: LlmChat = await nervoClient.get_chat(BigInt(chatId));
+            const chat: LlmChat = await nervoClient.get_chat(BigInt(chatId));
             console.log(`WEB: chatString ${JSON.stringify(chat)}`)
 
             const conversationElements = chat.messages.map((message: LlmMessage, index: number) => {
@@ -107,11 +96,11 @@ function App(props: AppProps) {
         setIsTyping(true); // <-- Установить состояние "печати"
 
         try {
-            let responseMessage: LlmMessage = await nervoClient.send_message(BigInt(chatId), BigInt(userId), messageText);
+            const responseMessage: LlmMessage = await nervoClient.send_message(BigInt(chatId), BigInt(userId), messageText);
             console.log(`WEB: responseString ${JSON.stringify(responseMessage)}`)
 
             if (responseMessage.meta_info.role === LlmMessageRole.Assistant) {
-                let msg = responseMessage.content.text();
+                const msg = responseMessage.content.text();
                 setConversation(prevConversation => [
                     ...prevConversation,
                     <ReplyContent key={prevConversation.length} text={msg}/>
