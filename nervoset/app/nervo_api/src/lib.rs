@@ -7,6 +7,7 @@ pub mod errors;
 pub mod app_type {
     use serde_derive::{Deserialize, Serialize};
     use wasm_bindgen::prelude::wasm_bindgen;
+    use crate::errors::{NervoWebError, NervoWebResult};
 
     pub const GROOT: &str = "groot";
     pub const JARVIS: &str = "jarvis";
@@ -16,8 +17,7 @@ pub mod app_type {
     #[serde(rename_all = "camelCase")]
     pub enum AppType {
         Groot,
-        Jarvis,
-        None,
+        Jarvis
     }
 
     #[derive(Copy, Clone, Debug)]
@@ -26,19 +26,18 @@ pub mod app_type {
 
     #[wasm_bindgen]
     impl NervoAppType {
-        pub fn try_from(name: &str) -> AppType {
+        pub fn try_from(name: &str) -> NervoWebResult<AppType> {
             match name {
-                GROOT => AppType::Groot,
-                JARVIS => AppType::Jarvis,
-                _ => AppType::None,
+                GROOT => Ok(AppType::Groot),
+                JARVIS => Ok(AppType::Jarvis),
+                _ => Err(NervoWebError::UnknownAppTypeError(name.to_string()))
             }
         }
 
         pub fn get_name(app_type: AppType) -> String {
             match app_type {
                 AppType::Groot => String::from(GROOT),
-                AppType::Jarvis => String::from(JARVIS),
-                AppType::None => String::from(""),
+                AppType::Jarvis => String::from(JARVIS)
             }
         }
     }

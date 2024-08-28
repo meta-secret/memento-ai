@@ -7,6 +7,9 @@ pub type NervoWebResult<T> = Result<T, NervoWebError>;
 pub enum NervoWebError {
     #[error("Unknown run mode: {0}")]
     UnknownRunModeError(String),
+
+    #[error("Unknown App Type: {0}")]
+    UnknownAppTypeError(String)
 }
 
 impl From<NervoWebError> for JsValue {
