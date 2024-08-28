@@ -1,6 +1,5 @@
 use crate::ai::nervo_llm::NervoLlm;
 use crate::config::common::QdrantParams;
-use crate::utils::cryptography::UuidGenerator;
 use anyhow::bail;
 use anyhow::Result;
 use async_openai::types::Embedding;
@@ -16,6 +15,7 @@ use qdrant_client::Qdrant;
 use serde_json::json;
 use tracing::info;
 use uuid::Uuid;
+use nervo_api::utils::cryptography::UuidGenerator;
 
 pub struct QdrantDb {
     pub qdrant_client: Qdrant,

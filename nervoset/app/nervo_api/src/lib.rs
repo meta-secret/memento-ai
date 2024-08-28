@@ -1,8 +1,25 @@
 use crate::agent_type::AgentType;
 use serde_derive::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
+use crate::utils::cryptography::{U64Generator, UuidGenerator};
 
 pub mod errors;
+pub mod utils;
+pub mod common;
+
+#[wasm_bindgen]
+pub struct WasmIdGenerator {}
+
+#[wasm_bindgen]
+impl WasmIdGenerator {
+    pub fn generate_uuid() -> String {
+        UuidGenerator::rand_uuid_b64_url_enc().text()
+    }
+    
+    pub fn generate_u64() -> u64 {
+        U64Generator::generate_u64()
+    }
+}
 
 pub mod app_type {
     use serde_derive::{Deserialize, Serialize};

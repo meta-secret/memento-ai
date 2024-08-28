@@ -19,9 +19,9 @@ use clap::{Parser, Subcommand};
 use futures::future::BoxFuture;
 use futures::FutureExt;
 use nervo_api::agent_type::{AgentType, NervoAgentType};
-use nervo_bot_core::utils::cryptography::UuidGenerator;
 use tokio::time::Instant;
 use uuid::Uuid;
+use nervo_api::utils::cryptography::UuidGenerator;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]

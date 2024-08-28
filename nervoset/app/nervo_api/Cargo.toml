@@ -7,9 +7,16 @@ edition = "2021"
 anyhow.workspace = true
 thiserror.workspace = true
 
+rand.workspace = true
+getrandom.workspace = true
+uuid.workspace = true
+sha2.workspace = true
+
 serde.workspace = true
 serde_json.workspace = true
 serde_derive.workspace = true
 wasm-bindgen = "0.2.84"
 
 enum-iterator.workspace = true
+hex = "0.4.3"
+base64 = "0.22.1"

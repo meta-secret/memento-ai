@@ -1,5 +1,15 @@
 import {useState, useEffect, useRef} from 'react';
-import {ApiUrl, ClientRunModeUtil, LlmChat, LlmMessage, LlmMessageRole, NervoAgentType, NervoClient} from "nervo-wasm";
+import {
+    ApiUrl,
+    ClientRunModeUtil,
+    LlmChat,
+    LlmMessage,
+    LlmMessageRole,
+    NervoAgentType,
+    NervoClient,
+    WasmIdGenerator
+} from "nervo-wasm";
+
 import Cookies from 'js-cookie';
 import ReplyContent from "./components/reply-content.tsx";
 import MessagingPanel from './components/messaging-panel.tsx';
@@ -51,16 +61,16 @@ function App(props: AppProps) {
     function getUserId() {
         let userId = Cookies.get('userId');
         if (!userId) {
-            userId = Math.floor(Math.random() * 0xFFFFFFFF).toString();
+            userId = WasmIdGenerator.generate_uuid();
             Cookies.set('userId', userId);
         }
         return userId;
     }
 
-    function getChatId() {
-        let chatId: number = Number(Cookies.get('chatId'));
+    function getChatId(): bigint {
+        let chatId: bigint = BigInt(Cookies.get('chatId')!);
         if (!chatId) {
-            chatId = Math.floor(Math.random() * 0xFFFFFFFF);
+            chatId = WasmIdGenerator.generate_u64();
             Cookies.set('chatId', chatId.toString());
         }
         return chatId;
