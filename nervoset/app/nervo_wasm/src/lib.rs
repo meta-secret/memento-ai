@@ -1,5 +1,5 @@
 use pulldown_cmark::{html, Parser};
-use nervo_sdk::agent_type::AgentType;
+use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use nervo_sdk::api::spec::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest, UserLlmMessage};
 use reqwest::Client;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -9,9 +9,13 @@ use tracing_web::{performance_layer, MakeWebConsoleWriter};
 use tracing_subscriber::prelude::*;
 use tracing::{info};
 use tracing_subscriber::fmt::format::Pretty;
-use crate::run_mode::ClientRunMode;
+use nervo_sdk::errors::NervoWebResult;
+use crate::browser::nervo_wasm_store::NervoWasmStore;
+use crate::run_mode::{ClientRunMode, ClientRunModeUtil};
 
 mod utils;
+pub mod browser;
+mod db;
 
 pub mod run_mode {
     use wasm_bindgen::prelude::wasm_bindgen;
@@ -103,19 +107,30 @@ pub struct NervoClient {
     pub api_url: ApiUrl,
     pub agent_type: AgentType,
     client: Client,
+    nervo_store: NervoWasmStore
 }
 
 #[wasm_bindgen]
 impl NervoClient {
-    pub fn new(api_url: ApiUrl, agent_type: AgentType) -> Self {
-        NervoClient {
+    
+    pub async fn init(server_port: u32, run_mode: &str, agent_type: &str) -> NervoWebResult<NervoClient> {
+        let run_mode = ClientRunModeUtil::parse(run_mode)?;
+        let agent_type = NervoAgentType::try_from(agent_type);
+        let api_url = ApiUrl::get(server_port, run_mode);
+
+        info!("Agent type: {:?}, port: {:?}, run mode: {:?}", agent_type, server_port, run_mode);
+
+        Ok(NervoClient {
             api_url,
             agent_type,
             client: Client::new(),
-        }
+            nervo_store: NervoWasmStore::init().await
+        })
     }
 
-    pub async fn configure(&self) {
+    pub fn configure_tracing() {
+        utils::set_panic_hook();
+        
         let fmt_layer = tracing_subscriber::fmt::layer()
             .with_ansi(false) // Only partially supported across browsers
             .without_time()   // std::time is not available in browsers, see note below
@@ -123,17 +138,17 @@ impl NervoClient {
         let perf_layer = performance_layer()
             .with_details_from_fields(Pretty::default());
 
-        tracing_subscriber::registry()
+        let _ = tracing_subscriber::registry()
             .with(fmt_layer)
             .with(perf_layer)
-            .init(); // Install these as subscribers to tracing events
-
-        utils::set_panic_hook();
+            .try_init(); // Install these as subscribers to tracing events
     }
 
     #[wasm_bindgen]
-    pub async fn get_chat(&self, chat_id: u64) -> Result<LlmChat, JsValue> {
-        info!("LIB: get_chat");
+    pub async fn get_chat(&self) -> Result<LlmChat, JsValue> {
+        info!("get_chat");
+
+        let chat_id = self.nervo_store.get_or_generate_chat_id().await;
 
         let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
         info!("LIB: url {:?}", url);
@@ -174,12 +189,10 @@ impl NervoClient {
         })
     }
 
-    pub async fn send_message(
-        &self,
-        chat_id: u64,
-        user_id: u64,
-        content: String,
-    ) -> Result<LlmMessage, JsValue> {
+    pub async fn send_message(&self, content: String) -> Result<LlmMessage, JsValue> {
+        let chat_id = self.nervo_store.get_or_generate_chat_id().await;
+        let user_id = self.nervo_store.get_or_generate_user_id().await;
+
         let json = SendMessageRequest {
             chat_id,
             agent_type: self.agent_type,

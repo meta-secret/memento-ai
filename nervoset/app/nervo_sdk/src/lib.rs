@@ -1,5 +1,3 @@
-use crate::agent_type::AgentType;
-use serde_derive::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 use crate::utils::cryptography::{U64Generator, UuidGenerator};
 

@@ -9,7 +9,7 @@ pub enum NervoWebError {
     UnknownRunModeError(String),
 
     #[error("Unknown App Type: {0}")]
-    UnknownAppTypeError(String)
+    UnknownAppTypeError(String),
 }
 
 impl From<NervoWebError> for JsValue {
