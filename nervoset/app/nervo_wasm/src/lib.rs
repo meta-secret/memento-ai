@@ -7,16 +7,20 @@ use wasm_bindgen::{JsError, JsValue};
 
 use tracing_web::{performance_layer, MakeConsoleWriter, MakeWebConsoleWriter};
 use tracing_subscriber::prelude::*;
-use tracing::{info};
+use tracing::{info, instrument, Instrument};
 use tracing_subscriber::fmt::format::Pretty;
 use tracing_subscriber::fmt::time::UtcTime;
 use nervo_sdk::errors::NervoWebResult;
 use crate::browser::nervo_wasm_store::NervoWasmStore;
+use crate::common::api_url::ApiUrl;
+use crate::common::nweb_spans;
+use crate::common::nweb_spans::nweb_send_msg_span;
 use crate::run_mode::{ClientRunMode, ClientRunModeUtil};
 
 mod utils;
 pub mod browser;
 mod db;
+mod common;
 
 pub mod run_mode {
     use wasm_bindgen::prelude::wasm_bindgen;
@@ -55,55 +59,6 @@ pub mod run_mode {
 }
 
 #[wasm_bindgen]
-#[derive(Copy, Clone, Debug)]
-pub struct ApiUrl {
-    url: &'static str,
-    port: u32,
-    run_mode: ClientRunMode,
-}
-
-#[wasm_bindgen]
-impl ApiUrl {
-    pub fn get(port: u32, run_mode: ClientRunMode) -> Self {
-        match run_mode {
-            ClientRunMode::Local => ApiUrl::local(port),
-            ClientRunMode::Dev => ApiUrl::dev(port),
-            ClientRunMode::Prod => ApiUrl::prod(),
-        }
-    }
-
-    pub fn local(port: u32) -> Self {
-        ApiUrl {
-            url: "http://localhost",
-            port,
-            run_mode: ClientRunMode::Local,
-        }
-    }
-    pub fn dev(port: u32) -> Self {
-        ApiUrl {
-            url: "http://nervoset.metaelon.space",
-            port,
-            run_mode: ClientRunMode::Dev,
-        }
-    }
-
-    pub fn prod() -> Self {
-        ApiUrl {
-            url: "https://prod.metaelon.space",
-            port: 443,
-            run_mode: ClientRunMode::Prod,
-        }
-    }
-}
-
-#[wasm_bindgen]
-impl ApiUrl {
-    pub fn get_url(&self) -> String {
-        format!("{}:{}", self.url, self.port)
-    }
-}
-
-#[wasm_bindgen]
 pub struct NervoClient {
     pub api_url: ApiUrl,
     pub agent_type: AgentType,
@@ -113,7 +68,8 @@ pub struct NervoClient {
 
 #[wasm_bindgen]
 impl NervoClient {
-    
+
+    #[instrument(name = "NervoClient", skip_all)]
     pub async fn init(server_port: u32, run_mode: &str, agent_type: &str) -> NervoWebResult<NervoClient> {
         let run_mode = ClientRunModeUtil::parse(run_mode)?;
         let agent_type = NervoAgentType::try_from(agent_type);
@@ -149,15 +105,23 @@ impl NervoClient {
     }
 
     #[wasm_bindgen]
+    #[instrument(name = "nweb-chat", skip_all)]
     pub async fn get_chat(&self) -> Result<LlmChat, JsValue> {
         info!("get_chat");
 
-        let chat_id = self.nervo_store.get_or_generate_chat_id().await;
+        let chat_id = self.nervo_store
+            .get_or_generate_chat_id()
+            .instrument(nweb_spans::nweb_chat_span())
+            .await;
 
         let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
         info!("LIB: url {:?}", url);
 
-        let response = match self.client.get(url).send().await {
+        let http_result = self.client.get(url).send()
+            .instrument(nweb_spans::nweb_chat_span())
+            .await;
+        
+        let response = match http_result {
             Ok(response) => {
                 info!("LIB: FETCH GET response {:?}", response);
                 response
@@ -193,9 +157,14 @@ impl NervoClient {
         })
     }
 
+    #[instrument(name = "nweb-send-msg", skip_all)]
     pub async fn send_message(&self, content: String) -> Result<LlmMessage, JsValue> {
-        let chat_id = self.nervo_store.get_or_generate_chat_id().await;
-        let user_id = self.nervo_store.get_or_generate_user_id().await;
+        let chat_id = self.nervo_store
+            .get_or_generate_chat_id()
+            .await;
+        let user_id = self.nervo_store
+            .get_or_generate_user_id()
+            .await;
 
         let json = SendMessageRequest {
             chat_id,
