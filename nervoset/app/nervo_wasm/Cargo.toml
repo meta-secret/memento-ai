@@ -41,7 +41,7 @@ rexie = "0.6.2"
 # Wasm dependencies
 tracing.workspace = true
 tracing-web = "0.1.3"
-tracing-subscriber = { workspace = true, default-features = false, features = ["fmt"] }
+tracing-subscriber = { workspace = true, default-features = false, features = ["fmt", "time"]  }
 time = { version = "0.3", features = ["wasm-bindgen"] }
 
 # Markdow

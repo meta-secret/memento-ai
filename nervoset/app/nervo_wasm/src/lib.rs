@@ -5,10 +5,11 @@ use reqwest::Client;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::{JsError, JsValue};
 
-use tracing_web::{performance_layer, MakeWebConsoleWriter};
+use tracing_web::{performance_layer, MakeConsoleWriter, MakeWebConsoleWriter};
 use tracing_subscriber::prelude::*;
 use tracing::{info};
 use tracing_subscriber::fmt::format::Pretty;
+use tracing_subscriber::fmt::time::UtcTime;
 use nervo_sdk::errors::NervoWebResult;
 use crate::browser::nervo_wasm_store::NervoWasmStore;
 use crate::run_mode::{ClientRunMode, ClientRunModeUtil};
@@ -130,13 +131,16 @@ impl NervoClient {
 
     pub fn configure_tracing() {
         utils::set_panic_hook();
-        
+
         let fmt_layer = tracing_subscriber::fmt::layer()
-            .with_ansi(false) // Only partially supported across browsers
-            .without_time()   // std::time is not available in browsers, see note below
-            .with_writer(MakeWebConsoleWriter::new()); // write events to the console
-        let perf_layer = performance_layer()
-            .with_details_from_fields(Pretty::default());
+            .without_time()
+            .with_ansi(false)
+            //.with_max_level(Level::INFO)
+            .pretty() // Only partially supported across browsers
+            .with_timer(UtcTime::rfc_3339()) // std::time is not available in browsers
+            .with_writer(MakeConsoleWriter); // write events to the console
+
+        let perf_layer = performance_layer().with_details_from_fields(Pretty::default());
 
         let _ = tracing_subscriber::registry()
             .with(fmt_layer)
