@@ -42,10 +42,18 @@ tasks:
     requires:
       vars:
         - IMAGE_NAME
+    vars:
+      PWD:
+        sh: pwd
     cmds:
       - mkdir -p {{.BUILD_DIR}}
       - for: { var: CONFIGS }
-        cmd: kcl {{ .ITEM }} -D imageName="{{.IMAGE_NAME}}" > {{ .BUILD_DIR }}/{{ .ITEM }}.yaml
+        cmd: |
+          docker run --rm \
+            --platform=linux/amd64 \
+            -v {{.PWD}}:/nervo-kcl \
+            kcllang/kcl:v0.9.8 \
+            sh -c "kcl /nervo-kcl/{{.ITEM}} -D imageName="{{.IMAGE_NAME}}" > /nervo-kcl/{{.BUILD_DIR}}/{{.ITEM}}.yaml"
 
   generate:
     cmds:

@@ -4,7 +4,6 @@
     "k3d@5.7.3",
     "kubernetes-helm@3.15.4",
     "kubectl@1.30.2",
-    "kcl-cli@0.8.9",
 
     "go-task@3.37.2",
 
