@@ -23,7 +23,7 @@ impl WasmIdGenerator {
 pub mod app_type {
     use serde_derive::{Deserialize, Serialize};
     use wasm_bindgen::prelude::wasm_bindgen;
-    use crate::errors::{NervoWebError, NervoWebResult};
+    use crate::errors::{NervoSdkError, NervoWebResult};
 
     pub const GROOT: &str = "groot";
     pub const JARVIS: &str = "jarvis";
@@ -46,7 +46,7 @@ pub mod app_type {
             match name {
                 GROOT => Ok(AppType::Groot),
                 JARVIS => Ok(AppType::Jarvis),
-                _ => Err(NervoWebError::UnknownAppTypeError(name.to_string()))
+                _ => Err(NervoSdkError::UnknownAppTypeError(name.to_string()))
             }
         }
 

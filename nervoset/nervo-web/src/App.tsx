@@ -45,7 +45,7 @@ function App(props: AppProps) {
         async function fetchChat(nervoClient: NervoClient) {
             try {
                 const chat: LlmChat = await nervoClient.get_chat();
-                console.log(`WEB: chatString ${JSON.stringify(chat)}`)
+                console.log(` chatString ${JSON.stringify(chat)}`)
 
                 const conversationElements = chat.messages.map((message: LlmMessage, index: number) => {
                     if (message.meta_info.role === LlmMessageRole.User) {
@@ -60,8 +60,7 @@ function App(props: AppProps) {
                 setConversation(conversationElements);
 
             } catch (error) {
-                console.error("WEB: Failed to fetch chat: ", error);
-                setError("Failed to fetch chat");
+                setError(JSON.stringify(error, null, 2));
             } finally {
                 setLoading(false);
             }
@@ -91,7 +90,7 @@ function App(props: AppProps) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-expect-error
             const responseMessage = await nervoClient.send_message(messageText);
-            console.log(`WEB: responseString ${JSON.stringify(responseMessage)}`)
+            console.log(` responseString ${JSON.stringify(responseMessage)}`)
 
             if (responseMessage.meta_info.role === LlmMessageRole.Assistant) {
                 const msg = responseMessage.content.text();
@@ -101,7 +100,7 @@ function App(props: AppProps) {
                 ]);
             }
         } catch (error) {
-            console.error("WEB: Failed to send message: ", error);
+            console.error(" Failed to send message: ", error);
             setError("Failed to send message");
         } finally {
             setIsTyping(false); // <-- hide "typing..." message
@@ -109,7 +108,8 @@ function App(props: AppProps) {
     }
 
     if (error) {
-        console.log("Error!!!!", error);
+        console.log(error);
+        //console.log("Error!!!!", error);
         return <div>{error}</div>;
     }
 

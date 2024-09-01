@@ -1,21 +1,21 @@
+use error_stack::ResultExt;
 use pulldown_cmark::{html, Parser};
 use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use nervo_sdk::api::spec::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest, UserLlmMessage};
-use reqwest::Client;
+use reqwest::{Client};
 use wasm_bindgen::prelude::wasm_bindgen;
-use wasm_bindgen::{JsError, JsValue};
 
-use tracing_web::{performance_layer, MakeConsoleWriter, MakeWebConsoleWriter};
+use tracing_web::{performance_layer, MakeConsoleWriter};
 use tracing_subscriber::prelude::*;
-use tracing::{info, instrument, Instrument};
+use tracing::{info, Instrument};
 use tracing_subscriber::fmt::format::Pretty;
 use tracing_subscriber::fmt::time::UtcTime;
-use nervo_sdk::errors::NervoWebResult;
+use nervo_sdk::errors::{NervoWebResult};
 use crate::browser::nervo_wasm_store::NervoWasmStore;
 use crate::common::api_url::ApiUrl;
 use crate::common::nweb_spans;
 use crate::common::nweb_spans::nweb_send_msg_span;
-use crate::run_mode::{ClientRunMode, ClientRunModeUtil};
+use crate::run_mode::{ClientRunModeUtil};
 
 mod utils;
 pub mod browser;
@@ -24,7 +24,7 @@ mod common;
 
 pub mod run_mode {
     use wasm_bindgen::prelude::wasm_bindgen;
-    use nervo_sdk::errors::{NervoWebError, NervoWebResult};
+    use nervo_sdk::errors::{NervoSdkError, NervoWebResult};
 
     pub const LOCAL: &str = "localDev";
     pub const DEV: &str = "dev";
@@ -50,7 +50,7 @@ pub mod run_mode {
                 PROD => Ok(ClientRunMode::Prod),
                 _ => {
                     let mode_str = String::from(mode);
-                    let error = NervoWebError::UnknownRunModeError(mode_str);
+                    let error = NervoSdkError::UnknownRunModeError(mode_str);
                     Err(error)
                 }
             }
@@ -69,7 +69,6 @@ pub struct NervoClient {
 #[wasm_bindgen]
 impl NervoClient {
 
-    #[instrument(name = "NervoClient", skip_all)]
     pub async fn init(server_port: u32, run_mode: &str, agent_type: &str) -> NervoWebResult<NervoClient> {
         let run_mode = ClientRunModeUtil::parse(run_mode)?;
         let agent_type = NervoAgentType::try_from(agent_type);
@@ -105,8 +104,7 @@ impl NervoClient {
     }
 
     #[wasm_bindgen]
-    #[instrument(name = "nweb-chat", skip_all)]
-    pub async fn get_chat(&self) -> Result<LlmChat, JsValue> {
+    pub async fn get_chat(&self) -> LlmChat {
         info!("get_chat");
 
         let chat_id = self.nervo_store
@@ -115,35 +113,34 @@ impl NervoClient {
             .await;
 
         let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
-        info!("LIB: url {:?}", url);
+        info!("url {:?}", url);
 
-        let http_result = self.client.get(url).send()
+        let response = self.client.get(url)
+            .send()
             .instrument(nweb_spans::nweb_chat_span())
-            .await;
-        
-        let response = match http_result {
-            Ok(response) => {
-                info!("LIB: FETCH GET response {:?}", response);
-                response
-            }
-            Err(error) => return Err(JsValue::from_str(&format!("Request failed: {}", error))),
-        };
+            .await
+            .attach_printable_lazy(|| "Failed fetching chat")
+            .unwrap();
 
-        let chat: LlmChat = response.json().await.map_err(JsError::from)?;
+        let chat: LlmChat = response.json()
+            .instrument(nweb_spans::nweb_chat_span())
+            .await
+            .attach_printable_lazy(|| "Failed parsing chat response as json")
+            .unwrap();
 
-        let transformed_messages: Vec<LlmMessage> = chat.messages.iter().map(|x| {
-            match x.meta_info.role {
-                LlmMessageRole::User => x.clone(),
+        let transformed_messages: Vec<LlmMessage> = chat.messages.iter().map(|msg| {
+            match msg.meta_info.role {
+                LlmMessageRole::User => msg.clone(),
                 _ => {
-                    let markdown_text = x.content.text();
+                    let markdown_text = msg.content.text();
                     let html_text = markdown_to_html(&markdown_text);
                     let content = LlmMessageContent::from(html_text.as_ref());
 
                     LlmMessage {
                         meta_info: LlmMessageMetaInfo {
-                            sender_id: x.meta_info.sender_id,
-                            role: x.meta_info.role,
-                            persistence: x.meta_info.persistence,
+                            sender_id: msg.meta_info.sender_id,
+                            role: msg.meta_info.role,
+                            persistence: msg.meta_info.persistence,
                         },
                         content,
                     }
@@ -151,19 +148,20 @@ impl NervoClient {
             }
         }).collect();
 
-        Ok(LlmChat {
+        LlmChat {
             chat_id: chat.chat_id,
             messages: transformed_messages,
-        })
+        }
     }
 
-    #[instrument(name = "nweb-send-msg", skip_all)]
-    pub async fn send_message(&self, content: String) -> Result<LlmMessage, JsValue> {
+    pub async fn send_message(&self, content: String) -> LlmMessage {
         let chat_id = self.nervo_store
             .get_or_generate_chat_id()
+            .instrument(nweb_send_msg_span())
             .await;
         let user_id = self.nervo_store
             .get_or_generate_user_id()
+            .instrument(nweb_send_msg_span())
             .await;
 
         let json = SendMessageRequest {
@@ -176,7 +174,7 @@ impl NervoClient {
         };
 
         let url = format!("{}/send_message", self.api_url.get_url());
-        info!("LIB: Send msg url {:?} with json: {:?}", url, json);
+        info!("Send msg url {:?} with json: {:?}", url, json);
 
         let response = self
             .client
@@ -185,24 +183,31 @@ impl NervoClient {
             .header("Access-Control-Allow-Origin", url)
             .json(&json)
             .send()
+            .instrument(nweb_send_msg_span())
             .await
-            .map_err(JsError::from)?;
+            .attach_printable_lazy(|| "Failed sending message")
+            .unwrap();
 
-        let llm_message_response: LlmMessage = response.json().await.map_err(JsError::from)?;
-        info!("LIB: Response LlmMessage: {:?}", llm_message_response);
+        let llm_message_response: LlmMessage = response.json()
+            .instrument(nweb_send_msg_span())
+            .await
+            .attach_printable_lazy(||"Json parsing error")
+            .unwrap();
+
+        info!("Response LlmMessage: {:?}", llm_message_response);
         let markdown_text = llm_message_response.content.text();
         let html_text = markdown_to_html(&markdown_text);
-        info!("LIB: html_text: {:?}", html_text);
+        info!("html_text: {:?}", html_text);
         let content = LlmMessageContent::from(html_text.as_ref());
 
-        Ok(LlmMessage {
+        LlmMessage {
             meta_info: LlmMessageMetaInfo {
                 sender_id: llm_message_response.meta_info.sender_id,
                 role: llm_message_response.meta_info.role,
                 persistence: llm_message_response.meta_info.persistence,
             },
             content,
-        })
+        }
     }
 }
 

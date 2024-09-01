@@ -875,6 +875,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "error-stack"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe413319145d1063f080f27556fd30b1d70b01e2ba10c2a6e40d4be982ffc5d1"
+dependencies = [
+ "anyhow",
+ "rustc_version",
+ "serde",
+]
+
+[[package]]
 name = "etcetera"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1878,6 +1889,7 @@ dependencies = [
  "anyhow",
  "console_error_panic_hook",
  "console_log",
+ "error-stack",
  "js-sys",
  "nervo-sdk",
  "pulldown-cmark",

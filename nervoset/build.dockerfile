@@ -9,6 +9,9 @@ ARG APP_NAME
 
 WORKDIR /nervoset/app/${APP_NAME}
 
+# Do not EVEN THINK to remove it!!! It's used in kubernetes
+RUN mkdir data
+
 COPY dataset/ /nervoset/dataset
 COPY app/resources /nervoset/app/resources
 COPY --from=base /nervoset/app/target/release/${APP_NAME} /nervoset/app/${APP_NAME}/${APP_NAME}

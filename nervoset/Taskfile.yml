@@ -103,6 +103,7 @@ tasks:
         docker run --rm \
           -v {{.PWD}}/{{.NERVO_WEB_DIR}}/pkg:/nervoset/app/nervo_wasm/pkg \
           --workdir /nervoset/app/nervo_wasm \
+          -e RUST_BACKTRACE=full \
           {{.BASE_IMAGE}} \
           bash -c "chown -R {{.UID}}:{{.GID}} /nervoset/app/nervo_wasm/pkg && wasm-pack build"
 

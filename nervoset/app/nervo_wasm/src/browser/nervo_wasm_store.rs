@@ -9,7 +9,7 @@ pub struct NervoWasmStore {
 
 #[wasm_bindgen]
 impl NervoWasmStore {
-    
+
     pub async fn init() -> Self {
         Self {
             db: WasmRepo::init().await,

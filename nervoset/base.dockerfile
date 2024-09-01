@@ -24,10 +24,9 @@ RUN rustup component add rustfmt
 #RUN cargo install cargo-chef --locked
 COPY app/recipe.json /nervoset/app/recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
-
-# Do not EVEN THINK to remove it!!! It's used in kubernetes
-RUN mkdir data
+RUN cd nervo_wasm && wasm-pack build
 
 # Build application
 COPY dataset/ /nervoset/dataset
 COPY app/ /nervoset/app
+
