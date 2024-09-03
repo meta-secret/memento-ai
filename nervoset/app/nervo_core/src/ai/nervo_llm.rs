@@ -14,6 +14,7 @@ use async_openai::types::{
 use async_openai::types::{ChatCompletionRequestUserMessage, Embedding};
 use async_openai::Client;
 use serde_derive::Deserialize;
+use tracing::info;
 
 use nervo_sdk::api::spec::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageRole};
 
@@ -122,6 +123,7 @@ impl NervoLlm {
         };
 
         let response = self.client.moderations().create(request).await?;
+        info!("Moderation is passed: {:?}", !response.results.iter().any(|property| property.flagged) && (text.len() < 10000));
         Ok(!response.results.iter().any(|property| property.flagged) && (text.len() < 10000))
     }
 

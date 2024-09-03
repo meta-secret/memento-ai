@@ -288,6 +288,8 @@ async fn openai_chat_preparations(
     let mut search_content = String::new();
 
     for processing_layer in processing_layers {
+        info!("COMMON: Rephrased INPUT prompt for LLM: {}", rephrased_prompt.clone());
+
         if processing_layer.layer_for_search {
             let mut all_search_results = vec![];
             let db_search_response = &app_state
@@ -301,6 +303,7 @@ async fn openai_chat_preparations(
 
             for search_result in &db_search_response.result {
                 if search_result.score >= 0.3 {
+                    info!("COMMON: ADD to SEARCH_Result: {:?} with \n SCORE {}", &search_result.payload["text"].kind, search_result.score);
                     all_search_results.push(search_result.clone());
                 }
             }
@@ -308,6 +311,14 @@ async fn openai_chat_preparations(
             all_search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
             all_search_results.truncate(10);
 
+            let scores_string = all_search_results
+                .iter()
+                .map(|element| element.score.to_string())
+                .collect::<Vec<String>>()
+                .join(", ");
+
+            info!("COMMON: All_search_result scores {}", scores_string);
+            
             let concatenated_texts = concatenate_results(all_search_results)?;
 
             let token_limit = processing_layer.common_token_limit as usize;
@@ -371,7 +382,7 @@ fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyh
         info!("Truncated search_result: {}", truncated);
         Ok(truncated)
     } else {
-        info!("Concatenated_texts (non-truncated): {}", concatenated_texts);
+        info!("COMMON: Concatenated_texts (non-truncated): {}", concatenated_texts);
         Ok(concatenated_texts)
     }
     //info!("COMMON: search content result: {}", search_content);
