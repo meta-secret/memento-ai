@@ -45,7 +45,7 @@ function App(props: AppProps) {
         async function fetchChat(nervoClient: NervoClient) {
             try {
                 const chat: LlmChat = await nervoClient.get_chat();
-                console.log(` chatString ${JSON.stringify(chat)}`)
+                console.log('chatString', chat);
 
                 const conversationElements = chat.messages.map((message: LlmMessage, index: number) => {
                     if (message.meta_info.role === LlmMessageRole.User) {
