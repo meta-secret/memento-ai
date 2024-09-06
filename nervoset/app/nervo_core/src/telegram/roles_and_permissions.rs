@@ -3,8 +3,6 @@ use anyhow::Result;
 use teloxide::types::User;
 
 pub const SUPER_ADMIN: &str = "SUPERADMIN";
-pub const OWNER: &str = "OWNER";
-pub const MEMBER: &str = "MEMBER";
 
 async fn _get_roles(local_db: &LocalDb, maybe_user: Option<&User>) -> Result<Vec<String>> {
     let Some(User { id, .. }) = maybe_user else {

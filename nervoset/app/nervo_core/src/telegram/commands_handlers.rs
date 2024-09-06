@@ -1,13 +1,15 @@
+use crate::config::jarvis::JarvisAppState;
+use crate::telegram::bot_utils::MessageTranscriptionType::{Stt, Tts};
+use crate::telegram::bot_utils::{
+    start_conversation, system_message, transcribe_message, SystemMessage,
+};
+use crate::telegram::message_parser::MessageParser;
+use nervo_sdk::agent_type::AgentType;
 use std::sync::Arc;
-use teloxide::Bot;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
+use teloxide::Bot;
 use tracing::info;
-use nervo_sdk::agent_type::AgentType;
-use crate::config::jarvis::JarvisAppState;
-use crate::telegram::bot_utils::{start_conversation, system_message, SystemMessage, transcribe_message};
-use crate::telegram::bot_utils::MessageTranscriptionType::{STT, TTS};
-use crate::telegram::message_parser::MessageParser;
 
 #[derive(BotCommands, Clone)]
 #[command(
@@ -31,7 +33,11 @@ pub enum JarvisCommands {
     Manual,
 }
 
-pub async fn owner_command_handler(bot: Bot, msg: Message, cmd: JarvisOwnerCommands) -> anyhow::Result<()> {
+pub async fn owner_command_handler(
+    bot: Bot,
+    msg: Message,
+    cmd: JarvisOwnerCommands,
+) -> anyhow::Result<()> {
     match cmd {
         JarvisOwnerCommands::GetWhiteListMembers => {
             let formatted_usernames = WHITELIST_MEMBERS
@@ -58,7 +64,7 @@ pub async fn command_handler(
                 msg.chat.id,
                 format!("LLM model: {}", app_state.nervo_llm.model_name()),
             )
-                .await?;
+            .await?;
             Ok(())
         }
         JarvisCommands::Start => {
@@ -80,12 +86,12 @@ pub async fn handle_callback_query(
     if let Some(data) = q.data {
         if let Some(message) = q.message {
             if let Some(regular_message) = message.regular_message() {
-                if data == STT.as_str() {
-                    info!("COMMON: STT");
-                    transcribe_message(app_state, &bot, regular_message, STT).await?;
-                } else if data == TTS.as_str() {
-                    info!("COMMON: TTS");
-                    transcribe_message(app_state, &bot, regular_message, TTS).await?;
+                if data == Stt.as_str() {
+                    info!("STT");
+                    transcribe_message(app_state, &bot, regular_message, Stt).await?;
+                } else if data == Tts.as_str() {
+                    info!("TTS");
+                    transcribe_message(app_state, &bot, regular_message, Tts).await?;
                 }
             }
         }
@@ -99,7 +105,7 @@ pub async fn chat(
     app_state: Arc<JarvisAppState>,
     agent_type: AgentType,
 ) -> anyhow::Result<()> {
-    info!("COMMON: Start chat...");
+    info!("Start chat...");
     let mut parser = MessageParser {
         bot: &bot,
         msg: &msg,
@@ -113,7 +119,11 @@ pub async fn chat(
     let user = parser.parse_user().await?;
     let UserId(user_id) = user.id;
 
-    start_conversation(&app_state, &bot, user_id, &msg, bot_name, agent_type, parser).await?;
+    info!("Bot info {}", bot_name);
+    start_conversation(
+        &app_state, &bot, user_id, &msg, bot_name, agent_type, parser,
+    )
+    .await?;
     Ok(())
 }
 

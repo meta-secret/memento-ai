@@ -36,7 +36,7 @@ impl LocalDb {
     where
         T: Serialize + Send + 'static,
     {
-        info!("COMMON: SAVE");
+        info!("SAVE");
         self.create_table(table_name).await?;
         let items_count = self.count_items(table_name).await?;
 
@@ -138,7 +138,7 @@ impl LocalDb {
         T: Serialize,
     {
         let message_json = serde_json::to_string(&message)?;
-        info!("COMMON: message_json: {:?}", message_json);
+        info!("message_json: {:?}", message_json);
         let mut conn = self.connect_db().await?;
 
         let query = format!("INSERT INTO table_{} (message) VALUES (?)", &table_name);
@@ -146,7 +146,7 @@ impl LocalDb {
             .bind(&message_json)
             .execute(&mut conn)
             .await?;
-        info!("COMMON: INSERTED");
+        info!("INSERTED");
         Ok(())
     }
 

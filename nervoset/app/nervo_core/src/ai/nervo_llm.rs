@@ -123,7 +123,10 @@ impl NervoLlm {
         };
 
         let response = self.client.moderations().create(request).await?;
-        info!("Moderation is passed: {:?}", !response.results.iter().any(|property| property.flagged) && (text.len() < 10000));
+        info!(
+            "Moderation is passed: {:?}",
+            !response.results.iter().any(|property| property.flagged) && (text.len() < 10000)
+        );
         Ok(!response.results.iter().any(|property| property.flagged) && (text.len() < 10000))
     }
 

@@ -1,15 +1,16 @@
-use std::sync::Arc;
+use crate::config::jarvis::JarvisAppState;
 use anyhow::{anyhow, bail};
 use openai_dive::v1::api::Client;
-use openai_dive::v1::resources::audio::{AudioOutputFormat, AudioTranscriptionFile, AudioTranscriptionParameters};
-use teloxide::Bot;
+use openai_dive::v1::resources::audio::{
+    AudioOutputFormat, AudioTranscriptionFile, AudioTranscriptionParameters,
+};
+use std::sync::Arc;
 use teloxide::net::Download;
-use teloxide::payloads::SendMessageSetters;
 use teloxide::prelude::{Message, Requester};
-use teloxide::types::{File, FileMeta, MediaKind, MessageId, MessageKind, ReplyParameters, User};
+use teloxide::types::{File, FileMeta, MediaKind, MessageKind, User};
+use teloxide::Bot;
 use tokio::fs;
 use tracing::info;
-use crate::config::jarvis::JarvisAppState;
 
 // PARSING USER & TEXT & VOICE
 pub struct MessageParser<'a> {
@@ -29,15 +30,29 @@ impl<'a> MessageParser<'a> {
     // Get user from TG message
     pub async fn parse_user(&mut self) -> anyhow::Result<User> {
         let Some(user) = &self.msg.from else {
-            bail!("COMMON: User not found. We can handle only direct messages.");
+            bail!("User not found. We can handle only direct messages.");
         };
         Ok(user.clone())
     }
 
     // Get text from TG message
-    pub async fn parse_text(&mut self, is_editing: bool) -> anyhow::Result<String> {
+    pub async fn is_tg_message_text(&self) -> anyhow::Result<bool> {
         let MessageKind::Common(msg_common) = &self.msg.kind else {
-            bail!("COMMON: Unsupported message content type.");
+            bail!("Unsupported message content type.");
+        };
+        let media_kind = &msg_common.media_kind;
+
+        let is_text = match media_kind {
+            MediaKind::Text(_) => true,
+            _ => false,
+        };
+
+        info!("Is current message text: {}", is_text);
+        Ok(is_text)
+    }
+    pub async fn parse_tg_message_content(&mut self) -> anyhow::Result<String> {
+        let MessageKind::Common(msg_common) = &self.msg.kind else {
+            bail!("Unsupported message content type.");
         };
 
         let media_kind = &msg_common.media_kind;
@@ -45,59 +60,40 @@ impl<'a> MessageParser<'a> {
         let result_text = match media_kind {
             MediaKind::Text(media_text) => media_text.text.clone(),
             MediaKind::Voice(media_voice) => {
-                info!("COMMON: MediaKind - Voice");
-                let text = self.parse_voice_to_text(&media_voice.voice.file, is_editing).await?;
+                info!("MediaKind - Voice");
+                let text = self
+                    .parse_voice_to_text(&media_voice.voice.file)
+                    .await?;
                 text.clone()
             }
             MediaKind::Audio(media_voice) => {
-                info!("COMMON: MediaKind - Audio");
-                let text = self.parse_voice_to_text(&media_voice.audio.file, is_editing).await?;
+                info!("MediaKind - Audio");
+                let text = self
+                    .parse_voice_to_text(&media_voice.audio.file)
+                    .await?;
                 text.clone()
             }
             _ => {
-                bail!("COMMON: Unsupported case. We can handle only direct messages.");
+                bail!("Unsupported case. We can handle only direct messages.");
             }
         };
 
-        info!("COMMON: Text from the message: {}", result_text);
+        info!("Text from the message: {}", result_text);
         Ok(result_text)
     }
 
     // Get voice from TG message
-     pub async fn parse_voice_to_text(
+    async fn parse_voice_to_text(
         &mut self,
         media_voice: &FileMeta,
-        is_editing: bool
     ) -> anyhow::Result<String> {
-        info!("COMMON: Parse voice to text");
-        let reply_parameters = ReplyParameters {
-            message_id: self.msg.id,
-            chat_id: None,
-            allow_sending_without_reply: None,
-            quote: None,
-            quote_parse_mode: None,
-            quote_entities: None,
-            quote_position: None,
-        };
-        
-        if !is_editing {
-            self.bot.send_message(
-                    self.msg.chat.id.clone(),
-                    "Один момент, сейчас отвечу!".to_string(),
-                )
-                .reply_parameters(reply_parameters)
-                .await?;
-        } else {
-            self.bot.send_chat_action(self.msg.chat.id.clone(), teloxide::types::ChatAction::Typing).await?;
-        }
-
-        info!("COMMON: Generate audio message");
+        info!("Parse voice to text");
         let file: File = self.bot.get_file(&media_voice.id).await?;
         let file_extension = "oga";
         let file_name: &str = &file.id;
         let file_path = format!("/tmp/{}.{}", &file_name, &file_extension);
         let mut dst = fs::File::create(&file_path).await?;
-        
+
         if fs::metadata(&file_path).await.is_ok() {
             self.bot.download_file(&file.path, &mut dst).await?;
             let parameters = AudioTranscriptionParameters {
@@ -112,24 +108,19 @@ impl<'a> MessageParser<'a> {
 
             let client = Client::new(self.app_state.nervo_llm.api_key().to_string());
             let response = client.audio().create_transcription(parameters).await;
-            
+
             fs::remove_file(&file_path).await?;
             drop(dst);
-
+            
             match response {
                 Ok(text) => {
                     self.set_is_voice(true);
                     Ok(text.clone())
                 }
-                Err(err) => {
-                    Err(anyhow!(err).context("Can't transcribe audio file to text"))
-                }
+                Err(err) => Err(anyhow!(err).context("Can't transcribe audio file to text")),
             }
         } else {
-            let error = anyhow!(format!(
-                "COMMON: File '{}' doesn't exist.",
-                file_path
-            ));
+            let error = anyhow!(format!("File '{}' doesn't exist.", file_path));
             Err(error)
         }
     }

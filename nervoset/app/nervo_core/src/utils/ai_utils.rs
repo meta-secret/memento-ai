@@ -31,7 +31,7 @@ pub async fn llm_conversation(
     let msg = msg_request.llm_message;
     let content = msg.content.0.as_str();
     let user_id = msg.sender_id.to_string();
-    info!("COMMON: content: {:?} and user_id: {:?}", &content, user_id);
+    info!("content: {:?} and user_id: {:?}", &content, user_id);
 
     // First, detect the request type. Will we use Qdrant or a simple LLM going forward?
     let initial_user_request = detecting_crap_request(
@@ -168,7 +168,7 @@ async fn detecting_crap_request(
     chat_id: u64,
     agent_type: AgentType,
 ) -> anyhow::Result<String> {
-    info!("COMMON: CRAP DETECTION");
+    info!("CRAP DETECTION");
     let layers_info = get_all_search_layers(agent_type).await?;
     let layer_content = create_layer_content(
         &app_state.nervo_llm,
@@ -186,7 +186,7 @@ async fn detecting_crap_request(
 
 pub async fn get_all_search_layers(agent_type: AgentType) -> anyhow::Result<QdrantSearchInfo> {
     let agent_type_name = NervoAgentType::get_name(agent_type);
-    info!("COMMON: get_all_search_layers: {:?}", agent_type_name);
+    info!("get_all_search_layers: {:?}", agent_type_name);
     let resource_path = format!(
         "{}/agent/{}/vectorisation_roles.json",
         RESOURCES_DIR, agent_type_name
@@ -206,23 +206,23 @@ async fn create_layer_content(
     search_result_content: String,
     chat_id: u64,
 ) -> anyhow::Result<String> {
-    info!("COMMON: create_layer_content");
+    info!("create_layer_content");
     let all_saved_messages: Vec<LlmMessage> = local_db.read_from_local_db(db_table_name).await?;
 
     let start_index_table_name = format!("{}_start_index", db_table_name);
-    info!("COMMON: start_index_table_name {}", start_index_table_name);
+    info!("start_index_table_name {}", start_index_table_name);
     let context_messages_indexes: Vec<i64> =
         local_db.read_from_local_db(&start_index_table_name).await?;
 
     info!(
-        "COMMON: context_messages_indexes len {:?}",
+        "context_messages_indexes len {:?}",
         context_messages_indexes.len()
     );
 
     let mut cached_messages: Vec<LlmMessage> = vec![];
     for index in context_messages_indexes {
         if let Some(content_message) = all_saved_messages.get(index as usize) {
-            info!("COMMON: add message");
+            info!("add message");
             cached_messages.push(content_message.clone());
         }
     }
@@ -288,7 +288,10 @@ async fn openai_chat_preparations(
     let mut search_content = String::new();
 
     for processing_layer in processing_layers {
-        info!("COMMON: Rephrased INPUT prompt for LLM: {}", rephrased_prompt.clone());
+        info!(
+            "Rephrased INPUT prompt for LLM: {}",
+            rephrased_prompt.clone()
+        );
 
         if processing_layer.layer_for_search {
             let mut all_search_results = vec![];
@@ -303,7 +306,10 @@ async fn openai_chat_preparations(
 
             for search_result in &db_search_response.result {
                 if search_result.score >= 0.3 {
-                    info!("COMMON: ADD to SEARCH_Result: {:?} with \n SCORE {}", &search_result.payload["text"].kind, search_result.score);
+                    info!(
+                        "ADD to SEARCH_Result: {:?} with \n SCORE {}",
+                        &search_result.payload["text"].kind, search_result.score
+                    );
                     all_search_results.push(search_result.clone());
                 }
             }
@@ -317,8 +323,8 @@ async fn openai_chat_preparations(
                 .collect::<Vec<String>>()
                 .join(", ");
 
-            info!("COMMON: All_search_result scores {}", scores_string);
-            
+            info!("All_search_result scores {}", scores_string);
+
             let concatenated_texts = concatenate_results(all_search_results)?;
 
             let token_limit = processing_layer.common_token_limit as usize;
@@ -353,7 +359,7 @@ async fn openai_chat_preparations(
             cached_messages.push(content_message.clone());
         }
     }
-    
+
     if cached_messages.len() % 5 == 0 {
         rephrased_prompt.push_str(&all_layers_data.info_message_1);
     };
@@ -366,13 +372,13 @@ async fn openai_chat_preparations(
 }
 
 fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyhow::Result<String> {
-    info!("COMMON: concatenated text {}", concatenated_texts.clone());
+    info!("concatenated text {}", concatenated_texts.clone());
 
     let bpe = cl100k_base()?;
     let mut tokens = bpe.split_by_token(&concatenated_texts, true)?;
 
     info!(
-        "COMMON: tokens len {:?} and token limit {:?}",
+        "tokens len {:?} and token limit {:?}",
         tokens.len(),
         token_limit
     );
@@ -382,7 +388,10 @@ fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyh
         info!("Truncated search_result: {}", truncated);
         Ok(truncated)
     } else {
-        info!("COMMON: Concatenated_texts (non-truncated): {}", concatenated_texts);
+        info!(
+            "Concatenated_texts (non-truncated): {}",
+            concatenated_texts
+        );
         Ok(concatenated_texts)
     }
     //info!("COMMON: search content result: {}", search_content);

@@ -4,6 +4,7 @@ use anyhow::bail;
 use anyhow::Result;
 use async_openai::types::Embedding;
 use nervo_sdk::agent_type::{AgentType, NervoAgentType};
+use nervo_sdk::utils::cryptography::UuidGenerator;
 use qdrant_client::qdrant::vectors_config::Config;
 use qdrant_client::qdrant::{
     CreateCollection, DeletePointsBuilder, Distance, GetPointsBuilder, GetResponse, PointStruct,
@@ -15,7 +16,6 @@ use qdrant_client::Qdrant;
 use serde_json::json;
 use tracing::info;
 use uuid::Uuid;
-use nervo_sdk::utils::cryptography::UuidGenerator;
 
 pub struct QdrantDb {
     pub qdrant_client: Qdrant,
@@ -93,11 +93,7 @@ impl QdrantDb {
         limit: u64,
     ) -> Result<SearchResponse> {
         let collection_name = NervoAgentType::get_name(agent_type);
-        let builder = SearchPointsBuilder::new(
-            collection_name,
-            embedding.embedding,
-            limit,
-        )
+        let builder = SearchPointsBuilder::new(collection_name, embedding.embedding, limit)
             .with_payload(true)
             .params(SearchParamsBuilder::default().exact(true));
 
@@ -105,7 +101,6 @@ impl QdrantDb {
 
         Ok(search_result)
     }
-    
 
     pub async fn text_search(
         &self,
@@ -113,16 +108,15 @@ impl QdrantDb {
         text: String,
         search_vectors_limit: u64,
     ) -> Result<SearchResponse> {
-        let maybe_embedding = self.nervo_llm
-            .text_to_embeddings(&text)
-            .await?;
+        let maybe_embedding = self.nervo_llm.text_to_embeddings(&text).await?;
 
         match maybe_embedding {
             None => {
                 bail!("No embedding data found.");
             }
             Some(embedding) => {
-                self.vector_search(agent_type, embedding, search_vectors_limit).await
+                self.vector_search(agent_type, embedding, search_vectors_limit)
+                    .await
             }
         }
     }
