@@ -1,30 +1,33 @@
 use error_stack::ResultExt;
-use pulldown_cmark::{html, Parser};
 use nervo_sdk::agent_type::{AgentType, NervoAgentType};
-use nervo_sdk::api::spec::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest, UserLlmMessage};
-use reqwest::{Client};
+use nervo_sdk::api::spec::{
+    LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest,
+    UserLlmMessage,
+};
+use pulldown_cmark::{html, Parser};
+use reqwest::Client;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use tracing_web::{performance_layer, MakeConsoleWriter};
-use tracing_subscriber::prelude::*;
-use tracing::{info, Instrument};
-use tracing_subscriber::fmt::format::Pretty;
-use tracing_subscriber::fmt::time::UtcTime;
-use nervo_sdk::errors::{NervoWebResult};
 use crate::browser::nervo_wasm_store::NervoWasmStore;
 use crate::common::api_url::ApiUrl;
 use crate::common::nweb_spans;
 use crate::common::nweb_spans::nweb_send_msg_span;
-use crate::run_mode::{ClientRunModeUtil};
+use crate::run_mode::ClientRunModeUtil;
+use nervo_sdk::errors::NervoWebResult;
+use tracing::{info, Instrument};
+use tracing_subscriber::fmt::format::Pretty;
+use tracing_subscriber::fmt::time::UtcTime;
+use tracing_subscriber::prelude::*;
+use tracing_web::{performance_layer, MakeConsoleWriter};
 
-mod utils;
 pub mod browser;
-mod db;
 mod common;
+mod db;
+mod utils;
 
 pub mod run_mode {
-    use wasm_bindgen::prelude::wasm_bindgen;
     use nervo_sdk::errors::{NervoSdkError, NervoWebResult};
+    use wasm_bindgen::prelude::wasm_bindgen;
 
     pub const LOCAL: &str = "localDev";
     pub const DEV: &str = "dev";
@@ -63,24 +66,30 @@ pub struct NervoClient {
     pub api_url: ApiUrl,
     pub agent_type: AgentType,
     client: Client,
-    nervo_store: NervoWasmStore
+    nervo_store: NervoWasmStore,
 }
 
 #[wasm_bindgen]
 impl NervoClient {
-
-    pub async fn init(server_port: u32, run_mode: &str, agent_type: &str) -> NervoWebResult<NervoClient> {
+    pub async fn init(
+        server_port: u32,
+        run_mode: &str,
+        agent_type: &str,
+    ) -> NervoWebResult<NervoClient> {
         let run_mode = ClientRunModeUtil::parse(run_mode)?;
         let agent_type = NervoAgentType::try_from(agent_type);
         let api_url = ApiUrl::get(server_port, run_mode);
 
-        info!("Agent type: {:?}, port: {:?}, run mode: {:?}", agent_type, server_port, run_mode);
+        info!(
+            "Agent type: {:?}, port: {:?}, run mode: {:?}",
+            agent_type, server_port, run_mode
+        );
 
         Ok(NervoClient {
             api_url,
             agent_type,
             client: Client::new(),
-            nervo_store: NervoWasmStore::init().await
+            nervo_store: NervoWasmStore::init().await,
         })
     }
 
@@ -107,7 +116,8 @@ impl NervoClient {
     pub async fn get_chat(&self) -> LlmChat {
         info!("get_chat");
 
-        let chat_id = self.nervo_store
+        let chat_id = self
+            .nervo_store
             .get_or_generate_chat_id()
             .instrument(nweb_spans::nweb_chat_span())
             .await;
@@ -115,21 +125,26 @@ impl NervoClient {
         let url = format!("{}/chat/{}", self.api_url.get_url(), chat_id);
         info!("url {:?}", url);
 
-        let response = self.client.get(url)
+        let response = self
+            .client
+            .get(url)
             .send()
             .instrument(nweb_spans::nweb_chat_span())
             .await
             .attach_printable_lazy(|| "Failed fetching chat")
             .unwrap();
 
-        let chat: LlmChat = response.json()
+        let chat: LlmChat = response
+            .json()
             .instrument(nweb_spans::nweb_chat_span())
             .await
             .attach_printable_lazy(|| "Failed parsing chat response as json")
             .unwrap();
 
-        let transformed_messages: Vec<LlmMessage> = chat.messages.iter().map(|msg| {
-            match msg.meta_info.role {
+        let transformed_messages: Vec<LlmMessage> = chat
+            .messages
+            .iter()
+            .map(|msg| match msg.meta_info.role {
                 LlmMessageRole::User => msg.clone(),
                 _ => {
                     let markdown_text = msg.content.text();
@@ -145,8 +160,8 @@ impl NervoClient {
                         content,
                     }
                 }
-            }
-        }).collect();
+            })
+            .collect();
 
         LlmChat {
             chat_id: chat.chat_id,
@@ -155,11 +170,13 @@ impl NervoClient {
     }
 
     pub async fn send_message(&self, content: String) -> LlmMessage {
-        let chat_id = self.nervo_store
+        let chat_id = self
+            .nervo_store
             .get_or_generate_chat_id()
             .instrument(nweb_send_msg_span())
             .await;
-        let user_id = self.nervo_store
+        let user_id = self
+            .nervo_store
             .get_or_generate_user_id()
             .instrument(nweb_send_msg_span())
             .await;
@@ -188,10 +205,11 @@ impl NervoClient {
             .attach_printable_lazy(|| "Failed sending message")
             .unwrap();
 
-        let llm_message_response: LlmMessage = response.json()
+        let llm_message_response: LlmMessage = response
+            .json()
             .instrument(nweb_send_msg_span())
             .await
-            .attach_printable_lazy(||"Json parsing error")
+            .attach_printable_lazy(|| "Json parsing error")
             .unwrap();
 
         info!("Response LlmMessage: {:?}", llm_message_response);

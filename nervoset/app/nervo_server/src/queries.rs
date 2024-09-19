@@ -1,8 +1,8 @@
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::Json;
-use nervo_sdk::api::spec::{LlmChat, LlmMessage};
 use nervo_bot_core::config::jarvis::JarvisAppState;
+use nervo_sdk::api::spec::{LlmChat, LlmMessage};
 use std::sync::Arc;
 use tracing::{error, info};
 
@@ -22,7 +22,7 @@ pub async fn chat(
         })?;
     info!("CACHED MESSAGES {:?}", &cached_messages);
     let chat = LlmChat {
-        chat_id,
+        chat_id: Some(chat_id),
         messages: cached_messages,
     };
     info!("CHAT {:?}", &chat);

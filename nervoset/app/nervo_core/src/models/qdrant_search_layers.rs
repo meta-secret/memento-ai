@@ -12,7 +12,7 @@ pub struct QdrantSearchInfo {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct QdrantSearchLayer {
-    pub index: i64,
+    pub index: Option<i64>,
     pub user_role_params: Vec<QdrantUserRoleParameters>,
     pub system_role_text: String,
     pub temperature: f32,

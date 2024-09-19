@@ -1,10 +1,10 @@
-use wasm_bindgen::prelude::wasm_bindgen;
 use crate::utils::cryptography::{U64Generator, UuidGenerator};
+use wasm_bindgen::prelude::wasm_bindgen;
 
+pub mod api;
+pub mod common;
 pub mod errors;
 pub mod utils;
-pub mod common;
-pub mod api;
 
 #[wasm_bindgen]
 pub struct WasmIdGenerator {}
@@ -14,16 +14,16 @@ impl WasmIdGenerator {
     pub fn generate_uuid() -> String {
         UuidGenerator::rand_uuid_b64_url_enc().text()
     }
-    
+
     pub fn generate_u64() -> u64 {
         U64Generator::generate_u64()
     }
 }
 
 pub mod app_type {
+    use crate::errors::{NervoSdkError, NervoWebResult};
     use serde_derive::{Deserialize, Serialize};
     use wasm_bindgen::prelude::wasm_bindgen;
-    use crate::errors::{NervoSdkError, NervoWebResult};
 
     pub const GROOT: &str = "groot";
     pub const JARVIS: &str = "jarvis";
@@ -33,7 +33,7 @@ pub mod app_type {
     #[serde(rename_all = "camelCase")]
     pub enum AppType {
         Groot,
-        Jarvis
+        Jarvis,
     }
 
     #[derive(Copy, Clone, Debug)]
@@ -46,14 +46,14 @@ pub mod app_type {
             match name {
                 GROOT => Ok(AppType::Groot),
                 JARVIS => Ok(AppType::Jarvis),
-                _ => Err(NervoSdkError::UnknownAppTypeError(name.to_string()))
+                _ => Err(NervoSdkError::UnknownAppTypeError(name.to_string())),
             }
         }
 
         pub fn get_name(app_type: AppType) -> String {
             match app_type {
                 AppType::Groot => String::from(GROOT),
-                AppType::Jarvis => String::from(JARVIS)
+                AppType::Jarvis => String::from(JARVIS),
             }
         }
     }

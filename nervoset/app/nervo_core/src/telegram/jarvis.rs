@@ -28,12 +28,13 @@ pub async fn start(
                 .endpoint(owner_command_handler),
         )
         .branch(
+            // Handle /commands from chat
             Update::filter_message()
                 .filter_command::<JarvisCommands>()
                 .endpoint(command_handler),
         )
-        .branch(Update::filter_message().endpoint(chat))
-        .branch(Update::filter_callback_query().endpoint(handle_callback_query));
+        .branch(Update::filter_message().endpoint(chat)) // Handle all messages
+        .branch(Update::filter_callback_query().endpoint(handle_callback_query)); // Handle button
 
     Dispatcher::builder(bot, handler)
         // Pass the shared state to the handler as a dependency.

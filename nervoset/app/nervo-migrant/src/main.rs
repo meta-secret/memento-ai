@@ -19,9 +19,9 @@ use clap::{Parser, Subcommand};
 use futures::future::BoxFuture;
 use futures::FutureExt;
 use nervo_sdk::agent_type::{AgentType, NervoAgentType};
+use nervo_sdk::utils::cryptography::UuidGenerator;
 use tokio::time::Instant;
 use uuid::Uuid;
-use nervo_sdk::utils::cryptography::UuidGenerator;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -109,7 +109,12 @@ async fn collect_jsons_content(dataset_path: &str) -> anyhow::Result<Vec<Migrati
             continue;
         }
 
-        let agent_path_str = [dataset_path, "/", NervoAgentType::get_name(agent_type).as_str()].concat();
+        let agent_path_str = [
+            dataset_path,
+            "/",
+            NervoAgentType::get_name(agent_type).as_str(),
+        ]
+        .concat();
         let agent_path = Path::new(agent_path_str.as_str());
         if !agent_path.exists() {
             info!("No dataset for agent: {:?}", agent_type);
@@ -164,7 +169,7 @@ fn find_json_files(
 
         Ok(data_models)
     }
-        .boxed()
+    .boxed()
 }
 
 async fn migrate_qdrant_db(
@@ -186,7 +191,7 @@ async fn migrate_qdrant_db(
                 migration_plan.agent_type,
                 app_state.clone(),
             )
-                .await?;
+            .await?;
 
             let data_sample = migration_model.clone().create;
             let id = data_sample.id.unwrap();

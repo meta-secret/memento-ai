@@ -35,42 +35,31 @@ impl<'a> MessageParser<'a> {
         Ok(user.clone())
     }
 
-    // Get text from TG message
+    // Detect if TG message is text
     pub async fn is_tg_message_text(&self) -> anyhow::Result<bool> {
-        let MessageKind::Common(msg_common) = &self.msg.kind else {
-            bail!("Unsupported message content type.");
-        };
-        let media_kind = &msg_common.media_kind;
+        let media_kind = self.get_message_media_kind().await?;
+        let is_text = matches!(media_kind, MediaKind::Text(_));
 
-        let is_text = match media_kind {
-            MediaKind::Text(_) => true,
-            _ => false,
-        };
-
-        info!("Is current message text: {}", is_text);
+        info!("Сurrent message is text: {}", is_text);
         Ok(is_text)
     }
     pub async fn parse_tg_message_content(&mut self) -> anyhow::Result<String> {
-        let MessageKind::Common(msg_common) = &self.msg.kind else {
-            bail!("Unsupported message content type.");
-        };
-
-        let media_kind = &msg_common.media_kind;
+        let media_kind = self.get_message_media_kind().await?;
 
         let result_text = match media_kind {
-            MediaKind::Text(media_text) => media_text.text.clone(),
+            MediaKind::Text(media_text) => {
+                info!("Your message is Text");
+                media_text.text.clone()
+            }
+
             MediaKind::Voice(media_voice) => {
-                info!("MediaKind - Voice");
-                let text = self
-                    .parse_voice_to_text(&media_voice.voice.file)
-                    .await?;
+                info!("Your message is Voice");
+                let text = self.parse_voice_to_text(&media_voice.voice.file).await?;
                 text.clone()
             }
             MediaKind::Audio(media_voice) => {
-                info!("MediaKind - Audio");
-                let text = self
-                    .parse_voice_to_text(&media_voice.audio.file)
-                    .await?;
+                info!("Your message is Audio");
+                let text = self.parse_voice_to_text(&media_voice.audio.file).await?;
                 text.clone()
             }
             _ => {
@@ -78,20 +67,15 @@ impl<'a> MessageParser<'a> {
             }
         };
 
-        info!("Text from the message: {}", result_text);
+        info!("Text from your message: {}", result_text);
         Ok(result_text)
     }
 
     // Get voice from TG message
-    async fn parse_voice_to_text(
-        &mut self,
-        media_voice: &FileMeta,
-    ) -> anyhow::Result<String> {
-        info!("Parse voice to text");
+    async fn parse_voice_to_text(&mut self, media_voice: &FileMeta) -> anyhow::Result<String> {
+        info!("Start parsing voice to text");
         let file: File = self.bot.get_file(&media_voice.id).await?;
-        let file_extension = "oga";
-        let file_name: &str = &file.id;
-        let file_path = format!("/tmp/{}.{}", &file_name, &file_extension);
+        let file_path = self.get_file_path_from(&file).await?;
         let mut dst = fs::File::create(&file_path).await?;
 
         if fs::metadata(&file_path).await.is_ok() {
@@ -111,10 +95,11 @@ impl<'a> MessageParser<'a> {
 
             fs::remove_file(&file_path).await?;
             drop(dst);
-            
+
             match response {
                 Ok(text) => {
                     self.set_is_voice(true);
+                    info!("Parsing voice to text are success");
                     Ok(text.clone())
                 }
                 Err(err) => Err(anyhow!(err).context("Can't transcribe audio file to text")),
@@ -123,5 +108,18 @@ impl<'a> MessageParser<'a> {
             let error = anyhow!(format!("File '{}' doesn't exist.", file_path));
             Err(error)
         }
+    }
+
+    async fn get_file_path_from(&self, file: &File) -> anyhow::Result<String> {
+        let file_extension = "oga";
+        let file_name: &str = &file.id;
+        Ok(format!("/tmp/{}.{}", &file_name, &file_extension))
+    }
+
+    async fn get_message_media_kind(&self) -> anyhow::Result<MediaKind> {
+        let MessageKind::Common(msg_common) = &self.msg.kind else {
+            bail!("Unsupported message content type.");
+        };
+        Ok(msg_common.media_kind.clone())
     }
 }

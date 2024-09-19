@@ -15,8 +15,8 @@ pub enum NervoWebAppError {
 
 impl From<NervoWebAppError> for JsValue {
     fn from(error: NervoWebAppError) -> Self {
-        let err_result: Result<(), Report<NervoWebAppError>> = Err(error)
-            .attach_printable_lazy(|| String::from("Nervo error:"));
+        let err_result: Result<(), Report<NervoWebAppError>> =
+            Err(error).attach_printable_lazy(|| String::from("Nervo error:"));
         serde_wasm_bindgen::to_value(&err_result).unwrap()
     }
 }

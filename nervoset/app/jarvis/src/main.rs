@@ -3,9 +3,9 @@ use nervo_bot_core::telegram::jarvis;
 use std::sync::Arc;
 
 use clap::Parser;
-use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use nervo_bot_core::config::common::NervoConfig;
 use nervo_bot_core::config::jarvis::JarvisAppState;
+use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use tracing::{debug_span, info, Instrument, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 

@@ -1,15 +1,14 @@
-use wasm_bindgen::prelude::*;
-use nervo_sdk::WasmIdGenerator;
 use crate::db::wasm_repo::WasmRepo;
+use nervo_sdk::WasmIdGenerator;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct NervoWasmStore {
-    db: WasmRepo
+    db: WasmRepo,
 }
 
 #[wasm_bindgen]
 impl NervoWasmStore {
-
     pub async fn init() -> Self {
         Self {
             db: WasmRepo::init().await,

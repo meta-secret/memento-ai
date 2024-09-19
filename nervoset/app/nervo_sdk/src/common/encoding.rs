@@ -10,7 +10,7 @@ pub mod base64 {
     #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct Base64Text(pub String);
-    
+
     impl Base64Text {
         pub fn text(self) -> String {
             self.0.clone()
@@ -73,7 +73,8 @@ pub mod base64 {
         use crate::common::encoding::base64::Base64Text;
 
         const TEST_STR: &str = "kjsfdbkjsfhdkjhsfdkjhsfdkjhksfdjhksjfdhksfd";
-        const ENCODED_URL_SAFE_TEST_STR: &str = "a2pzZmRia2pzZmhka2poc2Zka2poc2Zka2poa3NmZGpoa3NqZmRoa3NmZA";
+        const ENCODED_URL_SAFE_TEST_STR: &str =
+            "a2pzZmRia2pzZmhka2poc2Zka2poc2Zka2poa3NmZGpoa3NqZmRoa3NmZA";
 
         #[test]
         fn from_vec() {

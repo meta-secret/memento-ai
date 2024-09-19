@@ -1,6 +1,6 @@
+use crate::agent_type::AgentType;
 use serde_derive::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
-use crate::agent_type::AgentType;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,7 +15,7 @@ pub struct SendMessageRequest {
 #[serde(rename_all = "camelCase")]
 #[wasm_bindgen(getter_with_clone)]
 pub struct LlmChat {
-    pub chat_id: u64,
+    pub chat_id: Option<u64>,
     pub messages: Vec<LlmMessage>,
 }
 

@@ -1,35 +1,41 @@
+use crate::ai::nervo_llm::NervoLlm;
 use crate::config::jarvis::JarvisAppState;
+use crate::models::message_transcription_type::MessageTranscriptionType;
 use crate::models::nervo_message_model::TelegramMessage;
-use crate::models::system_messages::SystemMessages;
+use crate::models::qdrant_search_layers::QdrantSearchLayer;
+use crate::models::system_messages::SystemMessage;
+use crate::models::typing_action_model::TypingActionType;
 use crate::models::user_model::TelegramUser;
 use crate::telegram::message_parser::MessageParser;
-use crate::utils::ai_utils::{llm_conversation, RESOURCES_DIR};
+use crate::utils::ai_utils::{formation_system_role_llm_message, llm_conversation};
 use anyhow::bail;
 use chrono::Utc;
-use nervo_sdk::agent_type::{AgentType, NervoAgentType};
-use nervo_sdk::api::spec::{LlmMessageContent, SendMessageRequest, UserLlmMessage};
+use nervo_sdk::agent_type::AgentType;
+use nervo_sdk::api::spec::{LlmChat, LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::audio::{
     AudioSpeechParameters, AudioSpeechResponseFormat, AudioVoice,
 };
 use std::sync::{Arc, LazyLock};
+use std::time::Duration;
 use teloxide::prelude::ChatId;
 use teloxide::prelude::*;
 use teloxide::types::{
-    ChatKind, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, MediaKind, MessageId,
-    MessageKind, ParseMode, ReplyParameters,
+    ChatAction, ChatKind, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, MediaKind,
+    MessageId, MessageKind, ParseMode, ReplyParameters,
 };
 use teloxide::Bot;
-use tokio::fs;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
+use tokio::time::sleep;
 use tracing::info;
 
-static LAST_MESSAGE_ID: LazyLock<Arc<Mutex<Option<MessageId>>>> = LazyLock::new(|| {
-    Arc::new(Mutex::new(None))
-});
+static LAST_MESSAGE_ID: LazyLock<Arc<Mutex<Option<MessageId>>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(None)));
+static SHOULD_STOP: LazyLock<Arc<RwLock<Option<TypingActionType>>>> =
+    LazyLock::new(|| Arc::new(RwLock::new(None)));
 
 pub async fn start_conversation<'a>(
-    app_state: &Arc<JarvisAppState>,
+    app_state: Arc<JarvisAppState>,
     bot: &Bot,
     user_id: u64,
     msg: &Message,
@@ -40,88 +46,132 @@ pub async fn start_conversation<'a>(
     info!("Start conversation");
     // We need it for future. Just to send spam etc.
     save_user_id(app_state.clone(), user_id.to_string()).await?;
-    let is_text_content = parser.is_tg_message_text().await?;
 
     let message_text = parser.parse_tg_message_content().await?;
-    
+
+    {
+        let mut loc_manager = app_state.localisation_manager.write().await;
+        loc_manager.detect_language(message_text.as_str()).await?;
+    }
+
     let should_answer_as_reply =
         should_answer_as_reply(&msg, bot_name, message_text.clone()).await?;
 
     // Answer formation
     if should_answer_as_reply {
-        if !is_text_content {
-            let reply_parameters = ReplyParameters {
-                message_id: msg.id,
-                chat_id: None,
-                allow_sending_without_reply: None,
-                quote: None,
-                quote_parse_mode: None,
-                quote_entities: None,
-                quote_position: None,
-            };
-
-            bot.send_message(
-                msg.chat.id.clone(),
-                "Один момент, сейчас отвечу!".to_string(),
-            )
-            .reply_parameters(reply_parameters)
-            .await?;
-        }
-
-        // Show typing indicator
-        info!("Show typing action...");
-        bot.send_chat_action(msg.chat.id.clone(), teloxide::types::ChatAction::Typing)
-            .await?;
-
-        let reply_parameters = ReplyParameters {
-            message_id: msg.id,
-            chat_id: None,
-            allow_sending_without_reply: None,
-            quote: None,
-            quote_parse_mode: None,
-            quote_entities: None,
-            quote_position: None,
-        };
-        if message_text.is_empty() {
-            info!("Empty message");
-            bot.send_message(msg.chat.id, "Please provide a message to send.")
-                .reply_parameters(reply_parameters)
-                .await?;
-            return Ok(());
-        }
-
-        // Moderation checking
-        let is_moderation_passed = app_state.nervo_llm.moderate(&message_text).await?;
-        let question_msg = create_question_message(
-            is_moderation_passed,
-            user_id,
-            message_text,
-            msg.chat.id.0 as u64,
-            agent_type,
-        )
-        .await?;
-
-        chat_gpt_conversation(
+        reply_to_user_message(
+            app_state,
             &bot,
             &msg,
-            app_state.clone(),
-            question_msg,
-            parser.is_voice,
-            !is_moderation_passed,
+            user_id,
+            message_text,
             agent_type,
+            parser,
         )
         .await?;
-
-        return Ok(());
     }
     Ok(())
 }
 
-pub async fn should_answer_as_reply<'a>(
+async fn reply_to_user_message<'a>(
+    app_state: Arc<JarvisAppState>,
+    bot: &Bot,
+    msg: &Message,
+    user_id: u64,
+    message_text: String,
+    agent_type: AgentType,
+    parser: MessageParser<'a>,
+) -> anyhow::Result<()> {
+    if !parser.is_tg_message_text().await? {
+        system_message(
+            app_state.clone(),
+            &bot,
+            &msg,
+            SystemMessage::WaitSecond(agent_type),
+        )
+        .await?;
+    }
+
+    start_typing_action(&bot, &msg, ChatAction::Typing).await;
+
+    if message_text.is_empty() {
+        info!("Empty message");
+        system_message(
+            app_state,
+            &bot,
+            &msg,
+            SystemMessage::EmptyMessage(agent_type),
+        )
+        .await?;
+        return Ok(());
+    }
+
+    // Moderation checking
+    let is_moderation_passed = app_state.nervo_llm.moderate(&message_text).await?;
+    let question_msg = create_question_message(
+        app_state.clone(),
+        is_moderation_passed,
+        user_id,
+        message_text,
+        msg.chat.id.0 as u64,
+        agent_type,
+    )
+    .await?;
+
+    chat_gpt_conversation(
+        &bot,
+        &msg,
+        app_state,
+        question_msg,
+        parser.is_voice,
+        !is_moderation_passed,
+        agent_type,
+    )
+    .await?;
+
+    return Ok(());
+}
+
+async fn start_typing_action(bot: &Bot, msg: &Message, action_type: ChatAction) {
+    tokio::spawn({
+        let bot = bot.clone();
+        let msg = msg.clone();
+        async move {
+            set_typing_action(TypingActionType::Acting).await;
+
+            while let Some(TypingActionType::Acting) = get_typing_action().await {
+                info!("Show typing action...");
+                bot.send_chat_action(msg.chat.id.clone(), action_type)
+                    .await
+                    .ok();
+                sleep(Duration::from_secs(3)).await;
+            }
+
+            info!("Stopped typing action");
+        }
+    });
+}
+
+async fn stop_typing_action() {
+    info!("Stopping typing action...");
+    set_typing_action(TypingActionType::Stopped).await;
+}
+pub async fn set_typing_action(action: TypingActionType) {
+    let mut typing_action = SHOULD_STOP.write().await;
+    *typing_action = Some(action);
+}
+
+pub async fn get_typing_action() -> Option<TypingActionType> {
+    let typing_action = SHOULD_STOP.read().await;
+    typing_action.clone()
+}
+
+async fn should_answer_as_reply<'a>(
     msg: &Message,
     bot_name: String,
     message_text: String,
 ) -> anyhow::Result<bool> {
+    info!("Do we need to answer this message?");
     // Need to detect it in group chats. To understand whether to answer or not.
     let is_reply = msg
         .clone()
@@ -133,21 +183,21 @@ pub async fn should_answer_as_reply<'a>(
     let MessageKind::Common(msg_common) = &msg.kind else {
         bail!("Unsupported message content type: {:?}.", msg.kind);
     };
-    let is_text = matches!(&msg_common.media_kind, MediaKind::Text(_media_text));
-    let is_private = matches!(&msg.chat.kind, ChatKind::Private(_));
-    let is_public = matches!(&msg.chat.kind, ChatKind::Public(_));
-    let is_public_and_text = is_public && is_text;
 
-    // Parse message to raw text
-    let contains_bot_name = message_text.contains(&bot_name);
-    info!(
-        "Should answer as reply: {:?}",
-        (is_private || is_reply || (is_public_and_text && contains_bot_name))
-    );
-    Ok(is_private || is_reply || (is_public_and_text && contains_bot_name))
+    let should_reply = match &msg.chat.kind {
+        ChatKind::Private(_) => true,
+        ChatKind::Public(_) => {
+            let is_text = matches!(&msg_common.media_kind, MediaKind::Text(_));
+            is_text && message_text.contains(&bot_name)
+        }
+    };
+
+    info!("Should answer as reply: {:?}", should_reply || is_reply);
+    Ok(should_reply || is_reply)
 }
 
 async fn create_question_message(
+    app_state: Arc<JarvisAppState>,
     is_moderation_passed: bool,
     user_id: u64,
     message_text: String,
@@ -162,8 +212,9 @@ async fn create_question_message(
         };
         LlmMessageContent::from(tg_message.message.as_str())
     } else {
-        let question = format!("I have a message from the user, I know the message is unacceptable, can you please read the message and reply that the message is not acceptable. Reply using the same language the massage uses. Here is the message: {:?}", &message_text);
-        LlmMessageContent::from(question.as_str())
+        let not_moderated_answer =
+            create_not_moderated_message(message_text, &app_state.nervo_llm).await?;
+        LlmMessageContent::from(not_moderated_answer.as_str())
     };
 
     // Create question for LLM
@@ -175,12 +226,13 @@ async fn create_question_message(
             content: string_for_question,
         },
     };
-    info!("Question message request was created");
+    info!("Prepared Message Request To LLM");
     Ok(question_msg)
 }
 
 // Sending some system messages
 pub async fn system_message(
+    app_state: Arc<JarvisAppState>,
     bot: &Bot,
     msg: &Message,
     message_type: SystemMessage,
@@ -196,39 +248,18 @@ pub async fn system_message(
         quote_position: None,
     };
 
+    let mut translated_text = String::new();
+    {
+        let loc_manager = app_state.localisation_manager.read().await;
+        translated_text = loc_manager.translate(introduction_msg.as_str()).await?;
+    }
+
     info!("Send system message");
-    bot.send_message(msg.chat.id, introduction_msg)
+    bot.send_message(msg.chat.id, translated_text)
         .reply_parameters(reply_parameters)
         .await?;
 
     Ok(())
-}
-
-pub enum SystemMessage {
-    Start(AgentType),
-    Manual(AgentType),
-}
-
-impl SystemMessage {
-    fn agent_type(&self) -> AgentType {
-        match self {
-            SystemMessage::Start(agent_type) => agent_type.clone(),
-            SystemMessage::Manual(agent_type) => agent_type.clone(),
-        }
-    }
-
-    pub async fn as_str(&self) -> anyhow::Result<String> {
-        let agent = NervoAgentType::get_name(self.agent_type());
-        let system_msg_file = format!("{}/agent/{}/system_messages.json", RESOURCES_DIR, agent);
-
-        let json_string = fs::read_to_string(system_msg_file).await?;
-        let system_messages_models: SystemMessages = serde_json::from_str(&json_string)?;
-
-        match self {
-            SystemMessage::Start(_) => Ok(system_messages_models.start.clone()),
-            SystemMessage::Manual(_) => Ok(system_messages_models.manual.clone()),
-        }
-    }
 }
 
 // Work with User Ids
@@ -270,98 +301,117 @@ pub async fn chat_gpt_conversation<'a>(
 ) -> anyhow::Result<()> {
     info!("Start chat gpt conversation");
     let chat_id = msg.chat_id;
-    let table_name = msg.llm_message.sender_id.to_string();
 
     let user_final_question = if direct_message {
-        info!("Direct message");
+        info!(
+            "Direct message without any LLM handling {}",
+            msg.llm_message.content.text()
+        );
         msg.llm_message.content.text()
     } else {
-        info!("Conversationt message");
-        llm_conversation(app_state.clone(), msg, table_name, agent_type)
+        info!("Need to pass few layers of RAG System");
+        llm_conversation(app_state.clone(), msg, agent_type)
             .await?
             .content
             .text()
     };
 
-    let keyboard = button_creation(is_voice).await?;
-    if is_voice {
-        let voice_input =
-            create_speech(bot, user_final_question.as_str(), chat_id, app_state).await?;
-        remove_last_message_button(&bot, ChatId(chat_id as i64)).await?;
-        let sent_message = bot
-            .send_voice(ChatId(chat_id as i64), voice_input)
-            .reply_markup(keyboard)
-            .await?;
-
-        let mut last_msg_lock = LAST_MESSAGE_ID.lock().await;
-        *last_msg_lock = Some(sent_message.id);
-        
-    } else {
-        let reply_parameters = ReplyParameters {
-            message_id: message.id,
-            chat_id: None,
-            allow_sending_without_reply: None,
-            quote: None,
-            quote_parse_mode: None,
-            quote_entities: None,
-            quote_position: None,
-        };
-
-        info!("Send ANSWER");
-        let escaped_message = escape_markdown(&user_final_question);
-        info!("Escaped message {:?}", escaped_message);
-
-        remove_last_message_button(&bot, ChatId(chat_id as i64)).await?;
-        match bot
-            .send_message(ChatId(chat_id as i64), escaped_message)
-            .reply_markup(keyboard)
-            .parse_mode(ParseMode::MarkdownV2)
-            .reply_parameters(reply_parameters)
-            .await
-        {
-            Ok(sent_message) => {
-                let mut last_msg_lock = LAST_MESSAGE_ID.lock().await;
-                *last_msg_lock = Some(sent_message.id);
-                info!("Message has been sent successfully");
-            }
-            Err(e) => {
-                eprintln!("Ошибка при отправке сообщения: {:?}", e);
-            }
-        }
+    let mut translated_text = String::new();
+    {
+        let loc_manager = app_state.localisation_manager.read().await;
+        translated_text = loc_manager.translate(user_final_question.as_str()).await?;
     }
 
+    info!("Stop typing!");
+    stop_typing_action().await;
+    let keyboard = button_creation(is_voice).await?;
+    let message_id = if is_voice {
+        handle_voice_message(&bot, translated_text, chat_id, app_state, keyboard).await?
+    } else {
+        handle_text_message(&bot, translated_text, chat_id, message, keyboard).await?
+    };
+
+    switch_button_to_message(&bot, chat_id, Some(message_id)).await?;
     Ok(())
+}
+
+async fn switch_button_to_message(
+    bot: &Bot,
+    chat_id: u64,
+    message_id: Option<MessageId>,
+) -> anyhow::Result<()> {
+    remove_last_message_button(&bot, ChatId(chat_id as i64)).await?;
+    let mut last_msg_lock = LAST_MESSAGE_ID.lock().await;
+    *last_msg_lock = match message_id {
+        None => None,
+        Some(_) => message_id,
+    };
+    Ok(())
+}
+
+async fn handle_voice_message(
+    bot: &Bot,
+    user_final_question: String,
+    chat_id: u64,
+    app_state: Arc<JarvisAppState>,
+    keyboard: InlineKeyboardMarkup,
+) -> anyhow::Result<MessageId> {
+    info!("Handle Voice TG message");
+    let voice_input = create_speech(user_final_question.as_str(), app_state).await?;
+    let sent_message = bot
+        .send_voice(ChatId(chat_id as i64), voice_input)
+        .reply_markup(keyboard)
+        .await?;
+
+    info!("Successfully sent voice answer to user");
+    Ok(sent_message.id)
+}
+
+async fn handle_text_message(
+    bot: &Bot,
+    user_final_question: String,
+    chat_id: u64,
+    message: &Message,
+    keyboard: InlineKeyboardMarkup,
+) -> anyhow::Result<MessageId> {
+    info!("Handle Text TG message");
+    let reply_parameters = ReplyParameters {
+        message_id: message.id,
+        chat_id: None,
+        allow_sending_without_reply: None,
+        quote: None,
+        quote_parse_mode: None,
+        quote_entities: None,
+        quote_position: None,
+    };
+    let escaped_message = escape_markdown(&user_final_question);
+
+    let sent_message = bot
+        .send_message(ChatId(chat_id as i64), escaped_message)
+        .reply_markup(keyboard)
+        .parse_mode(ParseMode::MarkdownV2)
+        .reply_parameters(reply_parameters)
+        .await?;
+    info!("Successfully sent text answer to user");
+    Ok(sent_message.id)
 }
 
 async fn remove_last_message_button<'a>(bot: &Bot, chat_id: ChatId) -> anyhow::Result<()> {
+    info!("Need to remove last message button");
     let last_msg_lock = LAST_MESSAGE_ID.lock().await;
     if let Some(last_msg_id) = *last_msg_lock {
-        match bot
-            .edit_message_reply_markup(chat_id, last_msg_id)
+        bot.edit_message_reply_markup(chat_id, last_msg_id)
             .reply_markup(InlineKeyboardMarkup::new(
                 Vec::<Vec<InlineKeyboardButton>>::new(),
             ))
-            .await
-        {
-            Ok(_) => {
-                info!("Reply markup has been removed successfully");
-            }
-            Err(e) => {
-                eprintln!("Ошибка при удалении клавиатуры: {:?}", e);
-            }
-        }
+            .await?;
     }
+    info!("Button has been removed successfully");
     Ok(())
 }
 
-async fn create_speech(
-    bot: &Bot,
-    text: &str,
-    chat_id: u64,
-    app_state: Arc<JarvisAppState>,
-) -> anyhow::Result<InputFile> {
+async fn create_speech(text: &str, app_state: Arc<JarvisAppState>) -> anyhow::Result<InputFile> {
     let client = Client::new(app_state.nervo_llm.api_key().to_string());
-
     let parameters = AudioSpeechParameters {
         model: "tts-1".to_string(),
         input: text.to_string(),
@@ -369,17 +419,11 @@ async fn create_speech(
         response_format: Some(AudioSpeechResponseFormat::Mp3),
         speed: Some(1.0),
     };
-
     let response = client.audio().create_speech(parameters).await;
+
     match response {
         Ok(audio) => Ok(InputFile::memory(audio.bytes)),
-        Err(err) => {
-            info!("Send ERROR: {:?}", err);
-            let _ = bot
-                .send_message(ChatId(chat_id as i64), err.to_string())
-                .await;
-            bail!("ERROR: {:?}", err);
-        }
+        Err(err) => bail!("ERROR: {:?}", err),
     }
 }
 
@@ -389,6 +433,7 @@ pub async fn transcribe_message(
     message: &Message,
     transcription_type: MessageTranscriptionType,
 ) -> anyhow::Result<()> {
+    info!("Transcribe message TTS or STT");
     let mut parser = MessageParser {
         bot: &bot,
         msg: &message,
@@ -396,34 +441,34 @@ pub async fn transcribe_message(
         is_voice: false,
     };
 
-    let chat_id = message.chat.id;
+    match transcription_type {
+        MessageTranscriptionType::Tts => {
+            start_typing_action(&bot, &message, ChatAction::RecordVoice).await
+        }
+        MessageTranscriptionType::Stt => {
+            start_typing_action(&bot, &message, ChatAction::Typing).await
+        }
+    }
 
-    info!("Getting text message in EDITING mode");
+    let chat_id = message.chat.id;
     let parsed_voice_to_text = parser.parse_tg_message_content().await?;
 
     match transcription_type {
         MessageTranscriptionType::Tts => {
             info!("Transcription type TTS");
-            let audio_file = create_speech(
-                bot,
-                parsed_voice_to_text.as_str(),
-                chat_id.0 as u64,
-                app_state,
-            )
-            .await?;
+            let audio_file = create_speech(parsed_voice_to_text.as_str(), app_state).await?;
             info!("Audio from Text has been created");
-            remove_last_message_button(&bot, chat_id).await?;
             bot.send_voice(chat_id, audio_file).await?;
         }
         MessageTranscriptionType::Stt => {
             info!("Transcription type STT");
-            remove_last_message_button(&bot, chat_id).await?;
             bot.send_message(chat_id, parsed_voice_to_text).await?;
-            let mut last_msg_lock = LAST_MESSAGE_ID.lock().await;
-            *last_msg_lock = None;
         }
     }
 
+    switch_button_to_message(&bot, chat_id.0 as u64, None).await?;
+    stop_typing_action().await;
+    info!("Transcription is OK");
     Ok(())
 }
 
@@ -463,16 +508,59 @@ async fn button_creation(is_voice: bool) -> anyhow::Result<InlineKeyboardMarkup>
     ]]))
 }
 
-pub enum MessageTranscriptionType {
-    Tts, // Text To Speach
-    Stt, // Speach To Text
+async fn create_not_moderated_message(text: String, nervo_llm: &NervoLlm) -> anyhow::Result<String> {
+    let system_role_instructions = format!("I have a message from the user, I know the message is unacceptable, can you please read the message and reply that the message is not acceptable. Here is the message: {:?}", text);
+    let language_detecting_layer = QdrantSearchLayer {
+        index: None,
+        user_role_params: vec![],
+        system_role_text: system_role_instructions.to_string(),
+        temperature: 0.2,
+        max_tokens: 4096,
+        common_token_limit: 30000,
+        vectors_limit: 0,
+        layer_for_search: false,
+    };
+
+    let system_role_msg = formation_system_role_llm_message(language_detecting_layer).await?;
+
+    info!(
+        "Full not moderated text role message: {}",
+        system_role_msg.content.0
+    );
+    let chat: LlmChat = LlmChat {
+        chat_id: None,
+        messages: vec![system_role_msg],
+    };
+    let llm_response = nervo_llm.send_msg_batch(chat).await?;
+    Ok(llm_response)
 }
 
-impl MessageTranscriptionType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            MessageTranscriptionType::Tts => "Text To Speach",
-            MessageTranscriptionType::Stt => "Speach To Text",
-        }
+#[cfg(test)]
+mod test {
+    use crate::telegram::bot_utils::{button_creation, escape_markdown};
+
+    #[tokio::test]
+    async fn test_button_creation_is_voice() -> anyhow::Result<()> {
+        let keyboard = button_creation(true).await?;
+        let button = keyboard.inline_keyboard.first().unwrap().first();
+        assert_eq!(button.unwrap().text, String::from("Прочитать текстом"));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_button_creation_not_voice() -> anyhow::Result<()> {
+        let keyboard = button_creation(false).await?;
+        let button = keyboard.inline_keyboard.first().unwrap().first();
+        assert_eq!(button.unwrap().text, String::from("Озвучить голосом"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_escape_markdown() {
+        let input_string = "_ [ ] ( ) ~ > # + - = | { } . !";
+        let output_string =
+            String::from("\\_ \\[ \\] \\( \\) \\~ \\> \\# \\+ \\- \\= \\| \\{ \\} \\. \\!");
+        let input_escaped_string = escape_markdown(input_string);
+        assert_eq!(input_escaped_string, output_string);
     }
 }

@@ -1,5 +1,5 @@
-use wasm_bindgen::prelude::wasm_bindgen;
 use crate::run_mode::ClientRunMode;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 #[derive(Copy, Clone, Debug)]

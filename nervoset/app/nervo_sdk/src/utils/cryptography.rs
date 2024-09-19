@@ -1,9 +1,9 @@
-use sha2::{Digest, Sha256};
-use std::fmt::Display;
+use crate::common::encoding::base64::Base64Text;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
+use sha2::{Digest, Sha256};
+use std::fmt::Display;
 use uuid::Uuid;
-use crate::common::encoding::base64::Base64Text;
 
 const SEED_LENGTH: usize = 64;
 
@@ -24,9 +24,7 @@ impl Sha256Generator {
     }
 }
 
-pub struct U64Generator {
-    
-}
+pub struct U64Generator {}
 
 impl U64Generator {
     pub fn generate_u64() -> u64 {

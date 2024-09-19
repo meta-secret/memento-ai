@@ -110,7 +110,7 @@ impl NervoLlm {
 
     pub async fn send_msg(&self, message: LlmMessage, chat_id: u64) -> Result<String> {
         let chat = LlmChat {
-            chat_id,
+            chat_id: Some(chat_id),
             messages: vec![message],
         };
         let llm_response_text = self.send_msg_batch(chat).await?;

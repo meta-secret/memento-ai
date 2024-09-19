@@ -1,12 +1,11 @@
 use crate::config::common::DatabaseParams;
-use anyhow::bail;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::sqlite::SqliteConnection;
 use sqlx::{ConnectOptions, Row};
 use std::str::FromStr;
-use tracing::{error, info};
+use tracing::info;
 
 pub struct LocalDb {
     db_params: DatabaseParams,
@@ -36,7 +35,6 @@ impl LocalDb {
     where
         T: Serialize + Send + 'static,
     {
-        info!("SAVE");
         self.create_table(table_name).await?;
         let items_count = self.count_items(table_name).await?;
 
@@ -56,7 +54,7 @@ impl LocalDb {
     where
         T: DeserializeOwned,
     {
-        info!("DB: Create table if needed");
+        info!("DB: Create table if needed {}", &table_name);
         self.create_table(table_name).await?;
         let query = format!("SELECT message FROM table_{}", table_name);
         info!("DB: Connect to db");
@@ -67,13 +65,7 @@ impl LocalDb {
         for row in rows {
             let message_json: String = row.try_get("message")?;
             info!("APP: MESSAGE {:?}", message_json);
-            let message = match serde_json::from_str(&message_json) {
-                Ok(res) => res,
-                Err(err) => {
-                    error!("error {:?}", err);
-                    bail!("error");
-                }
-            };
+            let message = serde_json::from_str(&message_json)?;
             messages.push(message);
         }
         Ok(messages)
@@ -129,7 +121,6 @@ impl LocalDb {
         }
 
         self.insert_message(message, table_name).await?;
-
         Ok(())
     }
 
@@ -138,7 +129,6 @@ impl LocalDb {
         T: Serialize,
     {
         let message_json = serde_json::to_string(&message)?;
-        info!("message_json: {:?}", message_json);
         let mut conn = self.connect_db().await?;
 
         let query = format!("INSERT INTO table_{} (message) VALUES (?)", &table_name);
@@ -146,7 +136,6 @@ impl LocalDb {
             .bind(&message_json)
             .execute(&mut conn)
             .await?;
-        info!("INSERTED");
         Ok(())
     }
 

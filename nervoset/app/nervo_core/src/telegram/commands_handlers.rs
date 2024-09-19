@@ -1,8 +1,7 @@
 use crate::config::jarvis::JarvisAppState;
-use crate::telegram::bot_utils::MessageTranscriptionType::{Stt, Tts};
-use crate::telegram::bot_utils::{
-    start_conversation, system_message, transcribe_message, SystemMessage,
-};
+use crate::models::message_transcription_type::MessageTranscriptionType::{Stt, Tts};
+use crate::models::system_messages::SystemMessage;
+use crate::telegram::bot_utils::{start_conversation, system_message, transcribe_message};
 use crate::telegram::message_parser::MessageParser;
 use nervo_sdk::agent_type::AgentType;
 use std::sync::Arc;
@@ -68,11 +67,11 @@ pub async fn command_handler(
             Ok(())
         }
         JarvisCommands::Start => {
-            system_message(&bot, &msg, SystemMessage::Start(agent_type)).await?;
+            system_message(app_state, &bot, &msg, SystemMessage::Start(agent_type)).await?;
             Ok(())
         }
         JarvisCommands::Manual => {
-            system_message(&bot, &msg, SystemMessage::Manual(agent_type)).await?;
+            system_message(app_state, &bot, &msg, SystemMessage::Manual(agent_type)).await?;
             Ok(())
         }
     }
@@ -87,10 +86,8 @@ pub async fn handle_callback_query(
         if let Some(message) = q.message {
             if let Some(regular_message) = message.regular_message() {
                 if data == Stt.as_str() {
-                    info!("STT");
                     transcribe_message(app_state, &bot, regular_message, Stt).await?;
                 } else if data == Tts.as_str() {
-                    info!("TTS");
                     transcribe_message(app_state, &bot, regular_message, Tts).await?;
                 }
             }
@@ -106,36 +103,27 @@ pub async fn chat(
     agent_type: AgentType,
 ) -> anyhow::Result<()> {
     info!("Start chat...");
+    // Need to parse type of TG message. Text or Audio
     let mut parser = MessageParser {
         bot: &bot,
         msg: &msg,
         app_state: &app_state,
         is_voice: false,
     };
-
+    info!("Parser created.");
     // Get info about bot and user
     let bot_info = &bot.get_me().await?;
     let bot_name = bot_info.clone().user.username.unwrap();
     let user = parser.parse_user().await?;
     let UserId(user_id) = user.id;
 
-    info!("Bot info {}", bot_name);
+    info!("Start conversation with bot: {}", bot_name);
     start_conversation(
-        &app_state, &bot, user_id, &msg, bot_name, agent_type, parser,
+        app_state.clone(), &bot, user_id, &msg, bot_name, agent_type, parser,
     )
-    .await?;
+    .await
+    .unwrap();
     Ok(())
 }
 
-// pub async fn permission_restricted(bot: Bot, msg: Message) -> Result<()> {
-//     bot.send_message(
-//         msg.chat.id,
-//         "сорян, я пока не работаю, приходите через 2 мес.",
-//     )
-//     .await?;
-//     Ok(())
-// }
-
-pub static WHITELIST_MEMBERS: [&str; 0] = [
-    // "afazulzyanov",
-];
+pub static WHITELIST_MEMBERS: [&str; 0] = [];

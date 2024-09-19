@@ -1,12 +1,12 @@
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::Json;
+use nervo_bot_core::config::jarvis::JarvisAppState;
+use nervo_bot_core::utils::ai_utils::llm_conversation;
 use nervo_sdk::api::spec::{
     LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole,
     SendMessageRequest,
 };
-use nervo_bot_core::config::jarvis::JarvisAppState;
-use nervo_bot_core::utils::ai_utils::llm_conversation;
 use std::sync::Arc;
 use tracing::{error, info};
 
@@ -38,10 +38,9 @@ async fn happy_path_of_moderation(
     msg_request: SendMessageRequest,
 ) -> Result<Json<LlmMessage>, StatusCode> {
     info!("SERVER: HAPPY PATH");
-    let table_name = msg_request.chat_id.to_string();
     let agent_type = msg_request.agent_type;
 
-    let llm_reply = llm_conversation(app_state, msg_request, table_name, agent_type)
+    let llm_reply = llm_conversation(app_state, msg_request, agent_type)
         .await
         .map_err(|err| {
             error!("Error2 {:?}", err);
