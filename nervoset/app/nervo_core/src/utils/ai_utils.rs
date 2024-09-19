@@ -434,11 +434,11 @@ async fn rag_system_processing(
         }
     }
 
-    if cached_messages.len() % 5 == 0 {
+    if cached_messages.len() % 4 == 0 {
         llm_rephrased_prompt.push_str(&all_layers_info.info_message_1);
     };
 
-    if cached_messages.len() % 7 == 0 {
+    if cached_messages.len() % 6 == 0 {
         llm_rephrased_prompt.push_str(&all_layers_info.info_message_2);
     };
 
