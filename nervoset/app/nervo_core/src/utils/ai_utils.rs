@@ -434,6 +434,7 @@ async fn rag_system_processing(
         }
     }
 
+    info!("cached_messages {:?}", cached_messages.len());
     if cached_messages.len() % 4 == 0 {
         llm_rephrased_prompt.push_str(&all_layers_info.info_message_1);
     };
