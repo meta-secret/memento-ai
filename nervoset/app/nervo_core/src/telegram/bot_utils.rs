@@ -171,6 +171,9 @@ async fn should_answer_as_reply<'a>(
     bot_name: String,
     message_text: String,
 ) -> anyhow::Result<bool> {
+    let is_forwarding = msg.forward_date().is_some();
+    info!("is_forwarding {}", is_forwarding);
+    
     info!("Do we need to answer this message?");
     // Need to detect it in group chats. To understand whether to answer or not.
     let is_reply = msg
@@ -178,7 +181,8 @@ async fn should_answer_as_reply<'a>(
         .reply_to_message()
         .and_then(|message| message.from.as_ref())
         .and_then(|user| user.username.clone())
-        .map_or(false, |username| username == bot_name.clone());
+        .map_or(false, |username| username == bot_name.clone())
+        && !is_forwarding;
 
     let MessageKind::Common(msg_common) = &msg.kind else {
         bail!("Unsupported message content type: {:?}.", msg.kind);
