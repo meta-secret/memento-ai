@@ -57,6 +57,23 @@ pub async fn command_handler(
     app_state: Arc<JarvisAppState>,
     agent_type: AgentType,
 ) -> anyhow::Result<()> {
+    info!("Command handling");
+    match &msg.from {
+        Some(user) => match &user.language_code {
+            Some(locale) => {
+                let mut loc_manager = app_state.localisation_manager.write().await;
+                info!("User's locale is {}", locale);
+                loc_manager.set_language_as_locale(locale.as_str()).await?;
+            }
+            None => {
+                info!("User has no language code");
+            }
+        },
+        None => {
+            info!("Message doesn't have a sender");
+        }
+    }
+    
     match cmd {
         JarvisCommands::Model => {
             bot.send_message(
