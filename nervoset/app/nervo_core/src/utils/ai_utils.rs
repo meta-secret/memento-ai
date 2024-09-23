@@ -26,7 +26,7 @@ pub async fn llm_conversation(
 ) -> anyhow::Result<LlmMessage> {
     info!("start LLM layers handling");
     let message_sender_id_string = msg_request.llm_message.sender_id.to_string();
-    let table_name = message_sender_id_string.as_str();
+    let table_name = format!("{}_{}_{}", NervoAgentType::get_name(agent_type.clone()), msg_request.clone().chat_id, message_sender_id_string.as_str());
     let msg = msg_request.llm_message;
     let initial_user_content = msg.content.0.as_str();
     let user_id = msg.sender_id;
