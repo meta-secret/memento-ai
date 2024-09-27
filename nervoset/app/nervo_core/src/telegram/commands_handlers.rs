@@ -5,6 +5,7 @@ use crate::telegram::bot_utils::{start_conversation, system_message, transcribe_
 use crate::telegram::message_parser::MessageParser;
 use nervo_sdk::agent_type::AgentType;
 use std::sync::Arc;
+use anyhow::bail;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
 use teloxide::Bot;
@@ -130,16 +131,23 @@ pub async fn chat(
     info!("Parser created.");
     // Get info about bot and user
     let bot_info = &bot.get_me().await?;
-    let bot_name = bot_info.clone().user.username.unwrap();
+    let bot_name: String = match bot_info.clone().user.username {
+        None => {
+            bail!("CRITICAL! No bit name");
+        }
+        Some(name) => { name }
+    };
     let user = parser.parse_user().await?;
     let UserId(user_id) = user.id;
 
     info!("Start conversation with bot: {}", bot_name);
-    start_conversation(
+    match start_conversation(
         app_state.clone(), &bot, user_id, &msg, bot_name, agent_type, parser,
     )
-    .await
-    .unwrap();
+        .await {
+        Ok(_) => {info!("Conversation has been finish successfully")}
+        Err(err) => {info!("Can't finish conversation because of {}", err)}
+    };
     Ok(())
 }
 
