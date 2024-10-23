@@ -5,6 +5,6 @@ import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
-        <App header="header example" title="title example" subtitle="subtitle description example" />
+        <App height="h-[97vh]" header="header example" title="title example" subtitle="subtitle description example" />
     </React.StrictMode>
 );

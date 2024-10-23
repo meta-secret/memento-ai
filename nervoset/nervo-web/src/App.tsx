@@ -12,6 +12,7 @@ interface AppProps {
     header: string;
     title: string;
     subtitle: string;
+    height: string;
 }
 
 function App(props: AppProps) {
@@ -113,8 +114,10 @@ function App(props: AppProps) {
         return <div>{error}</div>;
     }
 
+    const chatClassName = "flex w-full flex-col " + props.height;
+
     return (
-        <div className="flex h-[97vh] w-full flex-col">
+        <div className={chatClassName}>
             <Header header={props.header} title={props.title} subtitle={props.subtitle}/>
 
             <div
