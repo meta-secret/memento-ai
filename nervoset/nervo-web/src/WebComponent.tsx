@@ -32,9 +32,11 @@ class NervoChatWebComponent extends HTMLElement {
         const headerValue = this.getAttribute('header') || '';
         const titleValue = this.getAttribute('title') || '';
         const subTitleValue = this.getAttribute('subtitle') || '';
+        const heightValue = this.getAttribute('height') || '';
 
         root.render(
             <App
+                height={heightValue}
                 header={headerValue}
                 title={titleValue}
                 subtitle={subTitleValue}
