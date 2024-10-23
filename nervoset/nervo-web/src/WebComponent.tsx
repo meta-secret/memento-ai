@@ -19,7 +19,7 @@ class NervoChatWebComponent extends HTMLElement {
     }
 
     initApp() {
-        let template = document.getElementById('nervo-chat-template') as HTMLTemplateElement;
+        const template = document.getElementById('nervo-chat-template') as HTMLTemplateElement;
         if (!template) return;
 
         const clonedContent = template.content.cloneNode(true) as DocumentFragment;
