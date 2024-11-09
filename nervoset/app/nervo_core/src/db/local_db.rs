@@ -64,7 +64,6 @@ impl LocalDb {
         info!("in DB {:?}, we got {:?}", table_name, messages.len());
         for row in rows {
             let message_json: String = row.try_get("message")?;
-            info!("APP: MESSAGE {:?}", message_json);
             let message = serde_json::from_str(&message_json)?;
             messages.push(message);
         }
@@ -73,7 +72,6 @@ impl LocalDb {
 
     async fn create_table(&self, table_name: &str) -> anyhow::Result<()> {
         let table_exists = self.is_table_exists(table_name).await?;
-        info!("DB: Table {} exists {:?}", table_name, table_exists.clone());
         if !table_exists {
             let query = format!(
                 "CREATE TABLE IF NOT EXISTS table_{} (
