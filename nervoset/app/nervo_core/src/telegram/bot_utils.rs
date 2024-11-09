@@ -539,6 +539,23 @@ async fn create_not_moderated_message(text: String, nervo_llm: &NervoLlm) -> any
     Ok(llm_response)
 }
 
+// async fn authorize_client (app_state: Arc<GrootAppState>) -> anyhow::Result<()> {
+//     match &app_state.telegram_user_agent_client {
+//         None => {bail!("Achtung! G_client is not authorized!");}
+//         Some(client) => {
+//             if !client.g_client.is_authorized().await? {
+//                 bail!("Achtung! G_client is trying to authorized!");
+//                 let g_client = grammers_client::Client::connect(g_config).await?;
+//             } else {
+//                 info!("All's good");
+//                 Ok(())
+//             }
+//         }
+//     }
+//     
+// 
+// }
+
 #[cfg(test)]
 mod test {
     use crate::telegram::bot_utils::{button_creation, escape_markdown};

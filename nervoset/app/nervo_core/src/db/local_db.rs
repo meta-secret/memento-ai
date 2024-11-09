@@ -72,12 +72,7 @@ impl LocalDb {
     }
 
     async fn create_table(&self, table_name: &str) -> anyhow::Result<()> {
-        let query = format!(
-            "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'table_{}')",
-            table_name
-        );
-        let mut conn = self.connect_db().await?;
-        let table_exists: bool = sqlx::query_scalar(&query).fetch_one(&mut conn).await?;
+        let table_exists = self.is_table_exists(table_name).await?;
         info!("DB: Table {} exists {:?}", table_name, table_exists.clone());
         if !table_exists {
             let query = format!(
@@ -88,6 +83,7 @@ impl LocalDb {
            )",
                 table_name
             );
+            let mut conn = self.connect_db().await?;
             sqlx::query(&query).execute(&mut conn).await?;
         };
 
@@ -139,6 +135,16 @@ impl LocalDb {
         Ok(())
     }
 
+    pub async fn clear_table(&self, table_name: &str) -> anyhow::Result<()> {
+        if self.is_table_exists(table_name).await? {
+            info!("Clearing table: {}!", table_name);
+            let mut conn = self.connect_db().await?;
+            let query = format!("DELETE FROM table_{}", table_name);
+            sqlx::query(&query).execute(&mut conn).await?;
+        }
+        Ok(())
+    }
+    
     pub async fn get_user_permissions_tg_id(&self, tg_user_id: u64) -> anyhow::Result<Vec<String>> {
         let mut conn = self.connect_db().await?;
         let sql = format!(
@@ -253,5 +259,15 @@ impl LocalDb {
         }
 
         Ok(())
+    }
+    
+    async fn is_table_exists(&self, table_name: &str) -> anyhow::Result<bool> {
+        let query = format!(
+            "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'table_{}')",
+            table_name
+        );
+        let mut conn = self.connect_db().await?;
+        let table_exists: bool = sqlx::query_scalar(&query).fetch_one(&mut conn).await?;
+        Ok(table_exists)
     }
 }

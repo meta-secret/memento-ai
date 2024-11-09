@@ -57,5 +57,10 @@ qdrant-client = "1.11.1"
 
 teloxide = { version = "0.13.0", features = ["macros"] }
 
+grammers = "0.1.0"
+grammers-client = "0.7.0"
+grammers-session = "0.7.0"
+grammers-tl-types = "0.7.0"
+
 # Futures for async recursion
 futures = "0.3"

@@ -52,9 +52,9 @@ pub async fn start_jarvis(agent_type: AgentType) -> anyhow::Result<()> {
     let nervo_config = NervoConfig::load()?;
     let app_state = Arc::from(JarvisAppState::try_from(nervo_config.apps.jarvis)?);
 
-    let telegram_params = nervo_config.telegram.agent_params(agent_type)?;
+    let telegram_agent_params = nervo_config.telegram.clone().agent_params(agent_type)?;
 
-    jarvis::start(telegram_params, app_state, agent_type).await?;
+    jarvis::start(telegram_agent_params, app_state, agent_type).await?;
 
     Ok(())
 }

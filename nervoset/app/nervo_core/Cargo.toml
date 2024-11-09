@@ -29,6 +29,11 @@ tokio.workspace = true
 
 teloxide.workspace = true
 
+grammers.workspace = true
+grammers-client.workspace = true
+grammers-session.workspace = true
+grammers-tl-types.workspace = true
+
 reqwest.workspace = true
 
 # Async OpenAi library is not working with audio, we have to use the openai_dive library 

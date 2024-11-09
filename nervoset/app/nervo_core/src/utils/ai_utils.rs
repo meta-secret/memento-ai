@@ -16,7 +16,7 @@ use tiktoken_rs::cl100k_base;
 use tokio::fs;
 use tracing::info;
 
-pub const RESOURCES_DIR: &str = "../resources";
+pub const RESOURCES_DIR: &str = "../resources/agent/";
 
 //Common entry point for WEB and TG
 pub async fn llm_conversation(
@@ -182,7 +182,7 @@ async fn build_crap_layer_llm_request(
     // Prepare System Role and User question to ask a regular LLM
     let agent_type_name = NervoAgentType::get_name(agent_type);
     let resource_path = format!(
-        "{}/agent/{}/crap_request_system_role.txt",
+        "{}{}/crap_request_system_role.txt",
         RESOURCES_DIR, agent_type_name
     );
     let crap_system_role = std::fs::read_to_string(resource_path)?;
@@ -248,7 +248,7 @@ pub async fn get_all_search_layers(agent_type: AgentType) -> anyhow::Result<Qdra
     let agent_type_name = NervoAgentType::get_name(agent_type);
     info!("Getting all layers info for {} bot", agent_type_name);
     let resource_path = format!(
-        "{}/agent/{}/vectorisation_roles.json",
+        "{}{}/vectorisation_roles.json",
         RESOURCES_DIR, agent_type_name
     );
     let json_string = fs::read_to_string(resource_path).await?;
