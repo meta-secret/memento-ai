@@ -117,8 +117,8 @@ function App(props: AppProps) {
     const chatClassName = "flex w-full flex-col " + props.height;
 
     return (
-        <div className={chatClassName}>
-            <Header header={props.header} title={props.title} subtitle={props.subtitle}/>
+        <div className={`${chatClassName} w-[75vw]`}>
+            <Header header={props.header} title={props.title} subtitle={props.subtitle} />
 
             <div
                 className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-[#30333d] dark:text-slate-300 sm:text-base sm:leading-7"
