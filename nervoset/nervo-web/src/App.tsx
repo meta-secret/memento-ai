@@ -1,4 +1,4 @@
-import {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {LlmChat, LlmMessage, LlmMessageRole, NervoClient} from "nervo-wasm";
 
 import ReplyContent from "./components/reply-content.tsx";
@@ -22,6 +22,23 @@ function App(props: AppProps) {
     const [isTyping, setIsTyping] = useState(false);
     const [nervoClient, setNervoClient] = useState<NervoClient>();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+    const chatContainerStyle: React.CSSProperties = {
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        width: '100%',
+    };
+    const chatComponentStyle: React.CSSProperties = {
+        height: props.height || '75vh',
+        width: '75vw',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '1000px',
+        overflow: 'hidden',
+    };
 
     useEffect(() => {
         const serverPort: number = import.meta.env.VITE_SERVER_PORT;
@@ -114,25 +131,25 @@ function App(props: AppProps) {
         return <div>{error}</div>;
     }
 
-    const chatClassName = "flex w-full flex-col " + props.height;
-
     return (
-        <div className={`${chatClassName} w-[75vw]`}>
-            <Header header={props.header} title={props.title} subtitle={props.subtitle} />
+        <div style={chatContainerStyle}>
+            <div style={chatComponentStyle}>
+                <Header header={props.header} title={props.title} subtitle={props.subtitle}/>
+                <div
+                    className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-[#30333d] dark:text-slate-300 sm:text-base sm:leading-7"
+                    style={{paddingBottom: '10px'}}
+                >
+                    {conversation}
+                    {isTyping && (
+                        <div className="p-4 text-sm text-gray-500">Typing...</div>
+                    )}
+                    <div ref={messagesEndRef}/>
+                </div>
 
-            <div
-                className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-[#30333d] dark:text-slate-300 sm:text-base sm:leading-7"
-            >
-                {conversation}
-                {isTyping && (
-                    <div className="p-4 text-sm text-gray-500">Typing...</div>
-                )}
-                <div ref={messagesEndRef}/>
+                {/*<SlidingPanel buttons={['Option A', 'Option B', 'Option C']}/>*/}
+
+                <MessagingPanel sendMessage={handleSendMessage}/>
             </div>
-
-            {/*<SlidingPanel buttons={['Option A', 'Option B', 'Option C']}/>*/}
-
-            <MessagingPanel sendMessage={handleSendMessage}/>
         </div>
     );
 }

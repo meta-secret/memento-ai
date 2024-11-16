@@ -28,18 +28,26 @@ class NervoChatWebComponent extends HTMLElement {
 
         const root = ReactDOM.createRoot(nervoChat);
 
-        // Get attribute values
-        const headerValue = this.getAttribute('header') || '';
-        const titleValue = this.getAttribute('title') || '';
-        const subTitleValue = this.getAttribute('subtitle') || '';
-        const heightValue = this.getAttribute('height') || '';
+        const heightValue = this.getAttribute('height') || '500px';
+        nervoChat.style.height = heightValue || '75vh';
+        nervoChat.style.width = '75vw';
+        nervoChat.style.margin = '0 auto'; // Центрирует компонент по горизонтали
+        nervoChat.style.display = 'flex';
+        nervoChat.style.justifyContent = 'center';
+        nervoChat.style.alignItems = 'center';
+
+        // // Get attribute values
+        // const headerValue = this.getAttribute('header') || '';
+        // const titleValue = this.getAttribute('title') || '';
+        // const subTitleValue = this.getAttribute('subtitle') || '';
+        // const heightValue = this.getAttribute('height') || '';
 
         root.render(
             <App
                 height={heightValue}
-                header={headerValue}
-                title={titleValue}
-                subtitle={subTitleValue}
+                header={this.getAttribute('header') || ''}
+                title={this.getAttribute('title') || ''}
+                subtitle={this.getAttribute('subtitle') || ''}
             />
         );
 
