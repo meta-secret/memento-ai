@@ -24,7 +24,7 @@ function App(props: AppProps) {
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     const chatStyle: React.CSSProperties = {
-        height: props.height || '75vh',
+        height: props.height || '50vh',
         width: '60vw',
         display: 'flex',
         flexDirection: 'column',

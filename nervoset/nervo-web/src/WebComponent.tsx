@@ -28,10 +28,10 @@ class NervoChatWebComponent extends HTMLElement {
 
         const root = ReactDOM.createRoot(nervoChat);
 
-        const heightValue = this.getAttribute('height') || '500px';
-        nervoChat.style.height = heightValue || '75vh';
-        nervoChat.style.width = '75vw';
-        nervoChat.style.margin = '0 auto'; // Центрирует компонент по горизонтали
+        const heightValue = this.getAttribute('height') || '50vh';
+        nervoChat.style.height = heightValue;
+        nervoChat.style.width = '60vw';
+        nervoChat.style.margin = '0 auto';
         nervoChat.style.display = 'flex';
         nervoChat.style.justifyContent = 'center';
         nervoChat.style.alignItems = 'center';
