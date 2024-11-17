@@ -23,21 +23,15 @@ function App(props: AppProps) {
     const [nervoClient, setNervoClient] = useState<NervoClient>();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-    const chatContainerStyle: React.CSSProperties = {
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        width: '100%',
-    };
-    const chatComponentStyle: React.CSSProperties = {
+    const chatStyle: React.CSSProperties = {
         height: props.height || '75vh',
-        width: '75vw',
+        width: '60vw',
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '1000px',
+        minHeight: '500px',
         overflow: 'hidden',
+        margin: '0 auto',
+        backgroundColor: 'transparent',
     };
 
     useEffect(() => {
@@ -132,24 +126,21 @@ function App(props: AppProps) {
     }
 
     return (
-        <div style={chatContainerStyle}>
-            <div style={chatComponentStyle}>
-                <Header header={props.header} title={props.title} subtitle={props.subtitle}/>
-                <div
-                    className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-[#30333d] dark:text-slate-300 sm:text-base sm:leading-7"
-                    style={{paddingBottom: '10px'}}
-                >
-                    {conversation}
-                    {isTyping && (
-                        <div className="p-4 text-sm text-gray-500">Typing...</div>
-                    )}
-                    <div ref={messagesEndRef}/>
-                </div>
-
-                {/*<SlidingPanel buttons={['Option A', 'Option B', 'Option C']}/>*/}
-
-                <MessagingPanel sendMessage={handleSendMessage}/>
+        <div style={chatStyle}>
+            <Header header={props.header} title={props.title} subtitle={props.subtitle} />
+            <div
+                className="flex-1 overflow-y-auto bg-slate-300 text-sm leading-6 text-slate-900 shadow-md dark:bg-[#30333d] dark:text-slate-300 sm:text-base sm:leading-7"
+            >
+                {conversation}
+                {isTyping && (
+                    <div className="p-4 text-sm text-gray-500">Typing...</div>
+                )}
+                <div ref={messagesEndRef} />
             </div>
+
+            {/*<SlidingPanel buttons={['Option A', 'Option B', 'Option C']}/>*/}
+
+            <MessagingPanel sendMessage={(message) => console.log(message)} />
         </div>
     );
 }
