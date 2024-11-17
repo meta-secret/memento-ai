@@ -140,7 +140,7 @@ function App(props: AppProps) {
 
             {/*<SlidingPanel buttons={['Option A', 'Option B', 'Option C']}/>*/}
 
-            <MessagingPanel sendMessage={(message) => console.log(message)} />
+            <MessagingPanel sendMessage={handleSendMessage}/>
         </div>
     );
 }
