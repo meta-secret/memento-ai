@@ -29,13 +29,14 @@ class NervoChatWebComponent extends HTMLElement {
         const root = ReactDOM.createRoot(nervoChat);
 
         const heightValue = this.getAttribute('height') || '100vh';
-        nervoChat.style.height = heightValue;
-        nervoChat.style.width = '100vw';
-        nervoChat.style.margin = '0 auto';
-        nervoChat.style.display = 'flex';
-        nervoChat.style.justifyContent = 'center';
-        nervoChat.style.alignItems = 'center';
-        nervoChat.style.boxSizing = 'border-box';
+      
+        // nervoChat.style.height = heightValue;
+        // nervoChat.style.width = '80vw';
+        // nervoChat.style.margin = '0 auto';
+        // nervoChat.style.display = 'flex';
+        // nervoChat.style.justifyContent = 'center';
+        // nervoChat.style.alignItems = 'center';
+        // nervoChat.style.boxSizing = 'border-box';
 
         // // Get attribute values
         // const headerValue = this.getAttribute('header') || '';

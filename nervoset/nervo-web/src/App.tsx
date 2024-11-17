@@ -23,9 +23,10 @@ function App(props: AppProps) {
     const [nervoClient, setNervoClient] = useState<NervoClient>();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+    // 1
     const chatStyle: React.CSSProperties = {
-        height: props.height || '100vh',
-        width: '100vw',
+        height: props.height || '93vh',
+        width: '80vw',
         display: 'flex',
         flexDirection: 'column',
         minHeight: '500px',
