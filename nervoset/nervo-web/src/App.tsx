@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import {LlmChat, LlmMessage, LlmMessageRole, NervoClient} from "nervo-wasm";
 
 import ReplyContent from "./components/reply-content.tsx";
@@ -22,18 +22,6 @@ function App(props: AppProps) {
     const [isTyping, setIsTyping] = useState(false);
     const [nervoClient, setNervoClient] = useState<NervoClient>();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
-
-    // 1
-    const chatStyle: React.CSSProperties = {
-        height: props.height || '93vh',
-        width: '80vw',
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '500px',
-        overflow: 'hidden',
-        margin: '0 auto',
-        backgroundColor: 'transparent',
-    };
 
     useEffect(() => {
         const serverPort: number = import.meta.env.VITE_SERVER_PORT;
