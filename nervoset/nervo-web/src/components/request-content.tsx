@@ -13,7 +13,7 @@ class RequestContent extends Component<RequestContentProps, any> {
                     src="https://dummyimage.com/256x256/202228/ffffff&text=U"
                     alt="User Avatar"
                 />
-                <div className="flex max-w-3xl items-center">
+                <div className="flex max-w-full items-center">
                     <p>{this.props.text}</p>
                 </div>
             </div>
