@@ -49,16 +49,15 @@ pub async fn start_conversation<'a>(
 
     let message_text = parser.parse_tg_message_content().await?;
 
-    {
-        let mut loc_manager = app_state.localisation_manager.write().await;
-        loc_manager.detect_language(message_text.as_str()).await?;
-    }
-
     let should_answer_as_reply =
         should_answer_as_reply(&msg, bot_name, message_text.clone()).await?;
-
+    
     // Answer formation
     if should_answer_as_reply {
+        {
+            let mut loc_manager = app_state.localisation_manager.write().await;
+            loc_manager.detect_language(message_text.as_str()).await?;
+        }
         reply_to_user_message(
             app_state,
             &bot,
@@ -69,6 +68,8 @@ pub async fn start_conversation<'a>(
             parser,
         )
         .await?;
+        
+        
     }
     Ok(())
 }
