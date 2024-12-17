@@ -1,9 +1,7 @@
+use std::panic::resume_unwind;
 use error_stack::ResultExt;
 use nervo_sdk::agent_type::{AgentType, NervoAgentType};
-use nervo_sdk::api::spec::{
-    LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest,
-    UserLlmMessage,
-};
+use nervo_sdk::api::spec::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest, ServerResponse, UserAction, UserActionType, UserLlmMessage};
 use pulldown_cmark::{html, Parser};
 use reqwest::Client;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -14,7 +12,7 @@ use crate::common::nweb_spans;
 use crate::common::nweb_spans::nweb_send_msg_span;
 use crate::run_mode::ClientRunModeUtil;
 use nervo_sdk::errors::NervoWebResult;
-use tracing::{info, Instrument};
+use tracing::{error, info, Instrument};
 use tracing_subscriber::fmt::format::Pretty;
 use tracing_subscriber::fmt::time::UtcTime;
 use tracing_subscriber::prelude::*;
@@ -71,7 +69,7 @@ pub struct NervoClient {
 
 #[wasm_bindgen]
 impl NervoClient {
-    pub async fn init(
+    pub async fn initialization(
         server_port: u32,
         run_mode: &str,
         agent_type: &str,
@@ -226,6 +224,98 @@ impl NervoClient {
             },
             content,
         }
+    }
+
+    pub async fn handle_user_action(&self, user_action: UserAction) -> ServerResponse {
+        let user_id = user_action.clone().user_id;
+        let action = user_action.clone().action;
+        let username = user_action.clone().username;
+        
+        info!(
+            "fn: handle_user_action | Handling user action: user_id={}, action={:?}, username={}",
+            user_id, action, username
+        );
+
+        match action {
+            UserActionType::MiniAppInitialized => {
+                info!("fn: handle_user_action | MiniAppInitialized action received");
+                self.send_user_action_request_to_server("user_action/mini_app_initializing", &user_action)
+                    .await
+                    .unwrap_or_else(|err| {
+                        error!("Error handling MiniAppInitialized: {}", err);
+                        default_error_response(&format!("Error processing action: {}", err))
+                    })
+            }
+            UserActionType::Start => {
+                info!("fn: handle_user_action | Start action received");
+                self.send_user_action_request_to_server("user_action/start", &user_action)
+                    .await
+                    .unwrap_or_else(|err| {
+                        error!("Error handling Start: {}", err);
+                        default_error_response(&format!("Error processing action: {}", err))
+                    })
+            }
+            UserActionType::MainMenu => {
+                info!("fn: handle_user_action | MainMenu action received");
+                self.send_user_action_request_to_server("user_action/main_menu", &user_action)
+                    .await
+                    .unwrap_or_else(|err| {
+                        error!("Error handling MainMenu: {}", err);
+                        default_error_response(&format!("Error processing action: {}", err))
+                    })
+            }
+            _ => ServerResponse {
+                message: String::from("Unregistered action"),
+                buttons: Vec::from([String::from("Some button")]),
+                action_buttons: Vec::from([String::from("Some action button")]),
+                can_input: true,
+            },
+        }
+    }
+
+    async fn send_user_action_request_to_server(
+        &self,
+        endpoint: &str,
+        user_action: &UserAction,
+    ) -> Result<ServerResponse, anyhow::Error> {
+        info!(
+            "fn: send_user_action_request_to_server | Sending user action to server: user_id={}, action={:?}, username={}",
+            user_action.user_id, user_action.action, user_action.username
+        );
+        
+        let url = format!("{}/{}", self.api_url.get_url(), endpoint);
+
+        let response = self
+            .client
+            .post(url.clone())
+            .header("Content-Type", "application/json")
+            .header("Access-Control-Allow-Origin", url.clone())
+            .json(user_action)
+            .send()
+            .instrument(nweb_send_msg_span())
+            .await
+            .attach_printable_lazy(|| "Failed sending message")
+            .unwrap();
+
+        let response_to_retrieve: ServerResponse = response
+            .json()
+            .instrument(nweb_send_msg_span())
+            .await
+            .attach_printable_lazy(|| "Json parsing error")
+            .unwrap();
+
+        Ok(response_to_retrieve)
+    }
+}
+
+fn default_error_response(error_message: &str) -> ServerResponse {
+    let formatted_error_message = format!("{}\nPlease restart the app", error_message);
+
+    ServerResponse {
+        message: formatted_error_message,
+        buttons: vec![],
+        action_buttons: vec![],
+        can_input: false,
     }
 }
 

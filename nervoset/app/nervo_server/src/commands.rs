@@ -3,10 +3,7 @@ use axum::http::StatusCode;
 use axum::Json;
 use nervo_bot_core::config::jarvis::JarvisAppState;
 use nervo_bot_core::utils::ai_utils::llm_conversation;
-use nervo_sdk::api::spec::{
-    LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole,
-    SendMessageRequest,
-};
+use nervo_sdk::api::spec::{LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessagePersistence, LlmMessageRole, SendMessageRequest, ServerResponse, UserAction};
 use std::sync::Arc;
 use tracing::{error, info};
 
@@ -96,4 +93,44 @@ async fn fail_path_of_moderation(
     };
 
     Ok(Json(llm_response))
+}
+
+pub async fn mini_app_initializing(
+    // State(state): State<Arc<JarvisAppState>>,
+    Json(user_action): Json<UserAction>,
+) -> Result<Json<ServerResponse>, StatusCode> {
+    info!("Receiving request from frontend: {:?}", &user_action);
+    
+    Ok(Json(ServerResponse {
+        message: "Hello, nice to see ya".to_string(),
+        buttons: vec!["Button 1".to_string(), "Button 2".to_string()],
+        action_buttons: vec!["Action button 3".to_string(), "Action button 4".to_string()],
+        can_input: false,
+    }))
+}
+
+pub async fn handle_start_button_click(
+    Json(user_action): Json<UserAction>,
+) -> Result<Json<ServerResponse>, StatusCode> {
+    info!("Receiving request from frontend: {:?}", &user_action);
+
+    Ok(Json(ServerResponse {
+        message: "Hello, nice to see ya\nYou are in main menu".to_string(),
+        buttons: vec!["Button 1".to_string(), "Button 2".to_string()],
+        action_buttons: vec!["Action button 3".to_string(), "Action button 4".to_string()],
+        can_input: true,
+    }))
+}
+
+pub async fn handle_main_menu(
+    Json(user_action): Json<UserAction>,
+) -> Result<Json<ServerResponse>, StatusCode> {
+    info!("Receiving request from frontend: {:?}", &user_action);
+
+    Ok(Json(ServerResponse {
+        message: "Some button clicked from main menu\nYou are in main menu".to_string(),
+        buttons: vec!["Button 1".to_string(), "Button 2".to_string()],
+        action_buttons: vec!["Action button 3".to_string(), "Action button 4".to_string()],
+        can_input: true,
+    }))
 }

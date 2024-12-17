@@ -38,7 +38,7 @@ function App(props: AppProps) {
         }
 
         async function initNervoClient() {
-            const nervoClient = await NervoClient.init(serverPort, runMode, agentType);
+            const nervoClient = await NervoClient.init(serverPort, runMode, agentType); // Change to 'initialization' after rebuild wasm module
             setNervoClient(nervoClient);
             return nervoClient;
         }

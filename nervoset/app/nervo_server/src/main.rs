@@ -1,7 +1,7 @@
 mod commands;
 mod queries;
 
-use crate::commands::send_message;
+use crate::commands::{handle_main_menu, handle_start_button_click, mini_app_initializing, send_message};
 use crate::queries::chat;
 use axum::{
     routing::{get, post},
@@ -26,16 +26,11 @@ async fn main() -> anyhow::Result<()> {
         .add_directive("h2=info".parse()?)
         .add_directive("tower=info".parse()?)
         .add_directive("sqlx=info".parse()?);
-
-    // a builder for `FmtSubscriber`.
+    
     let subscriber = FmtSubscriber::builder()
-        // Use a more compact, abbreviated log format
         .compact()
-        // all spans/events with a level higher than TRACE (e.g, debug, info, warn, etc.)
-        // will be written to stdout.
         .with_max_level(Level::DEBUG)
         .with_env_filter(filter)
-        // completes the builder.
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
@@ -54,6 +49,9 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/chat/:chat_id", get(chat))
         .route("/send_message", post(send_message))
+        .route("/user_action/mini_app_initializing", post(mini_app_initializing)) // TEMPORARY post, will be changed later
+        .route("/user_action/start", post(handle_start_button_click)) // TEMPORARY post, will be changed later
+        .route("/user_action/main_menu", post(handle_main_menu)) // TEMPORARY post, will be changed later
         .with_state(app_state)
         .layer(cors)
         .layer(TraceLayer::new_for_http())

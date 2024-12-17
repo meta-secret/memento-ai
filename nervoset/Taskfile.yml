@@ -161,6 +161,90 @@ tasks:
           node:22.7-bookworm \
           bash -c "npm run dev"
 
+  nervo_mini_app_build:
+    requires:
+      vars:
+        - AGENT_TYPE
+    vars:
+      NERVO_WASM_DIR: 'app/nervo_wasm'
+      NERVO_WEB_DIR: 'nervo-mini-app'
+      PWD:
+        sh: pwd
+      UID:
+        sh: id -u
+      GID:
+        sh: id -g
+    cmds:
+      - rm -rf {{.NERVO_WEB_DIR}}/pkg
+      - rm -rf {{.NERVO_WEB_DIR}}/dist
+
+      - mkdir {{.NERVO_WEB_DIR}}/pkg
+      - mkdir {{.NERVO_WEB_DIR}}/dist
+
+      - task: common:base_build
+
+      - |
+        docker run --rm \
+          -v {{.PWD}}/{{.NERVO_WEB_DIR}}/pkg:/nervoset/app/nervo_wasm/pkg \
+          --workdir /nervoset/app/nervo_wasm \
+          -e RUST_BACKTRACE=full \
+          {{.BASE_IMAGE}} \
+          bash -c "chown -R {{.UID}}:{{.GID}} /nervoset/app/nervo_wasm/pkg && wasm-pack build --target web"
+
+      # Build nervo-web app and lib
+      - |
+        docker run --rm \
+          --name nervo_mini_app_build \
+          --workdir /nervo-mini-app \
+          -v {{.PWD}}/{{.NERVO_WEB_DIR}}:/nervo-mini-app \
+          -e VITE_AGENT_TYPE={{.AGENT_TYPE}} \
+          node:22.7-bookworm \
+          bash -c "npm install && npm run build && chown -R {{.UID}}:{{.GID}} /nervo-mini-app/dist"
+
+  nervo_mini_app_run:
+    requires:
+      vars:
+        - SERVER_PORT
+        - AGENT_TYPE
+    vars:
+      NERVO_WEB_DIR: 'nervo-mini-app'
+      PWD:
+        sh: pwd
+    cmds:
+      - task: nervo_mini_app_build
+      - |
+        docker run --rm \
+          --name nervo-mini-app \
+          --workdir /nervo-mini-app \
+          -v {{.PWD}}/{{.NERVO_WEB_DIR}}:/nervo-mini-app \
+          -e VITE_AGENT_TYPE={{.AGENT_TYPE}} \
+          -e VITE_SERVER_PORT={{.SERVER_PORT}} \
+          -p 5173:5173 \
+          node:22.7-bookworm \
+          bash -c "npm run local"
+
+  nervo_mini_app_run_dev:
+    requires:
+      vars:
+        - SERVER_PORT
+        - AGENT_TYPE
+    vars:
+      NERVO_WEB_DIR: 'nervo-mini-app'
+      PWD:
+        sh: pwd
+    cmds:
+      - task: nervo_mini_app_build
+      - |
+        docker run --rm \
+          --name nervo-mini-app \
+          --workdir /nervo-mini-app \
+          -v {{.PWD}}/{{.NERVO_WEB_DIR}}:/nervo-mini-app \
+          -e VITE_AGENT_TYPE={{.AGENT_TYPE}} \
+          -e VITE_SERVER_PORT={{.SERVER_PORT}} \
+          -p 5173:5173 \
+          node:22.7-bookworm \
+          bash -c "npm run dev"
+
   test:
     cmds:
       - task: common:base_build

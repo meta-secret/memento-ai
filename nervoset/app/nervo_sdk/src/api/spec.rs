@@ -88,3 +88,44 @@ impl From<&str> for LlmMessageContent {
         LlmMessageContent(content.to_string())
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[wasm_bindgen(getter_with_clone)]
+pub struct UserAction {
+    pub user_id: i64,
+    pub action: UserActionType,
+    pub username: String,
+}
+
+#[wasm_bindgen]
+impl UserAction {
+    #[wasm_bindgen(constructor)]
+    pub fn new(user_id: i64, action: UserActionType, username: String) -> UserAction {
+        UserAction {
+            user_id,
+            action,
+            username,
+        }
+    }
+
+}
+
+#[wasm_bindgen]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum UserActionType {
+    MainMenu,
+    MiniAppInitialized,
+    Start
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[wasm_bindgen(getter_with_clone)]
+pub struct ServerResponse {
+    pub message: String,
+    pub buttons: Vec<String>,
+    pub action_buttons: Vec<String>,
+    pub can_input: bool,
+}
