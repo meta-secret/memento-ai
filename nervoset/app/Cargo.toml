@@ -64,3 +64,5 @@ grammers-tl-types = "0.7.0"
 
 # Futures for async recursion
 futures = "0.3"
+
+emojis = "0.6.4"
