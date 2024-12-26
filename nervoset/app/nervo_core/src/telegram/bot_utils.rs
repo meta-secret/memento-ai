@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use crate::ai::nervo_llm::NervoLlm;
 use crate::config::jarvis::JarvisAppState;
 use crate::models::message_transcription_type::MessageTranscriptionType;
@@ -7,10 +8,12 @@ use crate::models::system_messages::SystemMessage;
 use crate::models::typing_action_model::TypingActionType;
 use crate::models::user_model::TelegramUser;
 use crate::telegram::message_parser::MessageParser;
-use crate::utils::ai_utils::{formation_system_role_llm_message, llm_conversation};
+use crate::utils::ai_utils::{
+    filter_search_result, formation_system_role_llm_message, llm_conversation, update_search_content
+};
 use anyhow::bail;
 use chrono::Utc;
-use nervo_sdk::agent_type::AgentType;
+use nervo_sdk::agent_type::{AgentType};
 use nervo_sdk::api::spec::{LlmChat, LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::audio::{
@@ -18,6 +21,9 @@ use openai_dive::v1::resources::audio::{
 };
 use std::sync::{Arc, LazyLock};
 use std::time::Duration;
+use async_openai::types::Embedding;
+use qdrant_client::qdrant::{ScoredPoint};
+use qdrant_client::qdrant::vectors::VectorsOptions;
 use teloxide::prelude::ChatId;
 use teloxide::prelude::*;
 use teloxide::types::{
@@ -28,6 +34,8 @@ use teloxide::Bot;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::sleep;
 use tracing::info;
+use crate::utils::ai_utils_data::{TruncatingType};
+use crate::utils::ai_utils_data::SortingType::{Ascending};
 
 static LAST_MESSAGE_ID: LazyLock<Arc<Mutex<Option<MessageId>>>> =
     LazyLock::new(|| Arc::new(Mutex::new(None)));
@@ -55,21 +63,26 @@ pub async fn start_conversation<'a>(
     // Answer formation
     if should_answer_as_reply {
         {
-            let mut loc_manager = app_state.localisation_manager.write().await;
-            loc_manager.detect_language(message_text.as_str()).await?;
+            if let Some(feature_toggle) = &app_state.feature_toggle {
+                if feature_toggle.localization {
+                    {
+                        let mut loc_manager = app_state.localisation_manager.write().await;
+                        loc_manager.detect_language(message_text.as_str()).await?;
+                    }
+                }
+            }
         }
+
         reply_to_user_message(
-            app_state,
-            &bot,
-            &msg,
-            user_id,
-            message_text,
-            agent_type,
-            parser,
-        )
-        .await?;
-        
-        
+                app_state,
+                &bot,
+                &msg,
+                user_id,
+                message_text,
+                agent_type,
+                parser,
+            )
+                .await?;
     }
     Ok(())
 }
@@ -130,7 +143,7 @@ async fn reply_to_user_message<'a>(
     )
     .await?;
 
-    return Ok(());
+    Ok(())
 }
 
 async fn start_typing_action(bot: &Bot, msg: &Message, action_type: ChatAction) {
@@ -176,6 +189,7 @@ async fn should_answer_as_reply<'a>(
     info!("is_forwarding {}", is_forwarding);
     
     info!("Do we need to answer this message?");
+    // TODO:! We need to discus, do we need to use KEVIN in PUBLIC chats. If not, we need to return false
     // Need to detect it in group chats. To understand whether to answer or not.
     let is_reply = msg
         .clone()
@@ -307,7 +321,7 @@ pub async fn chat_gpt_conversation<'a>(
     info!("Start chat gpt conversation");
     let chat_id = msg.chat_id;
 
-    let user_final_question = if direct_message {
+    let final_response = if direct_message {
         info!(
             "Direct message without any LLM handling {}",
             msg.llm_message.content.text()
@@ -315,16 +329,49 @@ pub async fn chat_gpt_conversation<'a>(
         msg.llm_message.content.text()
     } else {
         info!("Need to pass few layers of RAG System");
-        llm_conversation(app_state.clone(), msg, agent_type)
-            .await?
-            .content
-            .text()
+
+        match agent_type {
+            AgentType::Kevin => {
+                app_state.clone().user_context.speak_with_memory(
+                    &message,
+                    agent_type,
+                    app_state.clone()
+                ).await?
+            }
+            _ => {
+                llm_conversation(app_state.clone(), msg, agent_type)
+                    .await?
+                    .content
+                    .text()
+            }
+        }
     };
+    
+    translate_and_send_response(
+        app_state.clone(),
+        final_response.as_str(), 
+        is_voice,
+        &bot,
+        chat_id,
+        &message
+    ).await?;
+
+    Ok(())
+}
+
+async fn translate_and_send_response(
+    app_state: Arc<JarvisAppState>,
+    final_response: &str,
+    is_voice: bool,
+    bot: &Bot,
+    chat_id: u64,
+    message: &Message
+) -> anyhow::Result<()> {
 
     let mut translated_text = String::new();
     {
         let loc_manager = app_state.localisation_manager.read().await;
-        translated_text = loc_manager.translate(user_final_question.as_str()).await?;
+        translated_text = loc_manager.translate(final_response).await?;
     }
 
     info!("Stop typing!");
@@ -540,22 +587,109 @@ async fn create_not_moderated_message(text: String, nervo_llm: &NervoLlm) -> any
     Ok(llm_response)
 }
 
-// async fn authorize_client (app_state: Arc<GrootAppState>) -> anyhow::Result<()> {
-//     match &app_state.telegram_user_agent_client {
-//         None => {bail!("Achtung! G_client is not authorized!");}
-//         Some(client) => {
-//             if !client.g_client.is_authorized().await? {
-//                 bail!("Achtung! G_client is trying to authorized!");
-//                 let g_client = grammers_client::Client::connect(g_config).await?;
-//             } else {
-//                 info!("All's good");
-//                 Ok(())
-//             }
-//         }
-//     }
-//     
-// 
-// }
+pub async fn get_message_related_points(
+    message: &str,
+    collection_name: &str,
+    system_role_to_clear_request: &str,
+    app_state: Arc<JarvisAppState>
+) -> anyhow::Result<Vec<String>> {
+    
+    let clear_user_request = app_state.nervo_llm.raw_llm_processing(
+        system_role_to_clear_request,
+        &message
+    ).await?;
+    
+    let embeddings_response = app_state.nervo_llm.embedding(clear_user_request.as_str()).await?;
+    let embeddings = embeddings_response.data.into_iter().next().unwrap(); // TODO: NO FUC**N UNWRAPS
+
+    let unique_points_response = search_unique_points(
+        &collection_name,
+        embeddings,
+        app_state.clone()
+    ).await?;
+    
+    let payload = get_payload(unique_points_response)?;
+    
+    Ok(payload)
+}
+
+async fn search_unique_points(
+    collection_name: &str,
+    embedding: Embedding,
+    app_state: Arc<JarvisAppState>
+) -> anyhow::Result<Vec<ScoredPoint>> {
+    let vector_search_response_of_user_request = app_state.nervo_ai_db.qdrant.vector_search(
+        &collection_name,
+        embedding.embedding,
+        3 // TODO: Read from (where??)
+    ).await?;
+    
+    let search_result = vector_search_response_of_user_request.result;
+    let filtered_search_result = filter_search_result(
+        search_result,
+        Ascending,
+        TruncatingType::None,
+        0.3
+    )?;
+    
+    let mut final_search_result: Vec<ScoredPoint> = filtered_search_result.clone();
+    
+    for point in filtered_search_result {
+        if let Some(vector) = point.vectors {
+            if let Some(VectorsOptions::Vector(vec_f32)) = vector.vectors_options {
+                let result_vector: Vec<f32> = vec_f32.clone().data;
+                let vector_search_response_of_point = app_state.nervo_ai_db.qdrant.vector_search(
+                    &collection_name,
+                    result_vector,
+                    3 // TODO: Read from (where??)
+                ).await?;
+                let search_result_of_point = vector_search_response_of_point.result;
+                let mut existing_ids: HashSet<_> = final_search_result.iter().map(|point| format!("{:?}", point.id)).collect();
+
+                for point in search_result_of_point {
+                    if existing_ids.insert(format!("{:?}", point.id)) {
+                        final_search_result.push(point);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(final_search_result)
+}
+
+pub fn get_payload(
+    points: Vec<ScoredPoint>
+) -> anyhow::Result<Vec<String>> {
+    let mut combined_payloads = Vec::new();
+    for point in points {
+        if let Some(payload) = point.payload.get("text") {
+            if let Some(text) = payload.as_str() {
+                combined_payloads.push(text.to_string());
+            }
+        }
+    }
+    
+    Ok(combined_payloads)
+}
+
+pub fn get_payload_string(
+    combined_payloads: Vec<String>,
+    token_limits: Option<i64>,
+    join_symbol: &str
+) -> anyhow::Result<String> {
+    if combined_payloads.is_empty() {
+            info!("No data found.");
+            Ok("No data found.".to_string())
+        } else {
+            let mut combined_payload = combined_payloads.join(join_symbol);
+            if let Some(token_limits) = token_limits {
+                combined_payload = update_search_content(token_limits as usize, combined_payload)?;
+            }
+            info!("Combined_payload: {:?}", combined_payload);
+            Ok(combined_payload)
+        }
+}
 
 #[cfg(test)]
 mod test {

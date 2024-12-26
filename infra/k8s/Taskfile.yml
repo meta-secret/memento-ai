@@ -7,6 +7,7 @@ includes:
     taskfile: app.task.yml
     dir: probiot
     vars:
+      USER: "{{.USER}}"
       K8S_APP_NAME: 'probiot'
       APP_NAME: 'jarvis'
       CONFIGS: statefulset.k
@@ -17,6 +18,7 @@ includes:
     taskfile: app.task.yml
     dir: w3a
     vars:
+      USER: "{{.USER}}"
       K8S_APP_NAME: 'w3a'
       APP_NAME: 'jarvis'
       CONFIGS: statefulset.k
@@ -27,6 +29,7 @@ includes:
     taskfile: app.task.yml
     dir: nervoznyak
     vars:
+      USER: "{{.USER}}"
       K8S_APP_NAME: 'nervoznyak'
       APP_NAME: 'jarvis'
       CONFIGS: statefulset.k
@@ -36,7 +39,9 @@ includes:
   groot:
     taskfile: app.task.yml
     dir: groot
+
     vars:
+      USER: "{{.USER}}"
       K8S_APP_NAME: 'groot'
       APP_NAME: 'groot'
       CONFIGS: statefulset.k
@@ -47,6 +52,7 @@ includes:
     taskfile: app.task.yml
     dir: nervo-server
     vars:
+      USER: "{{.USER}}"
       K8S_APP_NAME: "nervo-server"
       APP_NAME: "nervo_server"
       CONFIGS: statefulset.k service.k ingress.k
@@ -57,11 +63,22 @@ includes:
     taskfile: app.task.yml
     dir: nervo-migrant
     vars:
+      USER: "{{.USER}}"
       K8S_APP_NAME: "nervo-migrant"
       APP_NAME: "nervo-migrant"
       CONFIGS: job.k
       IMAGE_NAME:
         sh: task -t {{.ROOT_DIR}}/Taskfile.yml infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
+
+  kevin:
+    taskfile: app.task.yml
+    dir: kevin
+    vars:
+      K8S_APP_NAME: 'kevin'
+      APP_NAME: 'jarvis'
+      CONFIGS: statefulset.k
+      IMAGE_NAME:
+        sh: task -t {{.ROOT_DIR}}/Taskfile.yml infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
 tasks:
   default:

@@ -7,6 +7,7 @@ requires:
     - CONFIGS
     - K8S_APP_NAME
     - IMAGE_NAME
+    - USER
 
 vars:
   BUILD_DIR: build
@@ -24,12 +25,14 @@ tasks:
 
   deliver_config:
     cmds:
-      - task -t {{.ROOT_DIR}}/Taskfile.yml infra:hazmat:void_sentinel:vault:config:get_config INFRA={{.INFRA}} > {{.BUILD_DIR}}/config.yaml
+      - task -t {{.ROOT_DIR}}/Taskfile.yml infra:hazmat:void_sentinel:vault:config:get_config INFRA={{.INFRA}} USER={{.USER}} > {{.BUILD_DIR}}/config.yaml
 
   generate_config_maps:
     cmds:
       - mkdir -p {{.BUILD_DIR}}
       - task: deliver_config
+        vars:
+          USER: "{{.USER}}"
       - |
         kubectl create configmap \
           {{.K8S_APP_NAME}}-config \
@@ -60,9 +63,14 @@ tasks:
       - rm -rf {{ .BUILD_DIR }}
       - mkdir -p {{ .BUILD_DIR }}
       - task: generate_config_maps
+        vars:
+          USER: "{{.USER}}"
       - task: generate_manifests
 
   redeploy_job:
+    requires:
+      vars:
+        - USER
     cmds:
       - task: delete
       - task: apply
@@ -107,6 +115,14 @@ tasks:
     cmds:
       - task: delete
       - task: apply_stateful_set
+        vars:
+          USER:
+            sh: echo ${USER}
+
+  redeploy_with_user:
+    cmds:
+      - task: delete
+      - task: apply_stateful_set
 
   apply:
     requires:
@@ -121,6 +137,7 @@ tasks:
     requires:
       vars:
         - APP_NAME
+        - USER
     cmds:
       - task: apply
       - kubectl wait --for=jsonpath='{.status.phase}'=Running pod/{{.K8S_APP_NAME}}-0 --timeout=180s

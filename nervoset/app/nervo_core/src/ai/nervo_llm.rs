@@ -1,7 +1,7 @@
 use anyhow::bail;
 use anyhow::Result;
 use async_openai::config::OpenAIConfig;
-use async_openai::types::CreateChatCompletionRequestArgs;
+use async_openai::types::{ChatCompletionRequestAssistantMessageContent, ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateChatCompletionResponse};
 use async_openai::types::CreateEmbeddingRequestArgs;
 use async_openai::types::CreateEmbeddingResponse;
 use async_openai::types::CreateModerationRequest;
@@ -72,6 +72,17 @@ impl NervoLlm {
         Ok(response)
     }
 
+    pub async fn embeddings(&self, texts: Vec<String>) -> Result<Vec<CreateEmbeddingResponse>> {
+        let mut embeddings: Vec<CreateEmbeddingResponse> = Vec::new();
+
+        for text in &texts {
+            let vectorized_keyword = self.embedding(text).await?;
+            embeddings.push(vectorized_keyword);
+        }
+
+        Ok(embeddings)
+    }
+
     pub async fn text_to_embeddings(&self, text: &str) -> Result<Option<Embedding>> {
         let embedding = self.embedding(text).await?;
         Ok(embedding.data.first().cloned())
@@ -86,15 +97,8 @@ impl NervoLlm {
             messages.push(gpt_msg);
         }
 
-        let request = CreateChatCompletionRequestArgs::default()
-            .max_tokens(self.llm_config.max_tokens)
-            .model(self.llm_config.model_name.clone())
-            .temperature(self.llm_config.temperature)
-            .messages(messages)
-            .build()?;
-
-        let chat_response = self.client.chat().create(request).await?;
-
+        let chat_response = self.create_chat(messages).await?;
+        
         let maybe_reply = chat_response
             .choices
             .first()
@@ -116,6 +120,7 @@ impl NervoLlm {
         let llm_response_text = self.send_msg_batch(chat).await?;
         Ok(llm_response_text)
     }
+    
     pub async fn moderate(&self, text: &str) -> Result<bool> {
         let request = CreateModerationRequest {
             input: ModerationInput::from(text),
@@ -134,6 +139,46 @@ impl NervoLlm {
         let response = self.client.audio().transcribe(request).await?;
         Ok(response.text)
     }
+
+    pub(crate) async fn raw_llm_processing(&self, system_role: &str, request: &str) -> Result<String> {
+        let messages = vec![
+            ChatCompletionRequestSystemMessageArgs::default()
+                .content(system_role)
+                .build()?
+                .into(),
+            ChatCompletionRequestUserMessageArgs::default()
+                .content(request)
+                .build()?
+                .into(),
+        ];
+        
+        // TODO: Check config if it's 4096u32
+        // TODO: Check config if it's "gpt-4o"
+        // TODO: Check config if it's 0.4
+        let response = self.create_chat(messages).await?;
+
+        if let Some(choice) = response.choices.get(0) {
+            let content = choice.message.content.clone().unwrap_or_else(|| {
+                // TODO: Need to use System message
+                "Извини, я не смог понять твой вопрос. Пожалуйста, попробуй снова.".to_string()
+            });
+            Ok(content)
+        } else {
+            // TODO: Need to use System message
+            Ok("Извини, я не смог понять твой вопрос. Пожалуйста, попробуй снова.".to_string())
+        }
+    }
+
+    pub async fn create_chat(&self, messages: Vec<ChatCompletionRequestMessage>) -> Result<CreateChatCompletionResponse> {
+        let request = CreateChatCompletionRequestArgs::default()
+            .max_tokens(self.llm_config.max_tokens)
+            .model(self.llm_config.model_name.clone())
+            .temperature(self.llm_config.temperature)
+            .messages(messages)
+            .build()?;
+
+        Ok(self.client.chat().create(request).await?)
+    }
 }
 
 pub trait TransformTo<T>: Sized {
@@ -150,7 +195,7 @@ impl TransformTo<LlmMessage> for ChatCompletionRequestMessage {
         match msg.meta_info.role {
             LlmMessageRole::System => {
                 let message = ChatCompletionRequestSystemMessage {
-                    content: msg.content.text(),
+                    content: ChatCompletionRequestSystemMessageContent::from(msg.content.text()),
                     name: None,
                 };
                 Ok(ChatCompletionRequestMessage::from(message))
@@ -164,7 +209,8 @@ impl TransformTo<LlmMessage> for ChatCompletionRequestMessage {
             }
             LlmMessageRole::Assistant => {
                 let message = ChatCompletionRequestAssistantMessage {
-                    content: Some(msg.content.text()),
+                    content: Some(ChatCompletionRequestAssistantMessageContent::from(msg.content.text())),
+                    refusal: None,
                     name: None,
                     tool_calls: None,
                     function_call: None,

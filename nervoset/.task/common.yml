@@ -5,7 +5,7 @@ version: '3'
 tasks:
   prepare_dependencies:
     vars:
-      CHEF_IMAGE_NAME: "lukemathwalker/cargo-chef:latest-rust-1.80-bookworm"
+      CHEF_IMAGE_NAME: "lukemathwalker/cargo-chef:latest-rust-1.82-bookworm"
     cmds:
       - |-
         docker run --rm \

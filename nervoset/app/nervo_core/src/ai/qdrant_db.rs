@@ -36,20 +36,18 @@ impl QdrantDb {
 }
 
 impl QdrantDb {
-    pub async fn save_text(&self, agent_type: AgentType, text: &str) -> Result<()> {
+    pub async fn save_text(&self, collection_name: &str, text: &str) -> Result<()> {
         let maybe_vec_data = self.nervo_llm.text_to_embeddings(text).await?;
 
-        self.save(agent_type, text, maybe_vec_data.unwrap()).await
+        self.save(collection_name.to_string(), text, maybe_vec_data.unwrap()).await
     }
 
     pub async fn save(
         &self,
-        agent_type: AgentType,
+        collection_name: String,
         text: &str,
         embedding: Embedding,
     ) -> Result<()> {
-        let collection_name = NervoAgentType::get_name(agent_type);
-
         let col_exists = self
             .qdrant_client
             .collection_exists(&collection_name)
@@ -88,12 +86,11 @@ impl QdrantDb {
 
     pub async fn vector_search(
         &self,
-        agent_type: AgentType,
-        embedding: Embedding,
+        collection_name: &str,
+        embedding_vec: Vec<f32>,
         limit: u64,
     ) -> Result<SearchResponse> {
-        let collection_name = NervoAgentType::get_name(agent_type);
-        let builder = SearchPointsBuilder::new(collection_name, embedding.embedding, limit)
+        let builder = SearchPointsBuilder::new(collection_name, embedding_vec, limit)
             .with_payload(true)
             .params(SearchParamsBuilder::default().exact(true));
 
@@ -104,7 +101,7 @@ impl QdrantDb {
 
     pub async fn text_search(
         &self,
-        agent_type: AgentType,
+        collection_name: &str,
         text: String,
         search_vectors_limit: u64,
     ) -> Result<SearchResponse> {
@@ -115,8 +112,7 @@ impl QdrantDb {
                 bail!("No embedding data found.");
             }
             Some(embedding) => {
-                self.vector_search(agent_type, embedding, search_vectors_limit)
-                    .await
+                self.vector_search(&collection_name, embedding.embedding, search_vectors_limit).await
             }
         }
     }

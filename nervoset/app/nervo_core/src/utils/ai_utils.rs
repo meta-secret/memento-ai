@@ -15,6 +15,8 @@ use qdrant_client::qdrant::ScoredPoint;
 use tiktoken_rs::cl100k_base;
 use tokio::fs;
 use tracing::info;
+use crate::utils::ai_utils_data::{SortingType, TruncatingType};
+use crate::utils::ai_utils_data::TruncatingType::Truncated;
 
 pub const RESOURCES_DIR: &str = "../resources/agent/";
 
@@ -25,13 +27,14 @@ pub async fn llm_conversation(
     agent_type: AgentType,
 ) -> anyhow::Result<LlmMessage> {
     info!("start LLM layers handling");
+    let agent_type_name = NervoAgentType::get_name(agent_type.clone());
     let message_sender_id_string = msg_request.llm_message.sender_id.to_string();
-    let table_name = format!("{}_{}_{}", NervoAgentType::get_name(agent_type.clone()), msg_request.clone().chat_id, message_sender_id_string.as_str());
+    let table_name = format!("{}_{}_{}", &agent_type_name, msg_request.clone().chat_id, message_sender_id_string.as_str());
     let msg = msg_request.llm_message;
     let initial_user_content = msg.content.0.as_str();
     let user_id = msg.sender_id;
     let chat_id = msg_request.chat_id;
-    let layers_info = get_all_search_layers(agent_type).await?;
+    let layers_info = get_all_search_layers(&agent_type_name).await?;
     let all_messages: Vec<LlmMessage> = app_state.local_db.read_from_local_db(&table_name).await?;
 
     let initial_user_request = detecting_crap_request(
@@ -104,7 +107,7 @@ pub async fn llm_conversation(
             &initial_user_content,
             &table_name,
             chat_id,
-            agent_type,
+            &agent_type_name,
             all_messages,
         )
         .await?;
@@ -244,8 +247,7 @@ async fn save_chat_history(
     Ok(llm_message)
 }
 
-pub async fn get_all_search_layers(agent_type: AgentType) -> anyhow::Result<QdrantSearchInfo> {
-    let agent_type_name = NervoAgentType::get_name(agent_type);
+pub async fn get_all_search_layers(agent_type_name: &str) -> anyhow::Result<QdrantSearchInfo> {
     info!("Getting all layers info for {} bot", agent_type_name);
     let resource_path = format!(
         "{}{}/vectorisation_roles.json",
@@ -389,7 +391,7 @@ async fn rag_system_processing(
     initial_user_prompt: &str,
     table_name: &str,
     chat_id: u64,
-    agent_type: AgentType,
+    collection_name: &str,
     all_saved_messages: Vec<LlmMessage>,
 ) -> anyhow::Result<String> {
     info!("Initial INPUT prompt for LLM: {}", &initial_user_prompt);
@@ -401,7 +403,7 @@ async fn rag_system_processing(
         if processing_layer.layer_for_search {
             search_content = searching_in_qdrant(
                 app_state.clone(),
-                agent_type,
+                collection_name,
                 &llm_rephrased_prompt,
                 processing_layer.clone(),
             )
@@ -448,35 +450,28 @@ async fn rag_system_processing(
 
 async fn searching_in_qdrant(
     app_state: Arc<JarvisAppState>,
-    agent_type: AgentType,
+    collection_name: &str,
     llm_rephrased_prompt: &str,
     processing_layer: QdrantSearchLayer,
 ) -> anyhow::Result<String> {
     info!("Need to ask QDrant DB to get some info");
     let mut search_content = String::new();
-    let mut all_search_results = vec![];
 
     let db_search_response = &app_state
         .nervo_ai_db
         .text_search(
-            agent_type,
+            collection_name,
             llm_rephrased_prompt.to_string(),
             processing_layer.vectors_limit,
         )
         .await?;
 
-    for search_result in &db_search_response.result {
-        if search_result.score >= 0.3 {
-            info!(
-                "ADD to SEARCH_Result: {:?} with \n SCORE {}",
-                &search_result.payload["text"].kind, search_result.score
-            );
-            all_search_results.push(search_result.clone());
-        }
-    }
-
-    all_search_results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-    all_search_results.truncate(10);
+    let all_search_results = filter_search_result(
+        db_search_response.result.clone(),
+        SortingType::Descending,
+        Truncated(10),
+        0.3
+    )?;
 
     let scores_string = all_search_results
         .iter()
@@ -493,7 +488,48 @@ async fn searching_in_qdrant(
     Ok(search_content)
 }
 
-fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyhow::Result<String> {
+pub fn filter_search_result(
+    search_results: Vec<ScoredPoint>,
+    sorting_type: SortingType,
+    truncating: TruncatingType,
+    score: f32,
+) -> anyhow::Result<Vec<ScoredPoint>> {
+    // Filtering search_results
+    let mut filtered_results: Vec<_> = search_results
+        .into_iter()
+        .filter(|point| point.score > score)
+        .collect();
+
+    // Sorting search_results
+    match sorting_type {
+        SortingType::Ascending => {
+            filtered_results.sort_by(|a, b| {
+                a.score
+                    .partial_cmp(&b.score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+        }
+        SortingType::Descending => {
+            filtered_results.sort_by(|a, b| {
+                b.score
+                    .partial_cmp(&a.score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            });
+        }
+        SortingType::None => {}
+    }
+
+    match truncating {
+        Truncated(value) => {
+            filtered_results.truncate(value as usize);
+        }
+        TruncatingType::None => {}
+    }
+    
+    Ok(filtered_results)
+}
+
+pub fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyhow::Result<String> {
     info!("Update search content");
 
     let bpe = cl100k_base()?;
@@ -528,6 +564,7 @@ fn concatenate_results(all_search_results: Vec<ScoredPoint>) -> anyhow::Result<S
     info!("Concatenating are done");
     Ok(concatenated_texts)
 }
+
 
 #[cfg(test)]
 mod test {

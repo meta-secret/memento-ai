@@ -41,8 +41,7 @@ async fn main() -> anyhow::Result<()> {
         let nervo_config = NervoConfig::load()?;
         Arc::from(JarvisAppState::try_from(nervo_config.apps.jarvis)?)
     };
-
-    info!("Creating router...");
+    
     let cors = CorsLayer::permissive();
 
     info!("Creating router...");

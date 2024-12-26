@@ -49,10 +49,24 @@ tasks:
   infra_dev:
     vars:
       INFRA: 'dev'
+      USER:
+        sh: echo ${USER}
     cmds:
       - task: infra
         vars:
           INFRA: "{{.INFRA}}"
+
+  infra_dev_with_user:
+    requires:
+      vars:
+        - USER
+    vars:
+      INFRA: 'dev'
+    cmds:
+      - task: infra
+        vars:
+          INFRA: "{{.INFRA}}"
+          USER: "{{.USER}}"
 
   infra_prod:
     vars:
@@ -82,12 +96,16 @@ tasks:
 
       # setup docker registry authentication in k8s
       - task: docker_registry:setup_docker_registry
+        vars:
+          USER: '{{.USER}}'
 
       # deploy qdrant
       - task: db:vector_db:qdrant_deploy
+        vars:
+          USER: '{{.USER}}'
 
       # deploy migrant
-      - task -t {{.ROOT_DIR}}/Taskfile.yml infra:k8s:nervo_migrant:redeploy_job INFRA={{.INFRA}}
+      - task -t {{.ROOT_DIR}}/Taskfile.yml infra:k8s:nervo_migrant:redeploy_job USER={{.USER}} INFRA={{.INFRA}}
 
   k3d_within_docker:
     cmds:

@@ -7,7 +7,7 @@ use crate::telegram::commands_handlers::{
     JarvisOwnerCommands,
 };
 use anyhow::Result;
-use nervo_sdk::agent_type::AgentType;
+use nervo_sdk::agent_type::{NervoAgentType};
 use teloxide::prelude::*;
 use teloxide::Bot as TelegramBot;
 
@@ -15,10 +15,11 @@ use teloxide::Bot as TelegramBot;
 pub async fn start(
     params: TelegramBotParams,
     app_state: Arc<JarvisAppState>,
-    agent_type: AgentType,
+    nervo_agent_type: NervoAgentType,
 ) -> Result<()> {
     let bot = TelegramBot::new(params.token.as_str());
-
+    let agent_type= nervo_agent_type.agent_type;
+    
     app_state.local_db.init_db().await?;
 
     let handler = dptree::entry()

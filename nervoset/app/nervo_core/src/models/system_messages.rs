@@ -10,6 +10,7 @@ pub struct SystemMessages {
     pub manual: String,
     pub wait_second: String,
     pub empty_message: String,
+    pub cant_get_message: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -19,6 +20,7 @@ pub enum SystemMessage {
     Manual(AgentType),
     WaitSecond(AgentType),
     EmptyMessage(AgentType),
+    CantGetYourMessage(AgentType)
 }
 
 impl SystemMessage {
@@ -28,6 +30,7 @@ impl SystemMessage {
             SystemMessage::Manual(agent_type) => agent_type.clone(),
             SystemMessage::WaitSecond(agent_type) => agent_type.clone(),
             SystemMessage::EmptyMessage(agent_type) => agent_type.clone(),
+            &SystemMessage::CantGetYourMessage(agent_type) => agent_type.clone(),
         }
     }
 
@@ -43,6 +46,7 @@ impl SystemMessage {
             SystemMessage::Manual(_) => Ok(system_messages_models.manual.clone()),
             SystemMessage::WaitSecond(_) => Ok(system_messages_models.wait_second.clone()),
             SystemMessage::EmptyMessage(_) => Ok(system_messages_models.empty_message.clone()),
+            &SystemMessage::CantGetYourMessage(_) => Ok(system_messages_models.cant_get_message.clone()),
         }
     }
 }

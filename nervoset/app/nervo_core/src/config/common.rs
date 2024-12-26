@@ -1,4 +1,3 @@
-use std::fs;
 use crate::config::groot::GrootConfig;
 use crate::config::jarvis::JarvisConfig;
 use anyhow::bail;
@@ -33,9 +32,9 @@ impl TelegramConfig {
         match agent_type {
             AgentType::Probiot => Ok(self.agent.probiot),
             AgentType::W3a => Ok(self.agent.w3a),
-            AgentType::Leo => Ok(self.agent.leo),
             AgentType::Groot => Ok(self.agent.groot),
             AgentType::Nervoznyak => Ok(self.agent.nervoznyak),
+            AgentType::Kevin => Ok(self.agent.kevin),
             _ => bail!("Unknown agent type"),
         }
     }
@@ -45,9 +44,9 @@ impl TelegramConfig {
 pub struct TelegramAgent {
     pub probiot: TelegramBotParams,
     pub w3a: TelegramBotParams,
-    pub leo: TelegramBotParams,
     pub groot: TelegramBotParams,
     pub nervoznyak: TelegramBotParams,
+    pub kevin: TelegramBotParams,
 }
 
 #[derive(Debug, Clone, Deserialize)]

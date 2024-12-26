@@ -3,7 +3,6 @@ use crate::ai::qdrant_db::QdrantDb;
 use crate::config::common::QdrantParams;
 use anyhow::Result;
 use async_openai::types::Embedding;
-use nervo_sdk::agent_type::AgentType;
 use qdrant_client::qdrant::SearchResponse;
 use tracing::log::info;
 
@@ -22,25 +21,25 @@ impl NervoAiDb {
 impl NervoAiDb {
     pub async fn text_search(
         &self,
-        agent_type: AgentType,
+        collection_name: &str,
         search_text: String,
         vectors_limit: u64,
     ) -> Result<SearchResponse> {
         info!("Starting QDrant db search...");
         self.qdrant
-            .text_search(agent_type, search_text, vectors_limit)
+            .text_search(collection_name, search_text, vectors_limit)
             .await
     }
 
     pub async fn vector_search(
         &self,
-        agent_type: AgentType,
+        collection_name: &str,
         embedding: Embedding,
         limit: u64,
     ) -> Result<SearchResponse> {
         info!("Starting QDrant db search...");
         self.qdrant
-            .vector_search(agent_type, embedding, limit)
+            .vector_search(collection_name, embedding.embedding, limit)
             .await
     }
 }

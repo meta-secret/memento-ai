@@ -3,7 +3,7 @@ use crate::models::message_transcription_type::MessageTranscriptionType::{Stt, T
 use crate::models::system_messages::SystemMessage;
 use crate::telegram::bot_utils::{start_conversation, system_message, transcribe_message};
 use crate::telegram::message_parser::MessageParser;
-use nervo_sdk::agent_type::AgentType;
+use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use std::sync::Arc;
 use anyhow::bail;
 use teloxide::macros::BotCommands;
@@ -74,25 +74,33 @@ pub async fn command_handler(
             info!("Message doesn't have a sender");
         }
     }
-    
+
     match cmd {
-        JarvisCommands::Model => {
-            bot.send_message(
-                msg.chat.id,
-                format!("LLM model: {}", app_state.nervo_llm.model_name()),
-            )
-            .await?;
-            Ok(())
-        }
         JarvisCommands::Start => {
             system_message(app_state, &bot, &msg, SystemMessage::Start(agent_type)).await?;
-            Ok(())
         }
-        JarvisCommands::Manual => {
-            system_message(app_state, &bot, &msg, SystemMessage::Manual(agent_type)).await?;
-            Ok(())
+        JarvisCommands::Model | JarvisCommands::Manual => {
+            if agent_type != AgentType::Kevin {
+                match cmd {
+                    JarvisCommands::Model => {
+                        bot.send_message(
+                            msg.chat.id,
+                            format!("LLM model: {}", app_state.nervo_llm.model_name()),
+                        )
+                            .await?;
+                    }
+                    JarvisCommands::Manual => {
+                        system_message(app_state, &bot, &msg, SystemMessage::Manual(agent_type)).await?;
+                    }
+                    _ => {}
+                }
+            } else {
+                bot.send_message(msg.chat.id, "This command is only available for bots.").await?;
+            }
         }
     }
+
+    Ok(())
 }
 
 pub async fn handle_callback_query(
@@ -118,9 +126,11 @@ pub async fn chat(
     bot: Bot,
     msg: Message,
     app_state: Arc<JarvisAppState>,
-    agent_type: AgentType,
+    nervo_agent_type: NervoAgentType,
 ) -> anyhow::Result<()> {
     info!("Start chat...");
+    let agent_type= nervo_agent_type.agent_type;
+    
     // Need to parse type of TG message. Text or Audio
     let mut parser = MessageParser {
         bot: &bot,
@@ -133,21 +143,22 @@ pub async fn chat(
     let bot_info = &bot.get_me().await?;
     let bot_name: String = match bot_info.clone().user.username {
         None => {
-            bail!("CRITICAL! No bit name");
+            bail!("CRITICAL! No bot name");
         }
         Some(name) => { name }
     };
     let user = parser.parse_user().await?;
     let UserId(user_id) = user.id;
-
+    
     info!("Start conversation with bot: {}", bot_name);
     match start_conversation(
         app_state.clone(), &bot, user_id, &msg, bot_name, agent_type, parser,
-    )
-        .await {
+    ).await {
         Ok(_) => {info!("Conversation has been finish successfully")}
         Err(err) => {info!("Can't finish conversation because of {}", err)}
     };
+    
+    
     Ok(())
 }
 

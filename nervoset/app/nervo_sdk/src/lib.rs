@@ -66,9 +66,9 @@ pub mod agent_type {
 
     pub const PROBIOT: &str = "probiot";
     pub const W3A: &str = "w3a";
-    pub const LEO: &str = "leo";
     pub const GROOT: &str = "groot";
     pub const NERVOZNYAK: &str = "nervoznyak";
+    pub const KEVIN: &str = "kevin";
 
     #[wasm_bindgen]
     #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Sequence)]
@@ -76,26 +76,77 @@ pub mod agent_type {
     pub enum AgentType {
         Probiot,
         W3a,
-        Leo,
         Groot,
         Nervoznyak,
         None,
+        Kevin,
+    }
+
+    #[wasm_bindgen]
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Sequence)]
+    #[serde(rename_all = "camelCase")]
+    pub enum AgentPersonality {
+        Saylor,
+        None,
+    }
+    
+    impl AgentPersonality {
+        pub fn get_name(&self) -> String {
+            match self {
+                AgentPersonality::Saylor => "saylor".to_string(),
+                AgentPersonality::None => "none".to_string(),
+            }
+        }
     }
 
     #[derive(Copy, Clone, Debug)]
     #[wasm_bindgen]
-    pub struct NervoAgentType {}
+    pub struct NervoAgentType {
+        pub agent_type: AgentType,
+        pub agent_personality: AgentPersonality,
+    }
 
     #[wasm_bindgen]
     impl NervoAgentType {
-        pub fn try_from(name: &str) -> AgentType {
+        pub fn try_from(name: &str) -> NervoAgentType {
             match name {
-                PROBIOT => AgentType::Probiot,
-                W3A => AgentType::W3a,
-                LEO => AgentType::Leo,
-                GROOT => AgentType::Groot,
-                NERVOZNYAK => AgentType::Nervoznyak,
-                _ => AgentType::None,
+                PROBIOT => {
+                    NervoAgentType {
+                        agent_type: AgentType::Probiot,
+                        agent_personality: AgentPersonality::None,
+                    }
+                },
+                
+                W3A => {
+                    NervoAgentType {
+                        agent_type: AgentType::W3a,
+                        agent_personality: AgentPersonality::None,
+                    }
+                },
+                GROOT => {
+                    NervoAgentType {
+                        agent_type: AgentType::Groot,
+                        agent_personality: AgentPersonality::None,
+                    }
+                },
+                NERVOZNYAK => {
+                    NervoAgentType {
+                        agent_type: AgentType::Nervoznyak,
+                        agent_personality: AgentPersonality::None,
+                    }
+                },
+                KEVIN => {
+                    NervoAgentType {
+                        agent_type: AgentType::Kevin,
+                        agent_personality: AgentPersonality::None,
+                    }
+                },
+                _ => {
+                    NervoAgentType {
+                        agent_type: AgentType::None,
+                        agent_personality: AgentPersonality::None,
+                    }
+                },
             }
         }
 
@@ -103,9 +154,9 @@ pub mod agent_type {
             match agent_type {
                 AgentType::Probiot => String::from(PROBIOT),
                 AgentType::W3a => String::from(W3A),
-                AgentType::Leo => String::from(LEO),
                 AgentType::Groot => String::from(GROOT),
                 AgentType::Nervoznyak => String::from(NERVOZNYAK),
+                AgentType::Kevin => String::from(KEVIN),
                 AgentType::None => String::from(""),
             }
         }

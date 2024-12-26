@@ -4,3 +4,4 @@ pub mod qdrant_search_layers;
 pub mod system_messages;
 pub mod typing_action_model;
 pub mod user_model;
+pub mod feature_toggle;

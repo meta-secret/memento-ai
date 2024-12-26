@@ -75,8 +75,9 @@ impl NervoClient {
         agent_type: &str,
     ) -> NervoWebResult<NervoClient> {
         let run_mode = ClientRunModeUtil::parse(run_mode)?;
-        let agent_type = NervoAgentType::try_from(agent_type);
+        let nervo_agent_type = NervoAgentType::try_from(agent_type);
         let api_url = ApiUrl::get(server_port, run_mode);
+        let agent_type = nervo_agent_type.agent_type;
 
         info!(
             "Agent type: {:?}, port: {:?}, run mode: {:?}",

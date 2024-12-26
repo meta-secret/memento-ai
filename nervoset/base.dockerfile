@@ -2,8 +2,7 @@
 # https://www.lpalmieri.com/posts/fast-rust-docker-builds/
 # https://github.com/LukeMathWalker/cargo-chef
 
-FROM lukemathwalker/cargo-chef:latest-rust-1.80-bookworm
-
+FROM lukemathwalker/cargo-chef:latest-rust-1.82-bookworm
 WORKDIR /nervoset/app
 
 # Install sccache (cargo is too slow)

@@ -2,7 +2,6 @@ mod models;
 
 use crate::models::migration_model::{MigrationModel, VectorData};
 use crate::models::migration_path_model::{MigrationMetaData, MigrationPlan};
-use anyhow::bail;
 use nervo_bot_core::config::common::NervoConfig;
 use nervo_bot_core::config::jarvis::JarvisAppState;
 use std::fs::File;
@@ -207,8 +206,9 @@ async fn migrate_qdrant_db(
                     "Save text of {:?} to qdrant: {:?}",
                     migration_info.json_path, migration_plan.agent_type
                 );
+                let collection_name = NervoAgentType::get_name(migration_plan.agent_type);
                 qdrant_db
-                    .save(migration_plan.agent_type, text.as_str(), embedding)
+                    .save(collection_name, text.as_str(), embedding)
                     .await?;
             }
         }

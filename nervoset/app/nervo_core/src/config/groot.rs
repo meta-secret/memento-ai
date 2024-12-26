@@ -1,8 +1,7 @@
 use serde_derive::Deserialize;
 use nervo_sdk::agent_type::{AgentType, NervoAgentType};
-use crate::ai::ai_db::NervoAiDb;
 use crate::ai::nervo_llm::{NervoLlm, NervoLlmConfig};
-use crate::config::common::{DatabaseParams, NervoConfig, TelegramUserAgent, TelegramUserAgentClient, TelegramUserAgentParams};
+use crate::config::common::{DatabaseParams, NervoConfig, TelegramUserAgentClient};
 use crate::db::local_db::LocalDb;
 
 #[derive(Debug, Clone, Deserialize)]

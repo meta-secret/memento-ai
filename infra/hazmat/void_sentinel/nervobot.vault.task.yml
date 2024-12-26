@@ -12,9 +12,8 @@ tasks:
     requires:
       vars:
         - INFRA
+        - USER
     vars:
-      USER:
-        sh: echo ${USER}
       BASE_PATH_SUFFIX: '{{if eq .INFRA "prod"}}{{.INFRA}}{{else}}{{.INFRA}}/{{.USER}}{{end}}'
     cmds:
       - task: crypto:decrypt

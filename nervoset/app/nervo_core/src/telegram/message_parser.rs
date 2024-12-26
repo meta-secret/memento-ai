@@ -15,7 +15,7 @@ use tracing::info;
 // PARSING USER & TEXT & VOICE
 pub struct MessageParser<'a> {
     pub bot: &'a Bot,
-    pub(crate) msg: &'a Message,
+    pub msg: &'a Message,
     pub app_state: &'a Arc<JarvisAppState>,
     pub is_voice: bool,
 }
