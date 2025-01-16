@@ -1,2 +1,2 @@
-# nervo_soft
-Nervo Soft of the world
+# nervo labs
+Nervo Labs of the world
