@@ -329,13 +329,12 @@ pub async fn chat_gpt_conversation<'a>(
         msg.llm_message.content.text()
     } else {
         info!("Need to pass few layers of RAG System");
-
         match agent_type {
             AgentType::Kevin => {
-                app_state.clone().user_context.speak_with_memory(
+                app_state.clone().user_context.use_memory_in_conversation(
                     &message,
+                    app_state.clone(),
                     agent_type,
-                    app_state.clone()
                 ).await?
             }
             _ => {
@@ -673,23 +672,23 @@ pub fn get_payload(
     Ok(combined_payloads)
 }
 
-pub fn get_payload_string(
-    combined_payloads: Vec<String>,
-    token_limits: Option<i64>,
-    join_symbol: &str
-) -> anyhow::Result<String> {
-    if combined_payloads.is_empty() {
-            info!("No data found.");
-            Ok("No data found.".to_string())
-        } else {
-            let mut combined_payload = combined_payloads.join(join_symbol);
-            if let Some(token_limits) = token_limits {
-                combined_payload = update_search_content(token_limits as usize, combined_payload)?;
-            }
-            info!("Combined_payload: {:?}", combined_payload);
-            Ok(combined_payload)
-        }
-}
+// pub fn get_payload_string(
+//     combined_payloads: Vec<String>,
+//     token_limits: Option<i64>,
+//     join_symbol: &str
+// ) -> anyhow::Result<String> {
+//     if combined_payloads.is_empty() {
+//             info!("No data found.");
+//             Ok("No data found.".to_string())
+//         } else {
+//             let mut combined_payload = combined_payloads.join(join_symbol);
+//             if let Some(token_limits) = token_limits {
+//                 combined_payload = update_search_content(token_limits as usize, combined_payload)?;
+//             }
+//             info!("Combined_payload: {:?}", combined_payload);
+//             Ok(combined_payload)
+//         }
+// }
 
 #[cfg(test)]
 mod test {
