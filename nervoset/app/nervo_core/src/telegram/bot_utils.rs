@@ -8,8 +8,7 @@ use crate::models::typing_action_model::TypingActionType;
 use crate::models::user_model::TelegramUser;
 use crate::telegram::message_parser::MessageParser;
 use crate::utils::ai_utils::{
-    filter_search_result, formation_system_role_llm_message, llm_conversation,
-    update_search_content,
+    filter_search_result, formation_system_role_llm_message, llm_conversation
 };
 use crate::utils::ai_utils_data::SortingType::Ascending;
 use crate::utils::ai_utils_data::TruncatingType;

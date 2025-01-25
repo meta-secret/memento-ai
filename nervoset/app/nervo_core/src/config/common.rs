@@ -1,4 +1,3 @@
-use crate::config::groot::GrootConfig;
 use crate::config::jarvis::JarvisConfig;
 use crate::utils::ai_utils::RESOURCES_DIR;
 use anyhow::bail;
@@ -18,7 +17,6 @@ pub struct NervoConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct AppsConfig {
     pub jarvis: JarvisConfig,
-    pub groot: GrootConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]

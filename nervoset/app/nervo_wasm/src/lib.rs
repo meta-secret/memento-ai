@@ -6,7 +6,6 @@ use nervo_sdk::api::spec::{
 };
 use pulldown_cmark::{html, Parser};
 use reqwest::Client;
-use std::panic::resume_unwind;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::browser::nervo_wasm_store::NervoWasmStore;
@@ -271,12 +270,6 @@ impl NervoClient {
                         default_error_response(&format!("Error processing action: {}", err))
                     })
             }
-            _ => ServerResponse {
-                message: String::from("Unregistered action"),
-                buttons: Vec::from([String::from("Some button")]),
-                action_buttons: Vec::from([String::from("Some action button")]),
-                can_input: true,
-            },
         }
     }
 
