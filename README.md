@@ -1,2 +1,3 @@
-# nervo labs
-Nervo Labs of the world
+# Memento AI
+
+~~Your...~~ you
