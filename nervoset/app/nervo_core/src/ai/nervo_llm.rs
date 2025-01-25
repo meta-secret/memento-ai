@@ -1,7 +1,6 @@
 use anyhow::bail;
 use anyhow::Result;
 use async_openai::config::OpenAIConfig;
-use async_openai::types::{ChatCompletionRequestAssistantMessageContent, ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs, CreateChatCompletionResponse};
 use async_openai::types::CreateEmbeddingRequestArgs;
 use async_openai::types::CreateEmbeddingResponse;
 use async_openai::types::CreateModerationRequest;
@@ -10,6 +9,11 @@ use async_openai::types::ModerationInput;
 use async_openai::types::{
     ChatCompletionRequestAssistantMessage, ChatCompletionRequestMessage,
     ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessageContent,
+};
+use async_openai::types::{
+    ChatCompletionRequestAssistantMessageContent, ChatCompletionRequestSystemMessageArgs,
+    ChatCompletionRequestSystemMessageContent, ChatCompletionRequestUserMessageArgs,
+    CreateChatCompletionRequestArgs, CreateChatCompletionResponse,
 };
 use async_openai::types::{ChatCompletionRequestUserMessage, Embedding};
 use async_openai::Client;
@@ -98,7 +102,7 @@ impl NervoLlm {
         }
 
         let chat_response = self.create_chat(messages).await?;
-        
+
         let maybe_reply = chat_response
             .choices
             .first()
@@ -120,7 +124,7 @@ impl NervoLlm {
         let llm_response_text = self.send_msg_batch(chat).await?;
         Ok(llm_response_text)
     }
-    
+
     pub async fn moderate(&self, text: &str) -> Result<bool> {
         let request = CreateModerationRequest {
             input: ModerationInput::from(text),
@@ -140,7 +144,11 @@ impl NervoLlm {
         Ok(response.text)
     }
 
-    pub(crate) async fn raw_llm_processing(&self, system_role: &str, request: &str) -> Result<String> {
+    pub(crate) async fn raw_llm_processing(
+        &self,
+        system_role: &str,
+        request: &str,
+    ) -> Result<String> {
         let messages = vec![
             ChatCompletionRequestSystemMessageArgs::default()
                 .content(system_role)
@@ -151,7 +159,7 @@ impl NervoLlm {
                 .build()?
                 .into(),
         ];
-        
+
         // TODO: Check config if it's 4096u32
         // TODO: Check config if it's "gpt-4o"
         // TODO: Check config if it's 0.4
@@ -169,7 +177,10 @@ impl NervoLlm {
         }
     }
 
-    pub async fn create_chat(&self, messages: Vec<ChatCompletionRequestMessage>) -> Result<CreateChatCompletionResponse> {
+    pub async fn create_chat(
+        &self,
+        messages: Vec<ChatCompletionRequestMessage>,
+    ) -> Result<CreateChatCompletionResponse> {
         let request = CreateChatCompletionRequestArgs::default()
             .max_tokens(self.llm_config.max_tokens)
             .model(self.llm_config.model_name.clone())
@@ -209,7 +220,9 @@ impl TransformTo<LlmMessage> for ChatCompletionRequestMessage {
             }
             LlmMessageRole::Assistant => {
                 let message = ChatCompletionRequestAssistantMessage {
-                    content: Some(ChatCompletionRequestAssistantMessageContent::from(msg.content.text())),
+                    content: Some(ChatCompletionRequestAssistantMessageContent::from(
+                        msg.content.text(),
+                    )),
                     refusal: None,
                     name: None,
                     tool_calls: None,

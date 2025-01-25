@@ -1,5 +1,6 @@
 use crate::config::groot::GrootConfig;
 use crate::config::jarvis::JarvisConfig;
+use crate::utils::ai_utils::RESOURCES_DIR;
 use anyhow::bail;
 use config::Config as AppConfig;
 use grammers_client::{Client, Config};
@@ -7,7 +8,6 @@ use grammers_session::Session;
 use nervo_sdk::agent_type::AgentType;
 use serde::Deserialize;
 use tracing::info;
-use crate::utils::ai_utils::RESOURCES_DIR;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct NervoConfig {
@@ -30,9 +30,6 @@ pub struct TelegramConfig {
 impl TelegramConfig {
     pub fn agent_params(self, agent_type: AgentType) -> anyhow::Result<TelegramBotParams> {
         match agent_type {
-            AgentType::Probiot => Ok(self.agent.probiot),
-            AgentType::W3a => Ok(self.agent.w3a),
-            AgentType::Groot => Ok(self.agent.groot),
             AgentType::Nervoznyak => Ok(self.agent.nervoznyak),
             AgentType::Kevin => Ok(self.agent.kevin),
             _ => bail!("Unknown agent type"),
@@ -42,9 +39,6 @@ impl TelegramConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TelegramAgent {
-    pub probiot: TelegramBotParams,
-    pub w3a: TelegramBotParams,
-    pub groot: TelegramBotParams,
     pub nervoznyak: TelegramBotParams,
     pub kevin: TelegramBotParams,
 }
@@ -71,10 +65,17 @@ pub struct TelegramUserAgentClient {
 }
 
 impl TelegramUserAgentClient {
-    pub async fn from(parameters: TelegramUserAgentParams, agent_name: String) -> anyhow::Result<Self> {
-        let session_file_path = format!("{}{}/{}", RESOURCES_DIR, agent_name, parameters.session_file_path);
-        
-        info!("Create G config from: {}, {}, {}",
+    pub async fn from(
+        parameters: TelegramUserAgentParams,
+        agent_name: String,
+    ) -> anyhow::Result<Self> {
+        let session_file_path = format!(
+            "{}{}/{}",
+            RESOURCES_DIR, agent_name, parameters.session_file_path
+        );
+
+        info!(
+            "Create G config from: {}, {}, {}",
             session_file_path,
             parameters.api_id,
             parameters.api_hash.to_string()
@@ -85,7 +86,7 @@ impl TelegramUserAgentClient {
             api_hash: parameters.api_hash.to_string(),
             params: Default::default(),
         };
-        
+
         let g_client = Client::connect(g_config).await?;
         info!("Connect during creation: {:?}", g_client);
 

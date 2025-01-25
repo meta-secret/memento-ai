@@ -20,7 +20,7 @@ pub enum SystemMessage {
     Manual(AgentType),
     WaitSecond(AgentType),
     EmptyMessage(AgentType),
-    CantGetYourMessage(AgentType)
+    CantGetYourMessage(AgentType),
 }
 
 impl SystemMessage {
@@ -46,7 +46,9 @@ impl SystemMessage {
             SystemMessage::Manual(_) => Ok(system_messages_models.manual.clone()),
             SystemMessage::WaitSecond(_) => Ok(system_messages_models.wait_second.clone()),
             SystemMessage::EmptyMessage(_) => Ok(system_messages_models.empty_message.clone()),
-            &SystemMessage::CantGetYourMessage(_) => Ok(system_messages_models.cant_get_message.clone()),
+            &SystemMessage::CantGetYourMessage(_) => {
+                Ok(system_messages_models.cant_get_message.clone())
+            }
         }
     }
 }

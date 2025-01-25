@@ -142,7 +142,7 @@ impl LocalDb {
         }
         Ok(())
     }
-    
+
     pub async fn get_user_permissions_tg_id(&self, tg_user_id: u64) -> anyhow::Result<Vec<String>> {
         let mut conn = self.connect_db().await?;
         let sql = format!(
@@ -258,7 +258,7 @@ impl LocalDb {
 
         Ok(())
     }
-    
+
     async fn is_table_exists(&self, table_name: &str) -> anyhow::Result<bool> {
         let query = format!(
             "SELECT EXISTS (SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'table_{}')",

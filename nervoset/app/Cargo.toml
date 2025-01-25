@@ -3,7 +3,6 @@
 resolver = "2"
 
 members = [
-    "groot",
     "nervo_core",
     "jarvis",
     "nervo_server",

@@ -1,8 +1,8 @@
-use serde_derive::Deserialize;
-use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use crate::ai::nervo_llm::{NervoLlm, NervoLlmConfig};
 use crate::config::common::{DatabaseParams, NervoConfig, TelegramUserAgentClient};
 use crate::db::local_db::LocalDb;
+use nervo_sdk::agent_type::{AgentType, NervoAgentType};
+use serde_derive::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct GrootConfig {
@@ -25,7 +25,7 @@ impl TryFrom<NervoConfig> for GrootAppState {
         let groot_config = nervo_config.clone().apps.groot;
         let nervo_llm = NervoLlm::from(nervo_config.apps.groot.llm.clone());
         let local_db = LocalDb::try_init(nervo_config.apps.groot.database.clone())?;
-    
+
         Ok(Self {
             nervo_llm,
             local_db,
@@ -36,13 +36,15 @@ impl TryFrom<NervoConfig> for GrootAppState {
 }
 
 impl GrootAppState {
-    pub async fn generate_user_agent_client(&mut self, nervo_config: NervoConfig) -> anyhow::Result<()> {
+    pub async fn generate_user_agent_client(
+        &mut self,
+        nervo_config: NervoConfig,
+    ) -> anyhow::Result<()> {
         let agent_name = NervoAgentType::get_name(AgentType::Groot);
-        
-        let telegram_client = TelegramUserAgentClient::from(
-            nervo_config.telegram.user_agent.groot,
-            agent_name
-        ).await?;
+
+        let telegram_client =
+            TelegramUserAgentClient::from(nervo_config.telegram.user_agent.groot, agent_name)
+                .await?;
         self.telegram_user_agent_client.replace(telegram_client);
         Ok(())
     }

@@ -108,7 +108,6 @@ impl UserAction {
             username,
         }
     }
-
 }
 
 #[wasm_bindgen]
@@ -117,7 +116,7 @@ impl UserAction {
 pub enum UserActionType {
     MainMenu,
     MiniAppInitialized,
-    Start
+    Start,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

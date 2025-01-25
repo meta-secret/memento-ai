@@ -1,9 +1,8 @@
+use crate::config::jarvis::JarvisAppState;
 use std::sync::Arc;
 use tracing::log::info;
-use crate::config::jarvis::JarvisAppState;
 
-pub struct MemoryCell {
-}
+pub struct MemoryCell {}
 
 impl MemoryCell {
     pub async fn create_memory_cell(
@@ -21,10 +20,11 @@ impl MemoryCell {
         );
         info!("memory cell check: {}", memory_cell);
 
-        app_state.nervo_ai_db.qdrant.save_text(
-            collection_name,
-            memory_cell.as_str(),
-        ).await?;
+        app_state
+            .nervo_ai_db
+            .qdrant
+            .save_text(collection_name, memory_cell.as_str())
+            .await?;
 
         Ok(())
     }

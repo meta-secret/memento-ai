@@ -5,7 +5,7 @@ use std::sync::Arc;
 use clap::Parser;
 use nervo_bot_core::config::common::NervoConfig;
 use nervo_bot_core::config::jarvis::{InitialParams, JarvisAppState};
-use nervo_sdk::agent_type::{NervoAgentType};
+use nervo_sdk::agent_type::NervoAgentType;
 use tracing::{debug_span, info, Instrument, Level};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -38,14 +38,11 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(filter)
         // completes the builder.
         .finish();
-    
+
     tracing::subscriber::set_global_default(subscriber)?;
 
     info!("Starting Jarvis as {:?} ...", args.agent_type);
-    start_jarvis(NervoAgentType::try_from(
-            args.agent_type.as_str(),
-        )
-    )
+    start_jarvis(NervoAgentType::try_from(args.agent_type.as_str()))
         .instrument(debug_span!("jarvis"))
         .await?;
     Ok(())
@@ -54,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
 pub async fn start_jarvis(nervo_agent_type: NervoAgentType) -> anyhow::Result<()> {
     let nervo_config = NervoConfig::load()?;
 
-    let agent_type= nervo_agent_type.agent_type;
+    let agent_type = nervo_agent_type.agent_type;
     let telegram_agent_params = nervo_config.telegram.clone().agent_params(agent_type)?;
 
     let initial_params = InitialParams {

@@ -310,8 +310,6 @@ mod test {
         let jsons_content = collect_jsons_content("../../dataset").await?;
         let apps: Vec<AgentType> = jsons_content.iter().map(|plan| plan.agent_type).collect();
 
-        assert!(apps.contains(&AgentType::Probiot));
-        assert!(apps.contains(&AgentType::W3a));
         assert!(apps.contains(&AgentType::Nervoznyak));
 
         Ok(())

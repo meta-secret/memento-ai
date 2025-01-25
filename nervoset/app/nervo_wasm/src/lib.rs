@@ -1,9 +1,12 @@
-use std::panic::resume_unwind;
 use error_stack::ResultExt;
 use nervo_sdk::agent_type::{AgentType, NervoAgentType};
-use nervo_sdk::api::spec::{LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest, ServerResponse, UserAction, UserActionType, UserLlmMessage};
+use nervo_sdk::api::spec::{
+    LlmChat, LlmMessage, LlmMessageContent, LlmMessageMetaInfo, LlmMessageRole, SendMessageRequest,
+    ServerResponse, UserAction, UserActionType, UserLlmMessage,
+};
 use pulldown_cmark::{html, Parser};
 use reqwest::Client;
+use std::panic::resume_unwind;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::browser::nervo_wasm_store::NervoWasmStore;
@@ -231,7 +234,7 @@ impl NervoClient {
         let user_id = user_action.clone().user_id;
         let action = user_action.clone().action;
         let username = user_action.clone().username;
-        
+
         info!(
             "fn: handle_user_action | Handling user action: user_id={}, action={:?}, username={}",
             user_id, action, username
@@ -240,12 +243,15 @@ impl NervoClient {
         match action {
             UserActionType::MiniAppInitialized => {
                 info!("fn: handle_user_action | MiniAppInitialized action received");
-                self.send_user_action_request_to_server("user_action/mini_app_initializing", &user_action)
-                    .await
-                    .unwrap_or_else(|err| {
-                        error!("Error handling MiniAppInitialized: {}", err);
-                        default_error_response(&format!("Error processing action: {}", err))
-                    })
+                self.send_user_action_request_to_server(
+                    "user_action/mini_app_initializing",
+                    &user_action,
+                )
+                .await
+                .unwrap_or_else(|err| {
+                    error!("Error handling MiniAppInitialized: {}", err);
+                    default_error_response(&format!("Error processing action: {}", err))
+                })
             }
             UserActionType::Start => {
                 info!("fn: handle_user_action | Start action received");
@@ -283,7 +289,7 @@ impl NervoClient {
             "fn: send_user_action_request_to_server | Sending user action to server: user_id={}, action={:?}, username={}",
             user_action.user_id, user_action.action, user_action.username
         );
-        
+
         let url = format!("{}/{}", self.api_url.get_url(), endpoint);
 
         let response = self

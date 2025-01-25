@@ -3,28 +3,6 @@ version: '3'
 set: [pipefail]
 
 includes:
-  probiot:
-    taskfile: app.task.yml
-    dir: probiot
-    vars:
-      USER: "{{.USER}}"
-      K8S_APP_NAME: 'probiot'
-      APP_NAME: 'jarvis'
-      CONFIGS: statefulset.k
-      IMAGE_NAME:
-        sh: task -t {{.ROOT_DIR}}/Taskfile.yml infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
-
-  w3a:
-    taskfile: app.task.yml
-    dir: w3a
-    vars:
-      USER: "{{.USER}}"
-      K8S_APP_NAME: 'w3a'
-      APP_NAME: 'jarvis'
-      CONFIGS: statefulset.k
-      IMAGE_NAME:
-        sh: task -t {{.ROOT_DIR}}/Taskfile.yml infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
-
   nervoznyak:
     taskfile: app.task.yml
     dir: nervoznyak

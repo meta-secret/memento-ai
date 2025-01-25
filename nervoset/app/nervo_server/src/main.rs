@@ -1,7 +1,9 @@
 mod commands;
 mod queries;
 
-use crate::commands::{handle_main_menu, handle_start_button_click, mini_app_initializing, send_message};
+use crate::commands::{
+    handle_main_menu, handle_start_button_click, mini_app_initializing, send_message,
+};
 use crate::queries::chat;
 use axum::{
     routing::{get, post},
@@ -26,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
         .add_directive("h2=info".parse()?)
         .add_directive("tower=info".parse()?)
         .add_directive("sqlx=info".parse()?);
-    
+
     let subscriber = FmtSubscriber::builder()
         .compact()
         .with_max_level(Level::DEBUG)
@@ -41,14 +43,17 @@ async fn main() -> anyhow::Result<()> {
         let nervo_config = NervoConfig::load()?;
         Arc::from(JarvisAppState::try_from(nervo_config.apps.jarvis)?)
     };
-    
+
     let cors = CorsLayer::permissive();
 
     info!("Creating router...");
     let app = Router::new()
         .route("/chat/:chat_id", get(chat))
         .route("/send_message", post(send_message))
-        .route("/user_action/mini_app_initializing", post(mini_app_initializing)) // TEMPORARY post, will be changed later
+        .route(
+            "/user_action/mini_app_initializing",
+            post(mini_app_initializing),
+        ) // TEMPORARY post, will be changed later
         .route("/user_action/start", post(handle_start_button_click)) // TEMPORARY post, will be changed later
         .route("/user_action/main_menu", post(handle_main_menu)) // TEMPORARY post, will be changed later
         .with_state(app_state)

@@ -3,9 +3,9 @@ use crate::models::message_transcription_type::MessageTranscriptionType::{Stt, T
 use crate::models::system_messages::SystemMessage;
 use crate::telegram::bot_utils::{start_conversation, system_message, transcribe_message};
 use crate::telegram::message_parser::MessageParser;
+use anyhow::bail;
 use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use std::sync::Arc;
-use anyhow::bail;
 use teloxide::macros::BotCommands;
 use teloxide::prelude::*;
 use teloxide::Bot;
@@ -87,15 +87,17 @@ pub async fn command_handler(
                             msg.chat.id,
                             format!("LLM model: {}", app_state.nervo_llm.model_name()),
                         )
-                            .await?;
+                        .await?;
                     }
                     JarvisCommands::Manual => {
-                        system_message(app_state, &bot, &msg, SystemMessage::Manual(agent_type)).await?;
+                        system_message(app_state, &bot, &msg, SystemMessage::Manual(agent_type))
+                            .await?;
                     }
                     _ => {}
                 }
             } else {
-                bot.send_message(msg.chat.id, "This command is only available for bots.").await?;
+                bot.send_message(msg.chat.id, "This command is only available for bots.")
+                    .await?;
             }
         }
     }
@@ -129,8 +131,8 @@ pub async fn chat(
     nervo_agent_type: NervoAgentType,
 ) -> anyhow::Result<()> {
     info!("Start chat...");
-    let agent_type= nervo_agent_type.agent_type;
-    
+    let agent_type = nervo_agent_type.agent_type;
+
     // Need to parse type of TG message. Text or Audio
     let mut parser = MessageParser {
         bot: &bot,
@@ -145,20 +147,31 @@ pub async fn chat(
         None => {
             bail!("CRITICAL! No bot name");
         }
-        Some(name) => { name }
+        Some(name) => name,
     };
     let user = parser.parse_user().await?;
     let UserId(user_id) = user.id;
-    
+
     info!("Start conversation with bot: {}", bot_name);
     match start_conversation(
-        app_state.clone(), &bot, user_id, &msg, bot_name, agent_type, parser,
-    ).await {
-        Ok(_) => {info!("Conversation has been finish successfully")}
-        Err(err) => {info!("Can't finish conversation because of {}", err)}
+        app_state.clone(),
+        &bot,
+        user_id,
+        &msg,
+        bot_name,
+        agent_type,
+        parser,
+    )
+    .await
+    {
+        Ok(_) => {
+            info!("Conversation has been finish successfully")
+        }
+        Err(err) => {
+            info!("Can't finish conversation because of {}", err)
+        }
     };
-    
-    
+
     Ok(())
 }
 

@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use crate::ai::nervo_llm::NervoLlm;
 use crate::config::jarvis::JarvisAppState;
 use crate::models::message_transcription_type::MessageTranscriptionType;
@@ -9,21 +8,26 @@ use crate::models::typing_action_model::TypingActionType;
 use crate::models::user_model::TelegramUser;
 use crate::telegram::message_parser::MessageParser;
 use crate::utils::ai_utils::{
-    filter_search_result, formation_system_role_llm_message, llm_conversation, update_search_content
+    filter_search_result, formation_system_role_llm_message, llm_conversation,
+    update_search_content,
 };
+use crate::utils::ai_utils_data::SortingType::Ascending;
+use crate::utils::ai_utils_data::TruncatingType;
 use anyhow::bail;
+use anyhow::Result;
+use async_openai::types::Embedding;
 use chrono::Utc;
-use nervo_sdk::agent_type::{AgentType};
+use nervo_sdk::agent_type::AgentType;
 use nervo_sdk::api::spec::{LlmChat, LlmMessageContent, SendMessageRequest, UserLlmMessage};
 use openai_dive::v1::api::Client;
 use openai_dive::v1::resources::audio::{
     AudioSpeechParameters, AudioSpeechResponseFormat, AudioVoice,
 };
+use qdrant_client::qdrant::vectors::VectorsOptions;
+use qdrant_client::qdrant::ScoredPoint;
+use std::collections::HashSet;
 use std::sync::{Arc, LazyLock};
 use std::time::Duration;
-use async_openai::types::Embedding;
-use qdrant_client::qdrant::{ScoredPoint};
-use qdrant_client::qdrant::vectors::VectorsOptions;
 use teloxide::prelude::ChatId;
 use teloxide::prelude::*;
 use teloxide::types::{
@@ -34,8 +38,6 @@ use teloxide::Bot;
 use tokio::sync::{Mutex, RwLock};
 use tokio::time::sleep;
 use tracing::info;
-use crate::utils::ai_utils_data::{TruncatingType};
-use crate::utils::ai_utils_data::SortingType::{Ascending};
 
 static LAST_MESSAGE_ID: LazyLock<Arc<Mutex<Option<MessageId>>>> =
     LazyLock::new(|| Arc::new(Mutex::new(None)));
@@ -50,7 +52,7 @@ pub async fn start_conversation<'a>(
     bot_name: String,
     agent_type: AgentType,
     mut parser: MessageParser<'a>,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     info!("Start conversation");
     // We need it for future. Just to send spam etc.
     save_user_id(app_state.clone(), user_id.to_string()).await?;
@@ -59,7 +61,7 @@ pub async fn start_conversation<'a>(
 
     let should_answer_as_reply =
         should_answer_as_reply(&msg, bot_name, message_text.clone()).await?;
-    
+
     // Answer formation
     if should_answer_as_reply {
         {
@@ -74,15 +76,15 @@ pub async fn start_conversation<'a>(
         }
 
         reply_to_user_message(
-                app_state,
-                &bot,
-                &msg,
-                user_id,
-                message_text,
-                agent_type,
-                parser,
-            )
-                .await?;
+            app_state,
+            &bot,
+            &msg,
+            user_id,
+            message_text,
+            agent_type,
+            parser,
+        )
+        .await?;
     }
     Ok(())
 }
@@ -95,7 +97,7 @@ async fn reply_to_user_message<'a>(
     message_text: String,
     agent_type: AgentType,
     parser: MessageParser<'a>,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     if !parser.is_tg_message_text().await? {
         system_message(
             app_state.clone(),
@@ -187,7 +189,7 @@ async fn should_answer_as_reply<'a>(
 ) -> anyhow::Result<bool> {
     let is_forwarding = msg.forward_date().is_some();
     info!("is_forwarding {}", is_forwarding);
-    
+
     info!("Do we need to answer this message?");
     // TODO:! We need to discus, do we need to use KEVIN in PUBLIC chats. If not, we need to return false
     // Need to detect it in group chats. To understand whether to answer or not.
@@ -222,7 +224,7 @@ async fn create_question_message(
     message_text: String,
     chat_id: u64,
     agent_type: AgentType,
-) -> anyhow::Result<SendMessageRequest> {
+) -> Result<SendMessageRequest> {
     let string_for_question: LlmMessageContent = if is_moderation_passed {
         let tg_message = TelegramMessage {
             id: user_id,
@@ -255,7 +257,7 @@ pub async fn system_message(
     bot: &Bot,
     msg: &Message,
     message_type: SystemMessage,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     let introduction_msg = message_type.as_str().await?;
     let reply_parameters = ReplyParameters {
         message_id: msg.id,
@@ -267,11 +269,10 @@ pub async fn system_message(
         quote_position: None,
     };
 
-    let mut translated_text = String::new();
-    {
+    let translated_text = {
         let loc_manager = app_state.localisation_manager.read().await;
-        translated_text = loc_manager.translate(introduction_msg.as_str()).await?;
-    }
+        loc_manager.translate(introduction_msg.as_str()).await?
+    };
 
     info!("Send system message");
     bot.send_message(msg.chat.id, translated_text)
@@ -282,7 +283,7 @@ pub async fn system_message(
 }
 
 // Work with User Ids
-async fn save_user_id(app_state: Arc<JarvisAppState>, user_id: String) -> anyhow::Result<()> {
+async fn save_user_id(app_state: Arc<JarvisAppState>, user_id: String) -> Result<()> {
     let user_ids = load_user_ids(app_state.clone()).await?;
 
     let contains_id = user_ids.iter().any(|user| user.id == user_id);
@@ -298,7 +299,7 @@ async fn save_user_id(app_state: Arc<JarvisAppState>, user_id: String) -> anyhow
     Ok(())
 }
 
-async fn load_user_ids(app_state: Arc<JarvisAppState>) -> anyhow::Result<Vec<TelegramUser>> {
+async fn load_user_ids(app_state: Arc<JarvisAppState>) -> Result<Vec<TelegramUser>> {
     match app_state
         .local_db
         .read_from_local_db("all_users_list")
@@ -317,7 +318,7 @@ pub async fn chat_gpt_conversation<'a>(
     is_voice: bool,
     direct_message: bool,
     agent_type: AgentType,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     info!("Start chat gpt conversation");
     let chat_id = msg.chat_id;
 
@@ -331,29 +332,28 @@ pub async fn chat_gpt_conversation<'a>(
         info!("Need to pass few layers of RAG System");
         match agent_type {
             AgentType::Kevin => {
-                app_state.clone().user_context.use_memory_in_conversation(
-                    &message,
-                    app_state.clone(),
-                    agent_type,
-                ).await?
-            }
-            _ => {
-                llm_conversation(app_state.clone(), msg, agent_type)
+                app_state
+                    .clone()
+                    .user_context
+                    .use_memory_in_conversation(&message, app_state.clone(), agent_type)
                     .await?
-                    .content
-                    .text()
             }
+            _ => llm_conversation(app_state.clone(), msg, agent_type)
+                .await?
+                .content
+                .text(),
         }
     };
-    
+
     translate_and_send_response(
         app_state.clone(),
-        final_response.as_str(), 
+        final_response.as_str(),
         is_voice,
         &bot,
         chat_id,
-        &message
-    ).await?;
+        &message,
+    )
+    .await?;
 
     Ok(())
 }
@@ -364,14 +364,12 @@ async fn translate_and_send_response(
     is_voice: bool,
     bot: &Bot,
     chat_id: u64,
-    message: &Message
-) -> anyhow::Result<()> {
-
-    let mut translated_text = String::new();
-    {
+    message: &Message,
+) -> Result<()> {
+    let translated_text = {
         let loc_manager = app_state.localisation_manager.read().await;
-        translated_text = loc_manager.translate(final_response).await?;
-    }
+        loc_manager.translate(final_response).await?
+    };
 
     info!("Stop typing!");
     stop_typing_action().await;
@@ -390,7 +388,7 @@ async fn switch_button_to_message(
     bot: &Bot,
     chat_id: u64,
     message_id: Option<MessageId>,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     remove_last_message_button(&bot, ChatId(chat_id as i64)).await?;
     let mut last_msg_lock = LAST_MESSAGE_ID.lock().await;
     *last_msg_lock = match message_id {
@@ -406,7 +404,7 @@ async fn handle_voice_message(
     chat_id: u64,
     app_state: Arc<JarvisAppState>,
     keyboard: InlineKeyboardMarkup,
-) -> anyhow::Result<MessageId> {
+) -> Result<MessageId> {
     info!("Handle Voice TG message");
     let voice_input = create_speech(user_final_question.as_str(), app_state).await?;
     let sent_message = bot
@@ -424,7 +422,7 @@ async fn handle_text_message(
     chat_id: u64,
     message: &Message,
     keyboard: InlineKeyboardMarkup,
-) -> anyhow::Result<MessageId> {
+) -> Result<MessageId> {
     info!("Handle Text TG message");
     let reply_parameters = ReplyParameters {
         message_id: message.id,
@@ -447,7 +445,7 @@ async fn handle_text_message(
     Ok(sent_message.id)
 }
 
-async fn remove_last_message_button<'a>(bot: &Bot, chat_id: ChatId) -> anyhow::Result<()> {
+async fn remove_last_message_button<'a>(bot: &Bot, chat_id: ChatId) -> Result<()> {
     info!("Need to remove last message button");
     let last_msg_lock = LAST_MESSAGE_ID.lock().await;
     if let Some(last_msg_id) = *last_msg_lock {
@@ -461,7 +459,7 @@ async fn remove_last_message_button<'a>(bot: &Bot, chat_id: ChatId) -> anyhow::R
     Ok(())
 }
 
-async fn create_speech(text: &str, app_state: Arc<JarvisAppState>) -> anyhow::Result<InputFile> {
+async fn create_speech(text: &str, app_state: Arc<JarvisAppState>) -> Result<InputFile> {
     let client = Client::new(app_state.nervo_llm.api_key().to_string());
     let parameters = AudioSpeechParameters {
         model: "tts-1".to_string(),
@@ -483,7 +481,7 @@ pub async fn transcribe_message(
     bot: &Bot,
     message: &Message,
     transcription_type: MessageTranscriptionType,
-) -> anyhow::Result<()> {
+) -> Result<()> {
     info!("Transcribe message TTS or STT");
     let mut parser = MessageParser {
         bot: &bot,
@@ -542,7 +540,7 @@ fn escape_markdown(text: &str) -> String {
         .replace('!', "\\!")
 }
 
-async fn button_creation(is_voice: bool) -> anyhow::Result<InlineKeyboardMarkup> {
+async fn button_creation(is_voice: bool) -> Result<InlineKeyboardMarkup> {
     let button_title = if is_voice {
         "Прочитать текстом"
     } else {
@@ -559,8 +557,14 @@ async fn button_creation(is_voice: bool) -> anyhow::Result<InlineKeyboardMarkup>
     ]]))
 }
 
-async fn create_not_moderated_message(text: String, nervo_llm: &NervoLlm) -> anyhow::Result<String> {
-    let system_role_instructions = format!("I have a message from the user, I know the message is unacceptable, can you please read the message and reply that the message is not acceptable. Here is the message: {:?}", text);
+async fn create_not_moderated_message(text: String, nervo_llm: &NervoLlm) -> Result<String> {
+    let system_role_instructions = {
+        let usr_stmt = "I have a message from the user";
+        let criteria = "I know the message is unacceptable, can you please read the message \
+            and reply that the message is not acceptable";
+        format!("{usr_stmt}, {criteria}. Here is the message: {text}")
+    };
+
     let language_detecting_layer = QdrantSearchLayer {
         index: None,
         user_role_params: vec![],
@@ -590,60 +594,70 @@ pub async fn get_message_related_points(
     message: &str,
     collection_name: &str,
     system_role_to_clear_request: &str,
-    app_state: Arc<JarvisAppState>
-) -> anyhow::Result<Vec<String>> {
-    
-    let clear_user_request = app_state.nervo_llm.raw_llm_processing(
-        system_role_to_clear_request,
-        &message
-    ).await?;
-    
-    let embeddings_response = app_state.nervo_llm.embedding(clear_user_request.as_str()).await?;
-    let embeddings = embeddings_response.data.into_iter().next().unwrap(); // TODO: NO FUC**N UNWRAPS
+    app_state: Arc<JarvisAppState>,
+) -> Result<Vec<String>> {
+    let clear_user_request = app_state
+        .nervo_llm
+        .raw_llm_processing(system_role_to_clear_request, &message)
+        .await?;
 
-    let unique_points_response = search_unique_points(
-        &collection_name,
-        embeddings,
-        app_state.clone()
-    ).await?;
-    
+    let embeddings_response = app_state
+        .nervo_llm
+        .embedding(clear_user_request.as_str())
+        .await?;
+    let maybe_embeddings = embeddings_response.data.into_iter().next();
+
+    let Some(embeddings) = maybe_embeddings else {
+        bail!("No embeddings data found.");
+    };
+
+    let unique_points_response =
+        search_unique_points(&collection_name, embeddings, app_state.clone()).await?;
+
     let payload = get_payload(unique_points_response)?;
-    
+
     Ok(payload)
 }
 
 async fn search_unique_points(
     collection_name: &str,
     embedding: Embedding,
-    app_state: Arc<JarvisAppState>
-) -> anyhow::Result<Vec<ScoredPoint>> {
-    let vector_search_response_of_user_request = app_state.nervo_ai_db.qdrant.vector_search(
-        &collection_name,
-        embedding.embedding,
-        3 // TODO: Read from (where??)
-    ).await?;
-    
+    app_state: Arc<JarvisAppState>,
+) -> Result<Vec<ScoredPoint>> {
+    let vector_search_response_of_user_request = app_state
+        .nervo_ai_db
+        .qdrant
+        .vector_search(
+            &collection_name,
+            embedding.embedding,
+            3, // TODO: Read from (where??)
+        )
+        .await?;
+
     let search_result = vector_search_response_of_user_request.result;
-    let filtered_search_result = filter_search_result(
-        search_result,
-        Ascending,
-        TruncatingType::None,
-        0.3
-    )?;
-    
+    let filtered_search_result =
+        filter_search_result(search_result, Ascending, TruncatingType::None, 0.3)?;
+
     let mut final_search_result: Vec<ScoredPoint> = filtered_search_result.clone();
-    
+
     for point in filtered_search_result {
         if let Some(vector) = point.vectors {
             if let Some(VectorsOptions::Vector(vec_f32)) = vector.vectors_options {
                 let result_vector: Vec<f32> = vec_f32.clone().data;
-                let vector_search_response_of_point = app_state.nervo_ai_db.qdrant.vector_search(
-                    &collection_name,
-                    result_vector,
-                    3 // TODO: Read from (where??)
-                ).await?;
+                let vector_search_response_of_point = app_state
+                    .nervo_ai_db
+                    .qdrant
+                    .vector_search(
+                        &collection_name,
+                        result_vector,
+                        3, // TODO: Read from (where??)
+                    )
+                    .await?;
                 let search_result_of_point = vector_search_response_of_point.result;
-                let mut existing_ids: HashSet<_> = final_search_result.iter().map(|point| format!("{:?}", point.id)).collect();
+                let mut existing_ids: HashSet<_> = final_search_result
+                    .iter()
+                    .map(|point| format!("{:?}", point.id))
+                    .collect();
 
                 for point in search_result_of_point {
                     if existing_ids.insert(format!("{:?}", point.id)) {
@@ -657,9 +671,7 @@ async fn search_unique_points(
     Ok(final_search_result)
 }
 
-pub fn get_payload(
-    points: Vec<ScoredPoint>
-) -> anyhow::Result<Vec<String>> {
+pub fn get_payload(points: Vec<ScoredPoint>) -> anyhow::Result<Vec<String>> {
     let mut combined_payloads = Vec::new();
     for point in points {
         if let Some(payload) = point.payload.get("text") {
@@ -668,7 +680,7 @@ pub fn get_payload(
             }
         }
     }
-    
+
     Ok(combined_payloads)
 }
 

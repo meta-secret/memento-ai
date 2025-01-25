@@ -1,5 +1,5 @@
-use std::collections::VecDeque;
 use serde_derive::{Deserialize, Serialize};
+use std::collections::VecDeque;
 
 #[derive(Clone)]
 pub struct MaxSize(pub usize);
@@ -34,31 +34,30 @@ impl Dialogue {
             .collect::<Vec<_>>()
             .join("\n\n")
     }
-    
+
     pub fn add_user_interaction(
         &mut self,
         user_request: String,
         llm_response: String,
         timestamp: String,
-    ) { 
+    ) {
         let entry = UserInteraction {
             timestamp,
             user_request,
             llm_response,
         };
-        
+
         self.messages.push_back(entry);
 
         if self.messages.len() > self.max_size.0 {
             self.messages.pop_front();
         }
     }
-    
+
     pub fn last_llm_response(&self) -> Option<String> {
         Some(self.messages.back()?.llm_response.clone())
     }
 }
-
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct UserInteraction {

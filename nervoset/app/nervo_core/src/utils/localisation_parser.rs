@@ -1,9 +1,9 @@
-use std::fmt::Display;
-use crate::ai::nervo_llm::{NervoLlm};
+use crate::ai::nervo_llm::NervoLlm;
 use crate::models::qdrant_search_layers::QdrantSearchLayer;
 use crate::utils::ai_utils::formation_system_role_llm_message;
 use anyhow::Result;
 use nervo_sdk::api::spec::LlmChat;
+use std::fmt::Display;
 use tracing::info;
 
 pub struct LocalisationManager {
@@ -48,7 +48,7 @@ impl LocalisationManager {
 
         Ok(())
     }
-    
+
     pub async fn set_language_as_locale(&mut self, locale: &str) -> Result<()> {
         match self.user_language {
             UserLang::None => {
@@ -86,10 +86,7 @@ impl LocalisationManager {
             messages: vec![system_role_msg],
         };
         let llm_response = self.nervo_llm.send_msg_batch(chat).await?;
-        info!(
-            "Translated on {} response is {}",
-            language, llm_response
-        );
+        info!("Translated on {} response is {}", language, llm_response);
         Ok(llm_response)
     }
 }
@@ -98,7 +95,7 @@ pub enum UserLang {
     Ru,
     En,
     Other(String),
-    None
+    None,
 }
 
 impl From<&str> for UserLang {

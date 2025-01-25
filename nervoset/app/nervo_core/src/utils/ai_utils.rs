@@ -4,6 +4,8 @@ use crate::config::jarvis::JarvisAppState;
 use crate::models::qdrant_search_layers::{
     QdrantSearchInfo, QdrantSearchLayer, QdrantUserRoleTextType,
 };
+use crate::utils::ai_utils_data::TruncatingType::Truncated;
+use crate::utils::ai_utils_data::{SortingType, TruncatingType};
 use anyhow::bail;
 use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 use nervo_sdk::api::spec::{
@@ -15,8 +17,6 @@ use qdrant_client::qdrant::ScoredPoint;
 use tiktoken_rs::cl100k_base;
 use tokio::fs;
 use tracing::info;
-use crate::utils::ai_utils_data::{SortingType, TruncatingType};
-use crate::utils::ai_utils_data::TruncatingType::Truncated;
 
 pub const RESOURCES_DIR: &str = "../resources/agent/";
 
@@ -29,7 +29,12 @@ pub async fn llm_conversation(
     info!("start LLM layers handling");
     let agent_type_name = NervoAgentType::get_name(agent_type.clone());
     let message_sender_id_string = msg_request.llm_message.sender_id.to_string();
-    let table_name = format!("{}_{}_{}", &agent_type_name, msg_request.clone().chat_id, message_sender_id_string.as_str());
+    let table_name = format!(
+        "{}_{}_{}",
+        &agent_type_name,
+        msg_request.clone().chat_id,
+        message_sender_id_string.as_str()
+    );
     let msg = msg_request.llm_message;
     let initial_user_content = msg.content.0.as_str();
     let user_id = msg.sender_id;
@@ -290,7 +295,10 @@ async fn create_layer_content(
     messages.push(system_role_msg);
     messages.push(user_role_msg);
 
-    let chat: LlmChat = LlmChat { chat_id: Some(chat_id), messages };
+    let chat: LlmChat = LlmChat {
+        chat_id: Some(chat_id),
+        messages,
+    };
     info!("Making chat with llm and prepared user and system roles");
     app_state.nervo_llm.send_msg_batch(chat).await
 }
@@ -470,7 +478,7 @@ async fn searching_in_qdrant(
         db_search_response.result.clone(),
         SortingType::Descending,
         Truncated(10),
-        0.3
+        0.3,
     )?;
 
     let scores_string = all_search_results
@@ -525,11 +533,14 @@ pub fn filter_search_result(
         }
         TruncatingType::None => {}
     }
-    
+
     Ok(filtered_results)
 }
 
-pub fn update_search_content(token_limit: usize, concatenated_texts: String) -> anyhow::Result<String> {
+pub fn update_search_content(
+    token_limit: usize,
+    concatenated_texts: String,
+) -> anyhow::Result<String> {
     info!("Update search content");
 
     let bpe = cl100k_base()?;
@@ -564,7 +575,6 @@ fn concatenate_results(all_search_results: Vec<ScoredPoint>) -> anyhow::Result<S
     info!("Concatenating are done");
     Ok(concatenated_texts)
 }
-
 
 #[cfg(test)]
 mod test {

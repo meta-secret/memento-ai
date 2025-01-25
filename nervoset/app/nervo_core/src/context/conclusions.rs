@@ -1,15 +1,15 @@
-use std::sync::Arc;
 use crate::config::jarvis::JarvisAppState;
-use crate::utils::ai_utils::{filter_search_result};
+use crate::context::user_context::UserContext;
 use crate::telegram::bot_utils::{get_message_related_points, get_payload};
+use crate::utils::ai_utils::filter_search_result;
+use crate::utils::ai_utils_data::system_role::{RolePathBuilder, RoleType};
+use crate::utils::ai_utils_data::SortingType::Ascending;
 use crate::utils::ai_utils_data::TruncatingType;
+use nervo_sdk::agent_type::AgentType;
 use serde_json::Value;
+use std::sync::Arc;
 use teloxide::types::ChatId;
 use tracing::info;
-use nervo_sdk::agent_type::AgentType;
-use crate::context::user_context::UserContext;
-use crate::utils::ai_utils_data::SortingType::Ascending;
-use crate::utils::ai_utils_data::system_role::{RolePathBuilder, RoleType};
 
 pub struct ConclusionsService {
     pub user_conclusions_collection_name: String,
@@ -29,24 +29,22 @@ impl ConclusionsService {
         agent_type: AgentType,
     ) -> anyhow::Result<ConclusionsService> {
         let user_conclusions_collection_name = format!("{}_conclusions", user_collection_name);
-        
-        Ok(
-            ConclusionsService {
-                user_conclusions_collection_name,
-                app_state,
-                agent_type,
-            }
-        )
+
+        Ok(ConclusionsService {
+            user_conclusions_collection_name,
+            app_state,
+            agent_type,
+        })
     }
-    
+
     pub async fn search_conclusions_by_user_request(
         &self,
         timestamped_user_raw_request: &str,
     ) -> anyhow::Result<ContentInsights> {
         info!("Searching conclusions for keywords");
-        let conclusions_json = self.get_conclusions_for_user_message(
-            &timestamped_user_raw_request
-        ).await?;
+        let conclusions_json = self
+            .get_conclusions_for_user_message(&timestamped_user_raw_request)
+            .await?;
 
         let instructions_value: Value = serde_json::from_str(&conclusions_json)?;
         let keywords: Vec<String> = match instructions_value.get("keywords") {
@@ -64,7 +62,7 @@ impl ConclusionsService {
         };
 
         let system_role_to_clear_request = path_builder.resource_path_content()?;
-        
+
         let mut all_possible_conclusions = Vec::new();
         for keyword in &keywords {
             all_possible_conclusions = get_message_related_points(
@@ -72,35 +70,41 @@ impl ConclusionsService {
                 self.user_conclusions_collection_name.as_str(),
                 system_role_to_clear_request.as_str(),
                 self.app_state.clone(),
-            ).await?;
+            )
+            .await?;
         }
-        
+
         Ok(ContentInsights {
             keywords,
             conclusions: all_possible_conclusions,
         })
     }
-    
+
     async fn get_conclusions_for_user_message(
         &self,
         timestamped_user_raw_request: &str,
     ) -> anyhow::Result<String> {
         info!("Create conclusions for user message by llm");
-        
+
         let conclusion_system_role = {
             let role_path_builder = RolePathBuilder {
                 agent_type: self.agent_type.clone(),
                 role_type: RoleType::ConclusionsPreprocessing,
             };
-            
+
             role_path_builder.resource_path_content()?
         };
 
-        let keywords_json = self.app_state.clone().nervo_llm.raw_llm_processing(
-            conclusion_system_role.as_str(),
-            timestamped_user_raw_request
-        ).await?;
-        
+        let keywords_json = self
+            .app_state
+            .clone()
+            .nervo_llm
+            .raw_llm_processing(
+                conclusion_system_role.as_str(),
+                timestamped_user_raw_request,
+            )
+            .await?;
+
         info!("{} => conclusions was found", keywords_json);
         Ok(keywords_json)
     }
@@ -112,15 +116,13 @@ impl ConclusionsService {
         timestamp: &str,
         chat_id: ChatId,
     ) -> anyhow::Result<()> {
-
         if let Some(prev_response) = user_context.last_llm_response(&chat_id) {
-            let conclusions_keywords_for_struct = self.generate_new_conclusions_list(
-                prev_response.as_str(),
-                user_raw_request
-            ).await?;
-            
-            if conclusions_keywords_for_struct.is_empty() ||
-                conclusions_keywords_for_struct == vec!["None".to_string()]
+            let conclusions_keywords_for_struct = self
+                .generate_new_conclusions_list(prev_response.as_str(), user_raw_request)
+                .await?;
+
+            if conclusions_keywords_for_struct.is_empty()
+                || conclusions_keywords_for_struct == vec!["None".to_string()]
             {
                 info!("No useful info in current interaction.");
                 return Ok(());
@@ -130,10 +132,15 @@ impl ConclusionsService {
                 let payload = self.get_conclusion_payload(conclusion).await?;
                 if payload.contains(&"No data found.".to_string()) {
                     let timestamped_conclusion = format!("{}: {}", timestamp, conclusion);
-                    self.app_state.clone().nervo_ai_db.qdrant.save_text(
-                        self.user_conclusions_collection_name.as_str(),
-                        &timestamped_conclusion
-                    ).await?;
+                    self.app_state
+                        .clone()
+                        .nervo_ai_db
+                        .qdrant
+                        .save_text(
+                            self.user_conclusions_collection_name.as_str(),
+                            &timestamped_conclusion,
+                        )
+                        .await?;
 
                     info!("New conclusion saved to the vector database.");
                 } else {
@@ -143,7 +150,7 @@ impl ConclusionsService {
         }
         Ok(())
     }
-    
+
     async fn generate_new_conclusions_list(
         &self,
         prev_response: &str,
@@ -163,10 +170,12 @@ impl ConclusionsService {
 
         let conclusion_system_role = role_path_builder.resource_path_content()?;
 
-        let conclusions_list_str = self.app_state.clone().nervo_llm.raw_llm_processing(
-            conclusion_system_role.as_str(),
-            conclusion_message.as_str()
-        ).await?;
+        let conclusions_list_str = self
+            .app_state
+            .clone()
+            .nervo_llm
+            .raw_llm_processing(conclusion_system_role.as_str(), conclusion_message.as_str())
+            .await?;
 
         let conclusions_list_json: Value = serde_json::from_str(&conclusions_list_str)?;
         info!("Conclusions list is ready");
@@ -181,32 +190,36 @@ impl ConclusionsService {
             };
 
         info!(
-            "Conclusions keywords for searching in user's db: {:?}", 
+            "Conclusions keywords for searching in user's db: {:?}",
             conclusions_keywords_for_struct
         );
 
         Ok(conclusions_keywords_for_struct)
     }
-    
-    async fn get_conclusion_payload(
-        &self,
-        conclusion: &String,
-    ) -> anyhow::Result<Vec<String>> {
-        let conclusion_vector = self.app_state.clone().nervo_llm.embedding(conclusion).await?;
 
-        let search_result = self.app_state.clone().nervo_ai_db.qdrant.vector_search(
-            self.user_conclusions_collection_name.as_str(),
-            conclusion_vector.data.into_iter().next().unwrap().embedding,
-            1
-        ).await?;
+    async fn get_conclusion_payload(&self, conclusion: &String) -> anyhow::Result<Vec<String>> {
+        let conclusion_vector = self
+            .app_state
+            .clone()
+            .nervo_llm
+            .embedding(conclusion)
+            .await?;
+
+        let search_result = self
+            .app_state
+            .clone()
+            .nervo_ai_db
+            .qdrant
+            .vector_search(
+                self.user_conclusions_collection_name.as_str(),
+                conclusion_vector.data.into_iter().next().unwrap().embedding,
+                1,
+            )
+            .await?;
 
         let search_result = search_result.result;
-        let filtered_search_result = filter_search_result(
-            search_result,
-            Ascending,
-            TruncatingType::None,
-            0.7
-        )?;
+        let filtered_search_result =
+            filter_search_result(search_result, Ascending, TruncatingType::None, 0.7)?;
         let payload = get_payload(filtered_search_result)?;
         Ok(payload)
     }

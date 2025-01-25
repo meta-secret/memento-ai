@@ -39,7 +39,8 @@ impl QdrantDb {
     pub async fn save_text(&self, collection_name: &str, text: &str) -> Result<()> {
         let maybe_vec_data = self.nervo_llm.text_to_embeddings(text).await?;
 
-        self.save(collection_name.to_string(), text, maybe_vec_data.unwrap()).await
+        self.save(collection_name.to_string(), text, maybe_vec_data.unwrap())
+            .await
     }
 
     pub async fn save(
@@ -112,7 +113,8 @@ impl QdrantDb {
                 bail!("No embedding data found.");
             }
             Some(embedding) => {
-                self.vector_search(&collection_name, embedding.embedding, search_vectors_limit).await
+                self.vector_search(&collection_name, embedding.embedding, search_vectors_limit)
+                    .await
             }
         }
     }

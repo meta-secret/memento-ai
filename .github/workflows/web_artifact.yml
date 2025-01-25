@@ -48,32 +48,6 @@ jobs:
           echo "CLOUD_FLARE_ACCOUNT_ID=$(devbox run task infra:hazmat:void_sentinel:vault:get_cloudflare_account_id)" >> $GITHUB_ENV
           echo "GH_TOKEN=$(devbox run task infra:hazmat:void_sentinel:vault:get_github_token)" >> $GITHUB_ENV
 
-      ### Probiot Deployment ###
-      - name: Build nervo-web for probiot
-        run: devbox run task nervoset:nervo_web_build AGENT_TYPE=probiot
-
-      - name: Deploy nervo-web-probiot on github pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          personal_token: ${{ env.GH_TOKEN }}
-          external_repository: nervoset/nervo-web
-          publish_branch: main
-          publish_dir: nervoset/nervo-web/dist
-          destination_dir: probiosha
-
-      ### W3a Deployment ###
-      - name: Build nervo-web for w3a
-        run: devbox run task nervoset:nervo_web_build AGENT_TYPE=w3a
-
-      - name: Deploy nervo-web-w3a on github pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          personal_token: ${{ env.GH_TOKEN }}
-          external_repository: nervoset/nervo-web
-          publish_branch: main
-          publish_dir: nervoset/nervo-web/dist
-          destination_dir: w3a
-
       ### Nervoznyak Deployment ###
       - name: Build nervo-web for nervoznyak
         run: devbox run task nervoset:nervo_web_build AGENT_TYPE=nervoznyak

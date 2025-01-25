@@ -712,15 +712,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam-channel"
-version = "0.5.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33480d6946193aa8033910124896ca395333cae7e2d1113d1fef6c3272217df2"
-dependencies = [
- "crossbeam-utils",
-]
-
-[[package]]
 name = "crossbeam-queue"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -954,15 +945,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "emojis"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99e1f1df1f181f2539bac8bf027d31ca5ffbf9e559e3f2d09413b9107b5c02f4"
-dependencies = [
- "phf",
 ]
 
 [[package]]
@@ -1510,38 +1492,6 @@ checksum = "49566409a69e4ff3340c1b6f392e5754c89fa1ea43be4584ac8ee74c1eb0643a"
 dependencies = [
  "grammers-tl-gen",
  "grammers-tl-parser",
-]
-
-[[package]]
-name = "groot"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-openai 0.26.0",
- "chrono",
- "config",
- "emojis",
- "grammers",
- "grammers-client 0.7.0",
- "grammers-session 0.7.0",
- "grammers-tl-types 0.7.0",
- "lazy_static",
- "nervo-core",
- "nervo-sdk",
- "regex",
- "reqwest 0.12.9",
- "serde",
- "serde_derive",
- "serde_json",
- "sqlx",
- "sqlx-macros",
- "teloxide",
- "thiserror 2.0.5",
- "tokio",
- "tracing",
- "tracing-appender",
- "tracing-attributes",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -2826,24 +2776,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "phf"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ade2d8b8f33c7333b51bcf0428d37e217e9f32192ae4772156f65063b8ce03dc"
-dependencies = [
- "phf_shared",
-]
-
-[[package]]
-name = "phf_shared"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90fcb95eef784c2ac79119d1dd819e162b5da872ce6f3c3abe1e8ca1c082f72b"
-dependencies = [
- "siphasher",
-]
-
-[[package]]
 name = "pin-project"
 version = "1.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3714,12 +3646,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "siphasher"
-version = "0.3.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38b58827f4464d87d377d175e90bf58eb00fd8716ff0a62f80356b5e61555d0d"
-
-[[package]]
 name = "slab"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4572,18 +4498,6 @@ dependencies = [
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
-]
-
-[[package]]
-name = "tracing-appender"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3566e8ce28cc0a3fe42519fc80e6b4c943cc4c8cef275620eb8dac2d3d4e06cf"
-dependencies = [
- "crossbeam-channel",
- "thiserror 1.0.68",
- "time",
- "tracing-subscriber",
 ]
 
 [[package]]
