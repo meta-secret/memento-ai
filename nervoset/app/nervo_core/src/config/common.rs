@@ -48,7 +48,7 @@ pub struct TelegramBotParams {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TelegramUserAgent {
-    pub groot: TelegramUserAgentParams,
+    pub kevin: TelegramUserAgentParams,
 }
 
 #[derive(Debug, Clone, Deserialize)]

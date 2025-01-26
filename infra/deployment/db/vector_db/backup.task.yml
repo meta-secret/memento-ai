@@ -11,8 +11,8 @@ tasks:
       vars:
         - DATE
     vars:
-      PROBIO_COLLECTION: "probio_collection"
-      PROBIO_COLLECTION_SNAPSHOT: "{{.PROBIO_COLLECTION}}-3563913780311279-2024-06-24-23-21-27.snapshot"
+      MEMENTO_COLLECTION: "memento_collection"
+      MEMENTO_COLLECTION_SNAPSHOT: "{{.MEMENTO_COLLECTION}}-3563913780311279-2024-06-24-23-21-27.snapshot"
 
     cmds:
       - task: download_backup_repo
@@ -27,8 +27,8 @@ tasks:
     cmds:
       - |-
         kubectl cp \
-          {{.QDRANT_BACKUP_DIR}}/{{.DATE}}/{{.PROBIO_COLLECTION_SNAPSHOT}} \
-          {{.BACKUP_MANAGER_POD_NAME}}:/qdrant-backup/{{.PROBIO_COLLECTION_SNAPSHOT}}
+          {{.QDRANT_BACKUP_DIR}}/{{.DATE}}/{{.MEMENTO_COLLECTION_SNAPSHOT}} \
+          {{.BACKUP_MANAGER_POD_NAME}}:/qdrant-backup/{{.MEMENTO_COLLECTION_SNAPSHOT}}
 
   restore:
     cmds:

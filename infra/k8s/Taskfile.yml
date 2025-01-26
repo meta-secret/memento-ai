@@ -14,18 +14,6 @@ includes:
       IMAGE_NAME:
         sh: task -t {{.ROOT_DIR}}/Taskfile.yml infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
 
-  groot:
-    taskfile: app.task.yml
-    dir: groot
-
-    vars:
-      USER: "{{.USER}}"
-      K8S_APP_NAME: 'groot'
-      APP_NAME: 'groot'
-      CONFIGS: statefulset.k
-      IMAGE_NAME:
-        sh: task -t {{.ROOT_DIR}}/Taskfile.yml infra:k8s:img_name REGISTRY={{.REGISTRY}} REPOSITORY={{.REPOSITORY}} K8S_APP_NAME={{.K8S_APP_NAME}} APP_VERSION={{.APP_VERSION}} INFRA={{.INFRA}}
-
   nervo_server:
     taskfile: app.task.yml
     dir: nervo-server

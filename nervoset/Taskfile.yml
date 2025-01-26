@@ -17,18 +17,6 @@ includes:
       IMAGE_NAME:
         sh: task nervoset:img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
 
-  docker_groot:
-    taskfile: .task/docker.yml
-    requires:
-      vars:
-        - INFRA #'dev' or 'prod'
-    vars:
-      APP_NAME: 'groot'
-      K8S_APP_NAME: 'groot'
-      VERSION: '{{.APP_VERSION}}'
-      IMAGE_NAME:
-        sh: task nervoset:img_name K8S_APP_NAME={{.K8S_APP_NAME}} INFRA={{.INFRA}}
-
   docker_nervo-migrant:
     taskfile: .task/docker.yml
     requires:
@@ -255,7 +243,6 @@ tasks:
       vars:
         - INFRA #'dev' or 'prod'
     cmds:
-      - task: docker_groot:push
       - task: docker_jarvis:push
       - task: docker_nervo_server:push
       - task: docker_nervo-migrant:push
