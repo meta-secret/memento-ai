@@ -3,7 +3,6 @@ pub mod system_role {
     use nervo_sdk::agent_type::{AgentType, NervoAgentType};
 
     pub enum RoleType {
-        Crap,
         Clearing,
         UniquePointsFinal,
         AssistantMemory,
@@ -14,7 +13,6 @@ pub mod system_role {
     impl RoleType {
         pub fn file_name(&self) -> FileName {
             let file_name = match self {
-                RoleType::Crap => FileName::CRAP,
                 RoleType::Clearing => FileName::CLEARING,
                 RoleType::UniquePointsFinal => FileName::UNIQUE_POINTS_FINAL,
                 RoleType::AssistantMemory => FileName::ASSISTANT_MEMORY,
@@ -64,12 +62,12 @@ pub mod system_role {
         fn resource_path_test() {
             let role_path = RolePathBuilder {
                 agent_type: AgentType::Kevin,
-                role_type: RoleType::Crap,
+                role_type: RoleType::Clearing,
             };
 
             let expected = {
                 let agent_name = NervoAgentType::get_name(AgentType::Kevin);
-                format!("../resources/agent/{agent_name}/system_roles/crap.assistant_memory.txt")
+                format!("../resources/agent/{agent_name}/system_roles/clearing.txt")
             };
             assert_eq!(expected, role_path.resource_path());
         }
